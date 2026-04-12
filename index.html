@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -817,15 +818,12 @@ tbody td{padding:11px 11px;vertical-align:middle}
 // 접근 제어 (Google OAuth 이메일 화이트리스트)
 // ══════════════════════════════════════════════════════════
 const AUTH={
-  // ★ 접근 허용할 Google 이메일 목록 — 여기에 추가/제거하세요
   ALLOWED_EMAILS:[
-    'itsbeybusiness@gmail.com',   // 본인 이메일로 교체
-    'baekeun0@gmail.com',        // 동료 이메일 추가 예시
+    'itsbeybusiness@gmail.com',
+    'baekeun0@gmail.com',
   ],
-  // ★ Google OAuth Client ID — 연결 후 여기 붙여넣어 두면 자동 로그인 가능
-  CLIENT_ID:'27055656717-pgddfisd182i8jqlg574v7vrbkff2b2b.apps.googleusercontent.com',   // 예: '123456789-abc.apps.googleusercontent.com'
-  // ★ Google Spreadsheet ID
-  SHEET_ID:'1QHzz73LzPSGWCwl6SN7TPaxxdyqnkIxzlq9TQpGopag',    // 예: '1abc2def3ghi...'
+  CLIENT_ID:'27055656717-pgddfisd182i8jqlg574v7vrbkff2b2b.apps.googleusercontent.com',
+  SHEET_ID:'1QHzz73LzPSGWCwl6SN7TPaxxdyqnkIxzlq9TQpGopag',
 
   userEmail:null,
   userName:null,
@@ -1118,38 +1116,34 @@ const GS={
     }
   },
 
-  // 전체 로드 (Sheets → DB)
+  // 전체 로드 (Sheets → DB) — 시트별 개별 요청으로 range 매칭 오류 원천 차단
   async loadAll(){
     this.updateUI('sync','동기화 중...');
     const keys=Object.keys(this.SHEETS);
-    const ranges=keys.map(k=>this.SHEETS[k].name+'!A:Z');
-    const resp=await this.apiRequest('GET',`/${this.sheetId}/values:batchGet?ranges=${ranges.map(encodeURIComponent).join('&ranges=')}`);
-    const vrs=resp.valueRanges||[];
-    keys.forEach((key,i)=>{
+    for(const key of keys){
       const sheet=this.SHEETS[key];
-      // range 응답 형식: "'SheetName'!A1:Z100" 또는 "SheetName!A1:Z100"
-      // 시트명만 추출해서 비교
-      const vr=vrs.find(v=>{
-        const r=(v.range||'');
-        const sheetPart=r.includes('!')?r.split('!')[0].replace(/^'+|'+$/g,'').trim():'';
-        return sheetPart.toLowerCase()===sheet.name.toLowerCase();
-      })||vrs[i];
-      const rows=(vr?.values||[]);
-      if(rows.length<2){DB[key]=[];return;}
-      const headers=rows[0];
-      DB[key]=rows.slice(1).filter(r=>r[0]).map(r=>{
-        const obj={};
-        headers.forEach((h,j)=>{
-          let v=r[j]??'';
-          if(h==='is_active'||h==='usage_recorded')v=v==='true'||v===true;
-          else if(['purchase_unit_qty','price_per_unit','lead_time_days','selling_price','max_participants','participants','qty_per_person','quantity','selling_price_snapshot'].includes(h))v=v===''||v===null?null:Number(v);
-          else if(h==='recipe_snapshot'){try{v=v?JSON.parse(v):{};}catch(e){v={};}}
-          else if(h==='valid_until'||h==='order_date'||h==='session_id'||h==='usage_recorded_at')v=v||null;
-          obj[h]=v;
+      try{
+        const resp=await this.apiRequest('GET',`/${this.sheetId}/values/${encodeURIComponent(sheet.name+'!A:Z')}`);
+        const rows=(resp.values||[]);
+        if(rows.length<2){DB[key]=[];continue;}
+        const headers=rows[0];
+        DB[key]=rows.slice(1).filter(r=>r[0]).map(r=>{
+          const obj={};
+          headers.forEach((h,j)=>{
+            let v=r[j]??'';
+            if(h==='is_active'||h==='usage_recorded')v=v==='true'||v===true;
+            else if(['purchase_unit_qty','price_per_unit','lead_time_days','selling_price','max_participants','participants','qty_per_person','quantity','selling_price_snapshot'].includes(h))v=v===''||v===null?null:Number(v);
+            else if(h==='recipe_snapshot'){try{v=v?JSON.parse(v):{};}catch(e){v={};}}
+            else if(h==='valid_until'||h==='order_date'||h==='session_id'||h==='usage_recorded_at')v=v||null;
+            obj[h]=v;
+          });
+          return obj;
         });
-        return obj;
-      });
-    });
+      }catch(e){
+        console.warn('loadAll 시트 오류 ('+sheet.name+'):', e.message);
+        // 개별 시트 오류는 건너뜀 (다른 시트는 계속 로드)
+      }
+    }
     this.lastSync=new Date().toISOString();
     this.updateUI('ok','연결됨 · '+this.sheetId.slice(0,12)+'...');
   },
@@ -1205,7 +1199,7 @@ async function gsConnect(){
     const allDone=DB.sessions.filter(s=>s.usage_recorded).sort((a,b)=>a.session_date.localeCompare(b.session_date));
     document.getElementById('rep-from').value=allDone[0]?.session_date||today();
     document.getElementById('rep-to').value=today();
-    renderDashboard();
+    renderDashboard();renderPrograms();renderIngredients();renderSessions();renderStock();
     toast('Google Sheets 연동 완료 ✓');
   }catch(e){
     console.error(e);
