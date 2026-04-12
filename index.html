@@ -1120,8 +1120,11 @@ const GS={
       try{
         const resp=await this.apiRequest('GET',`/${this.sheetId}/values/${encodeURIComponent(sheet.name+'!A:Z')}`);
         const rows=(resp.values||[]);
-        // 데이터 행이 없으면 DB 그대로 유지 (seedData 보호)
-        if(rows.length<2){continue;}
+        console.log('[loadAll]',sheet.name,'rows:',rows.length, rows.length>0?'header:'+JSON.stringify(rows[0]):'(empty)');
+        if(rows.length<2){
+          console.log('[loadAll]',sheet.name,'→ 비어있음, DB 유지 (현재:',DB[key]?.length,')');
+          continue;
+        }
         const headers=rows[0];
         const parsed=rows.slice(1).filter(r=>r[0]).map(r=>{
           const obj={};
@@ -1135,12 +1138,13 @@ const GS={
           });
           return obj;
         });
-        // 파싱된 결과가 있을 때만 DB 교체
+        console.log('[loadAll]',sheet.name,'→ parsed:',parsed.length,'건, is_active 샘플:', parsed[0]?.is_active, '(type:'+typeof parsed[0]?.is_active+')');
         if(parsed.length>0){DB[key]=parsed;}
       }catch(e){
-        console.warn('loadAll 시트 오류 ('+sheet.name+'):', e.message);
+        console.warn('[loadAll] 시트 오류 ('+sheet.name+'):', e.message);
       }
     }
+    console.log('[loadAll] 완료 — ingredients:',DB.ingredients?.length,'programs:',DB.programs?.length);
     this.lastSync=new Date().toISOString();
     this.updateUI('ok','연결됨 · '+this.sheetId.slice(0,12)+'...');
   },
@@ -1222,6 +1226,7 @@ function gsShowHelp(){openModal('m-gs-help');}
 
 // loadAll 완료 후 공통 렌더링
 function afterLoad(){
+  console.log('[afterLoad] DB 상태 — ingredients:',DB.ingredients?.length,'programs:',DB.programs?.length,'sessions:',DB.sessions?.length);
   syncIngSelects();syncProgSelects();syncCatSelect();
   const done=DB.sessions.filter(s=>s.usage_recorded).sort((a,b)=>a.session_date.localeCompare(b.session_date));
   document.getElementById('rep-from').value=done[0]?.session_date||today();
