@@ -1207,7 +1207,7 @@ const GS={
         if(parsed.length>0){DB[key]=parsed;}
       }catch(e){
         console.warn('[loadAll] 시트 오류 ('+sheet.name+'):', e.message);
-        emptyKeys.push(key);
+        // 읽기 오류는 빈 시트가 아니므로 emptyKeys에 추가하지 않음 (데이터 덮어쓰기 방지)
       }
     }
     // 비어있었던 시트 중 DB에 데이터가 있는 것들을 Sheets에 push (초기 동기화)
@@ -1393,7 +1393,7 @@ function requireSheets(){
 }
 
 
-const DB={ingredients:[],ingredientsHistory:[],programs:[],programsHistory:[],programRecipes:[],sessions:[],inventoryLog:[],categories:[],members:[],participationLogs:[],benefits:[],gifts:[],addOptions:[]};
+const DB={ingredients:[],ingredientsHistory:[],programs:[],programsHistory:[],programRecipes:[],sessions:[],inventoryLog:[],categories:[],members:[],participationLogs:[],benefits:[],gifts:[],addOptions:[],appMeta:[]};
 
 // ══════════════════════════════════════════════════════════
 // 유틸
