@@ -262,7 +262,6 @@ tbody td{padding:11px 11px;vertical-align:middle}
   .mobile-header{display:flex}
   .main{margin-left:0;padding-top:var(--hdr)}
   .page-header{padding:14px 14px 0}.page-body{padding:12px 14px 72px}
-  .g2,.g3{grid-template-columns:1fr}
   .desk-only{display:none!important}
   .tbl-wrap table thead{display:none}
   .tbl-wrap table tbody tr{display:block;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;padding:10px 12px}
@@ -275,6 +274,13 @@ tbody td{padding:11px 11px;vertical-align:middle}
   .emoji-picker-wrap{width:calc(100vw - 40px)}
   .cal-cell{min-height:60px;padding:4px}
   .cal-event{font-size:10px;padding:2px 4px}
+}
+.pager-mob{display:none}
+@media(max-width:768px){
+  .pager-desk{display:none!important}
+  .pager-mob{display:inline-flex;gap:4px;align-items:center}
+  .g2,.g3{gap:8px}
+  .g2>*,.g3>*{min-width:0}
 }
 @media(min-width:769px){.mob-only{display:none!important}}
 
@@ -348,6 +354,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
     <div class="nav-item" data-page="history"><span class="nav-icon">📝</span>입출고 이력</div>
     <div class="nav-item" data-page="report"><span class="nav-icon">📊</span>리포트</div>
     <div class="nav-item" onclick="openChangeHistory()" style="margin-top:4px;border-top:1px solid var(--border);padding-top:10px"><span class="nav-icon">🕐</span>변경 이력</div>
+    <div class="nav-item" onclick="openSettings()" style="margin-top:2px"><span class="nav-icon">⚙</span>설정</div>
   </div>
   <div class="sidebar-footer" id="footer-status" style="font-size:10px;color:var(--text3);padding:8px 12px;border-top:1px solid var(--border)">로딩 중...</div>
   <!-- Google Sheets 연동 패널 -->
@@ -537,42 +544,26 @@ tbody td{padding:11px 11px;vertical-align:middle}
 <div class="page" id="page-members">
   <div class="page-header">
     <div><div class="page-title">참가자</div></div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-outline btn-sm" onclick="openChannelMgr()">⚙ 채널 설정</button>
-      <button class="btn btn-primary" onclick="openMemberModal()">+ 참가자 추가</button>
-    </div>
+    <button class="btn btn-primary" onclick="openMemberModal()">+ 참가자 추가</button>
   </div>
   <div class="page-body">
     <div class="g3" style="margin-bottom:14px" id="member-stats"></div>
     <div class="card" style="margin-bottom:14px">
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <input class="form-input" id="member-search" placeholder="이름·전화·인스타 검색…" style="flex:1;min-width:160px" oninput="renderMembers()">
-        <select class="form-select" id="member-filter-role" style="width:110px" onchange="renderMembers()">
-          <option value="">역할 전체</option>
-          <option value="손님">손님</option>
-          <option value="포크">포크</option>
-          <option value="운영">운영</option>
-        </select>
+        <select class="form-select" id="member-filter-role" style="width:110px" onchange="renderMembers()"><option value="">역할 전체</option></select>
         <select class="form-select" id="member-filter-active" style="width:100px" onchange="renderMembers()">
-          <option value="">전체</option>
-          <option value="1">활성</option>
-          <option value="0">비활성</option>
+          <option value="">전체</option><option value="1">활성</option><option value="0">비활성</option>
         </select>
       </div>
     </div>
     <div class="card">
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr>
-            <th>이름</th><th>전화번호</th><th>인스타</th><th>역할</th>
-            <th style="text-align:center">참여</th><th>마지막 참여</th><th>가입일</th><th>상태</th><th></th>
-          </tr></thead>
-          <tbody id="member-tbody"></tbody>
-        </table>
-      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>이름</th><th>전화번호</th><th>인스타</th><th>역할</th><th style="text-align:center">참여</th><th>마지막 참여</th><th>가입일</th><th>상태</th><th></th></tr></thead>
+        <tbody id="member-tbody"></tbody>
+      </table></div>
       <div id="member-empty" class="empty" style="display:none">
-        <div class="empty-icon">👥</div>
-        <div style="font-size:13px">등록된 참가자 없음</div>
+        <div class="empty-icon">👥</div><div style="font-size:13px">등록된 참가자 없음</div>
         <button class="btn btn-primary" style="margin-top:12px" onclick="openMemberModal()">첫 참가자 추가</button>
       </div>
     </div>
@@ -966,7 +957,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
   </div>
 </div>
 
-<!-- ════ 모달: 참가자 추가/수정 ════ -->
+<!-- ════ 모달: 참가자 추가/수정 (z-510) ════ -->
 <div class="overlay" id="m-member">
   <div class="modal">
     <div class="modal-head"><div class="modal-title" id="m-member-title">참가자 추가</div><button class="modal-x" onclick="closeModal('m-member')">×</button></div>
@@ -974,13 +965,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
       <input type="hidden" id="member-id">
       <div class="g2">
         <div class="form-group"><label class="form-label">이름 *</label><input type="text" class="form-input" id="member-name" placeholder="예: 홍길동"></div>
-        <div class="form-group"><label class="form-label">역할</label>
-          <select class="form-select" id="member-role">
-            <option value="손님">손님</option>
-            <option value="포크">🍴 포크</option>
-            <option value="운영">운영</option>
-          </select>
-        </div>
+        <div class="form-group"><label class="form-label">역할</label><select class="form-select" id="member-role"></select></div>
       </div>
       <div class="g2">
         <div class="form-group"><label class="form-label">전화번호</label><input type="text" class="form-input" id="member-phone" placeholder="010-0000-0000"></div>
@@ -988,20 +973,14 @@ tbody td{padding:11px 11px;vertical-align:middle}
       </div>
       <div class="form-group"><label class="form-label">메모</label><textarea class="form-textarea" id="member-memo" placeholder="특이사항, 알레르기 등…" style="min-height:60px"></textarea></div>
     </div>
-    <div class="modal-foot">
-      <button class="btn btn-outline" onclick="closeModal('m-member')">취소</button>
-      <button class="btn btn-primary" onclick="saveMember()">저장</button>
-    </div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('m-member')">취소</button><button class="btn btn-primary" onclick="saveMember()">저장</button></div>
   </div>
 </div>
 
 <!-- ════ 모달: 참가자 상세 ════ -->
 <div class="overlay" id="m-member-detail">
   <div class="modal" style="max-width:600px">
-    <div class="modal-head">
-      <div class="modal-title" id="m-member-detail-name">참가자 상세</div>
-      <button class="modal-x" onclick="closeModal('m-member-detail')">×</button>
-    </div>
+    <div class="modal-head"><div class="modal-title" id="m-member-detail-name">참가자 상세</div><button class="modal-x" onclick="closeModal('m-member-detail')">×</button></div>
     <div class="modal-body">
       <div id="m-member-info"></div>
       <div class="hr"></div>
@@ -1025,37 +1004,26 @@ tbody td{padding:11px 11px;vertical-align:middle}
 <div class="overlay" id="m-participants">
   <div class="modal modal-lg">
     <div class="modal-head">
-      <div>
-        <div class="modal-title" id="m-participants-title">참가자 관리</div>
-        <div id="m-participants-sub" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
-      </div>
+      <div><div class="modal-title" id="m-participants-title">참가자 관리</div><div id="m-participants-sub" style="font-size:11px;color:var(--text3);margin-top:2px"></div></div>
       <button class="modal-x" onclick="closeModal('m-participants')">×</button>
     </div>
     <div class="modal-body">
-      <!-- 벌크 액션 바 -->
-      <div id="plog-bulk-bar" style="display:none;gap:8px;align-items:center;padding:8px 12px;background:#f8f8f8;border-radius:8px;margin-bottom:10px">
-        <span id="plog-bulk-count" style="font-size:12px;color:var(--text2)">0개 선택</span>
-        <div style="flex:1"></div>
+      <div id="plog-bulk-bar" style="display:none;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;background:#f8f8f8;border-radius:8px;margin-bottom:10px">
+        <span id="plog-bulk-count" style="font-size:12px;color:var(--text2);flex-shrink:0">0개 선택</span>
+        <div style="flex:1;min-width:0"></div>
         <button class="btn btn-green btn-sm" onclick="bulkSetPayment('확인')">✓ 결제확인</button>
-        <button class="btn btn-outline btn-sm" onclick="bulkSetStatus('참여확정')">참여확정</button>
-        <button class="btn btn-outline btn-sm" onclick="bulkSetStatus('취소')">취소 처리</button>
+        <div id="plog-bulk-status-btns" style="display:contents"></div>
       </div>
-      <!-- 참가자 테이블 -->
-      <div class="tbl-wrap">
-        <table id="plog-table">
-          <thead><tr>
-            <th style="width:32px"><input type="checkbox" id="plog-check-all" onchange="toggleAllPlogs(this.checked)"></th>
-            <th>참가자</th><th>신청 채널</th><th>상태</th><th>결제</th><th>금액</th><th>메모</th><th></th>
-          </tr></thead>
-          <tbody id="plog-tbody"></tbody>
-        </table>
-      </div>
-      <div id="plog-empty" class="empty" style="display:none">
-        <div class="empty-icon">👤</div>
-        <div style="font-size:13px">등록된 참가자 없음</div>
-      </div>
+      <div class="tbl-wrap"><table id="plog-table">
+        <thead><tr>
+          <th style="width:32px"><input type="checkbox" id="plog-check-all" onchange="toggleAllPlogs(this.checked)"></th>
+          <th>참가자</th><th>신청 채널</th><th>상태</th><th>결제</th><th>금액</th><th>메모</th><th></th>
+        </tr></thead>
+        <tbody id="plog-tbody"></tbody>
+      </table></div>
+      <div id="plog-empty" class="empty" style="display:none"><div class="empty-icon">👤</div><div style="font-size:13px">등록된 참가자 없음</div></div>
       <div id="plog-summary" style="margin-top:10px;padding:8px 12px;background:#fafafa;border-radius:8px;font-size:12px;color:var(--text2)"></div>
-      <!-- 인라인 참가자 추가 -->
+      <div id="plog-past-notice" style="display:none;margin-top:12px;padding:10px 14px;background:#fff8cc;border:1px solid #ffe066;border-radius:8px;font-size:12px;color:#7a6000">지난 모임입니다 — 참가자 추가/수정만 가능하고 새로운 추가는 할 수 없습니다.</div>
       <div id="plog-add-area" style="margin-top:14px">
         <button class="btn btn-outline btn-sm" id="plog-add-toggle-btn" onclick="togglePlogAddArea()">+ 참가자 추가</button>
         <div id="plog-search-panel" style="display:none;margin-top:10px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px">
@@ -1065,20 +1033,16 @@ tbody td{padding:11px 11px;vertical-align:middle}
         </div>
       </div>
     </div>
-    <div class="modal-foot">
-      <button class="btn btn-outline" onclick="closeModal('m-participants')">닫기</button>
-    </div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('m-participants')">닫기</button></div>
   </div>
 </div>
 
-<!-- ════ 모달: 참여 정보 입력/수정 ════ -->
+<!-- ════ 모달: 참여 정보 (z-510) ════ -->
 <div class="overlay" id="m-plog">
   <div class="modal">
-    <div class="modal-head"><div class="modal-title" id="m-plog-title">참여 정보 추가</div><button class="modal-x" onclick="closeModal('m-plog')">×</button></div>
+    <div class="modal-head"><div class="modal-title" id="m-plog-title">참여 정보 추가</div><button class="modal-x" onclick="closePlogModal()">×</button></div>
     <div class="modal-body">
-      <input type="hidden" id="plog-id">
-      <input type="hidden" id="plog-member-id">
-      <input type="hidden" id="plog-session-id">
+      <input type="hidden" id="plog-id"><input type="hidden" id="plog-member-id"><input type="hidden" id="plog-session-id">
       <div class="form-group" id="plog-member-display">
         <label class="form-label">참가자</label>
         <div id="plog-member-name-display" style="padding:9px 12px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px"></div>
@@ -1090,20 +1054,12 @@ tbody td{padding:11px 11px;vertical-align:middle}
       <div class="g2">
         <div class="form-group"><label class="form-label">신청 채널</label><select class="form-select" id="plog-channel"></select></div>
         <div class="form-group"><label class="form-label">상태</label>
-          <select class="form-select" id="plog-status">
-            <option value="참여확정">참여확정</option>
-            <option value="대기">대기</option>
-            <option value="취소">취소</option>
-          </select>
+          <select class="form-select" id="plog-status"></select>
         </div>
       </div>
       <div class="g2">
         <div class="form-group"><label class="form-label">결제 상태</label>
-          <select class="form-select" id="plog-payment-status">
-            <option value="미납">미납</option>
-            <option value="확인">확인</option>
-            <option value="환불">환불</option>
-          </select>
+          <select class="form-select" id="plog-payment-status" onchange="onPlogPayStatusChange()"></select>
         </div>
         <div class="form-group"><label class="form-label">결제 금액 (원)</label>
           <input type="number" class="form-input" id="plog-amount" placeholder="0" min="0">
@@ -1122,7 +1078,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
   </div>
 </div>
 
-<!-- ════ 모달: 세션 검색 (멤버용) ════ -->
+<!-- ════ 모달: 세션 검색 (z-510) ════ -->
 <div class="overlay" id="m-ses-search">
   <div class="modal">
     <div class="modal-head"><div class="modal-title">모임 선택 (예정된 모임)</div><button class="modal-x" onclick="closeModal('m-ses-search')">×</button></div>
@@ -1137,19 +1093,81 @@ tbody td{padding:11px 11px;vertical-align:middle}
   </div>
 </div>
 
-<!-- ════ 모달: 채널 설정 ════ -->
-<div class="overlay" id="m-channel-mgr">
-  <div class="modal">
-    <div class="modal-head"><div class="modal-title">채널 설정</div><button class="modal-x" onclick="closeModal('m-channel-mgr')">×</button></div>
-    <div class="modal-body">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:10px">참여 로그에서 사용할 신청 채널 목록을 관리합니다.</div>
-      <div id="channel-list"></div>
-      <div style="margin-top:14px;display:flex;gap:8px">
-        <input class="form-input" id="channel-new-name" placeholder="새 채널명 입력…" style="flex:1" onkeydown="if(event.key==='Enter')addChannel()">
-        <button class="btn btn-primary" onclick="addChannel()">추가</button>
+<!-- ════ 모달: 설정 ════ -->
+<div class="overlay" id="m-settings">
+  <div class="modal modal-lg">
+    <div class="modal-head"><div class="modal-title">⚙ 설정</div><button class="modal-x" onclick="closeModal('m-settings')">×</button></div>
+    <div class="modal-body" style="padding:0">
+      <div class="tab-bar" style="padding:10px 18px 0;border-bottom:1px solid var(--border)">
+        <button class="tab-btn active" id="settings-tab-ch" onclick="openSettingsTab('ch')">📡 신청 채널</button>
+        <button class="tab-btn" id="settings-tab-role" onclick="openSettingsTab('role')">👤 참가자 역할</button>
+        <button class="tab-btn" id="settings-tab-type" onclick="openSettingsTab('type')">🏷 프로그램 타입</button>
+        <button class="tab-btn" id="settings-tab-cat" onclick="openSettingsTab('cat')">🗂 카테고리</button>
+        <button class="tab-btn" id="settings-tab-sheets" onclick="openSettingsTab('sheets')">☁ Sheets</button>
+        <button class="tab-btn" id="settings-tab-pstat" onclick="openSettingsTab('pstat')">📋 참여 상태</button>
+        <button class="tab-btn" id="settings-tab-paystat" onclick="openSettingsTab('paystat')">💳 결제 상태</button>
+        <button class="tab-btn" id="settings-tab-info" onclick="openSettingsTab('info')">ℹ 앱 정보</button>
+      </div>
+      <div style="padding:20px">
+        <!-- 채널 -->
+        <div id="settings-panel-ch">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:12px">참여 로그에서 사용하는 신청 채널 목록입니다.</div>
+          <div id="settings-ch-list"></div>
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <input class="form-input" id="settings-ch-new" placeholder="새 채널명…" style="flex:1" onkeydown="if(event.key==='Enter')settingsAddCh()">
+            <button class="btn btn-primary" onclick="settingsAddCh()">추가</button>
+          </div>
+        </div>
+        <!-- 역할 -->
+        <div id="settings-panel-role" style="display:none">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:12px">참가자에게 부여할 역할 목록입니다. 삭제 시 해당 역할의 참가자는 첫 번째 역할로 변경됩니다.</div>
+          <div id="settings-role-list"></div>
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <input class="form-input" id="settings-role-new" placeholder="새 역할명…" style="flex:1" onkeydown="if(event.key==='Enter')settingsAddRole()">
+            <button class="btn btn-primary" onclick="settingsAddRole()">추가</button>
+          </div>
+        </div>
+        <!-- 프로그램 타입 -->
+        <div id="settings-panel-type" style="display:none">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:12px">프로그램을 분류하는 타입 목록입니다. 색상도 함께 설정할 수 있습니다.</div>
+          <div id="settings-type-list"></div>
+          <div style="margin-top:12px"><button class="btn btn-outline btn-sm" onclick="openProgTypeModal()">+ 타입 추가</button></div>
+        </div>
+        <!-- 카테고리 -->
+        <div id="settings-panel-cat" style="display:none">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:12px">원가 항목에 사용하는 카테고리 목록입니다.</div>
+          <div id="settings-cat-list"></div>
+          <div style="margin-top:12px"><button class="btn btn-outline btn-sm" onclick="openCatModal()">+ 카테고리 추가</button></div>
+        </div>
+        <!-- Sheets 연결 정보 -->
+        <div id="settings-panel-sheets" style="display:none">
+          <div id="settings-sheets-body"></div>
+        </div>
+        <!-- 참여 상태 -->
+        <div id="settings-panel-pstat" style="display:none">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:12px">참여 로그에서 사용하는 참여 상태 목록입니다. <span style="color:#c08000">대기·참여확정·취소·불참</span>은 시스템 예약값이라 삭제해도 내부 로직에 영향을 줄 수 있습니다.</div>
+          <div id="settings-pstat-list"></div>
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <input class="form-input" id="settings-pstat-new" placeholder="새 상태명…" style="flex:1" onkeydown="if(event.key==='Enter')settingsAddPstat()">
+            <button class="btn btn-primary" onclick="settingsAddPstat()">추가</button>
+          </div>
+        </div>
+        <!-- 결제 상태 -->
+        <div id="settings-panel-paystat" style="display:none">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:12px">참여 로그에서 사용하는 결제 상태 목록입니다. <span style="color:#c08000">미납·확인</span>은 자동 연동에 쓰이는 예약값입니다.</div>
+          <div id="settings-paystat-list"></div>
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <input class="form-input" id="settings-paystat-new" placeholder="새 상태명…" style="flex:1" onkeydown="if(event.key==='Enter')settingsAddPaystat()">
+            <button class="btn btn-primary" onclick="settingsAddPaystat()">추가</button>
+          </div>
+        </div>
+        <!-- 앱 정보 -->
+        <div id="settings-panel-info" style="display:none">
+          <div id="settings-info-body"></div>
+        </div>
       </div>
     </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('m-channel-mgr')">닫기</button></div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('m-settings')">닫기</button></div>
   </div>
 </div>
 
@@ -1348,12 +1366,8 @@ function updateUserInfo(){
 
 function authLogout(){
   if(!confirm('로그아웃 할까요?'))return;
-  if(GS.accessToken&&window.google?.accounts?.oauth2){
-    try{google.accounts.oauth2.revoke(GS.accessToken,()=>{});}catch(e){}
-  }
-  if(window.google?.accounts?.id){
-    try{google.accounts.id.disableAutoSelect();}catch(e){}
-  }
+  if(GS.accessToken&&window.google?.accounts?.oauth2){try{google.accounts.oauth2.revoke(GS.accessToken,()=>{});}catch(e){}}
+  if(window.google?.accounts?.id){try{google.accounts.id.disableAutoSelect();}catch(e){}}
   AUTH.clearSession();
   GS.accessToken=null;GS.tokenExpiry=0;
   document.getElementById('auth-screen').style.display='flex';
@@ -1383,7 +1397,9 @@ const GS={
     sessions:{name:'sessions',cols:['id','program_id','session_date','session_time','participants','selling_price_snapshot','recipe_snapshot','usage_recorded','usage_recorded_at','created_at','memo','created_by']},
     inventoryLog:{name:'inventory_log',cols:['id','log_date','ingredient_id','type','quantity','order_date','session_id','created_at','memo','created_by']},
     categories:{name:'categories',cols:['id','name','color']},
-    programTypes:{name:'program_types',cols:['id','name','color']}
+    programTypes:{name:'program_types',cols:['id','name','color']},
+    members:{name:'members',cols:['id','name','phone','instagram_id','role','memo','joined_at','is_active']},
+    participationLogs:{name:'participation_logs',cols:['id','member_id','session_id','applied_at','status','channel','payment_status','payment_amount','payment_confirmed_at','memo','created_by']}
   },
 
   isConnected(){return !!this.accessToken && Date.now()<this.tokenExpiry;},
@@ -1586,18 +1602,27 @@ function gsShowHelp(){openModal('m-gs-help');}
 // loadAll 완료 후 공통 렌더링
 // 공통 페이저 빌더
 function buildPager(elId,total,page,perPage,onPageChange){
-  const pg=document.getElementById(elId);
-  if(!pg)return;
+  const pg=document.getElementById(elId);if(!pg)return;
   const pages=Math.max(1,Math.ceil(total/perPage));
-  pg.innerHTML='<span style="font-size:12px;color:var(--text3);font-family:var(--mono)">전체 '+total+'개</span>';
+  const prev=onPageChange+'(Math.max(1,'+page+'-1))';
+  const next=onPageChange+'(Math.min('+pages+','+page+'+1))';
+  let html='<span style="font-size:12px;color:var(--text3);font-family:var(--mono)">전체 '+total+'개</span>';
   if(pages>1){
-    pg.innerHTML+='<button class="pg-btn" onclick="'+onPageChange+'(Math.max(1,'+page+'-1))" '+(page===1?'disabled':'')+'>‹</button>';
+    html+='<span class="pager-desk">';
+    html+='<button class="pg-btn" onclick="'+prev+'" '+(page===1?'disabled':'')+'>‹</button>';
     for(let i=1;i<=pages;i++){
-      if(i===1||i===pages||Math.abs(i-page)<=2)pg.innerHTML+='<button class="pg-btn'+(i===page?' active':'')+'" onclick="'+onPageChange+'('+i+')">'+i+'</button>';
-      else if(Math.abs(i-page)===3)pg.innerHTML+='<span style="color:var(--text3);padding:0 4px">…</span>';
+      if(i===1||i===pages||Math.abs(i-page)<=2)html+='<button class="pg-btn'+(i===page?' active':'')+'" onclick="'+onPageChange+'('+i+')">'+i+'</button>';
+      else if(Math.abs(i-page)===3)html+='<span style="color:var(--text3);padding:0 4px">…</span>';
     }
-    pg.innerHTML+='<button class="pg-btn" onclick="'+onPageChange+'(Math.min('+pages+','+page+'+1))" '+(page===pages?'disabled':'')+'>›</button>';
+    html+='<button class="pg-btn" onclick="'+next+'" '+(page===pages?'disabled':'')+'>›</button>';
+    html+='</span>';
+    html+='<span class="pager-mob">';
+    html+='<button class="pg-btn" onclick="'+prev+'" '+(page===1?'disabled':'')+'>‹</button>';
+    html+='<span class="pg-btn active" style="pointer-events:none;min-width:44px;text-align:center">'+page+'/'+pages+'</span>';
+    html+='<button class="pg-btn" onclick="'+next+'" '+(page===pages?'disabled':'')+'>›</button>';
+    html+='</span>';
   }
+  pg.innerHTML=html;
 }
 
 function afterLoad(){
@@ -1651,12 +1676,14 @@ function gsAfter(...keys){
 // Sheets 연결 여부 확인 후 작업 허용
 function requireSheets(){
   if(GS.isConnected())return true;
-  toast('Google Sheets에 연결되지 않았습니다. 사이드바 하단 연결 버튼을 눌러 연결 후 다시 시도해주세요.','error');
+  toast('⚠ Google Sheets 미연결 — 데이터가 저장되지 않습니다. 사이드바 하단에서 연결해주세요.','error');
+  const gp=document.getElementById('gs-panel');
+  if(gp){gp.style.outline='2px solid var(--danger)';gp.style.borderRadius='8px';setTimeout(()=>{gp.style.outline='';gp.style.borderRadius='';},3000);}
   return false;
 }
 
 
-const DB={ingredients:[],ingredientsHistory:[],programs:[],programsHistory:[],programRecipes:[],sessions:[],inventoryLog:[],categories:[],programTypes:[],members:[],participationLogs:[],memberChannels:['당근모임','인스타그램','네이버 예약','Tally form']};
+const DB={ingredients:[],ingredientsHistory:[],programs:[],programsHistory:[],programRecipes:[],sessions:[],inventoryLog:[],categories:[],programTypes:[],members:[],participationLogs:[],memberChannels:['당근모임','인스타그램','네이버 예약','Tally form'],memberRoles:['손님','포크','운영'],plogStatuses:['대기','참여확정','취소','불참'],payStatuses:['미납','확인','환불']};
 
 // ══════════════════════════════════════════════════════════
 // 유틸
@@ -1693,9 +1720,20 @@ document.getElementById('sidebar-overlay').addEventListener('click',closeSidebar
 // ══════════════════════════════════════════════════════════
 // 모달
 // ══════════════════════════════════════════════════════════
-const openModal=id=>document.getElementById(id).classList.add('open');
-const closeModal=id=>document.getElementById(id).classList.remove('open');
-document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+let _mzMap={};
+const openModal=id=>{
+  const el=document.getElementById(id);if(!el)return;
+  const maxZ=Object.values(_mzMap).reduce((m,z)=>Math.max(m,z),490);
+  const z=maxZ+10;el.style.zIndex=z;_mzMap[id]=z;
+  el.classList.add('open');
+};
+const closeModal=id=>{
+  const el=document.getElementById(id);if(!el)return;
+  el.classList.remove('open');delete _mzMap[id];
+};
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{
+  if(e.target===o){o.classList.remove('open');delete _mzMap[o.id];}
+}));
 
 // ══════════════════════════════════════════════════════════
 // 핵심 계산
@@ -1924,7 +1962,7 @@ function saveSes(){
     toast('모임 추가 완료');
   }
   const _newSesId=id||DB.sessions[DB.sessions.length-1]?.id;
-  closeModal('m-ses');renderSessions();if(sesViewMode==='calendar')renderCalendar();
+  closeModal('m-ses');document.getElementById('m-ses').style.zIndex='';renderSessions();if(sesViewMode==='calendar')renderCalendar();
   gsAfter('sessions');
   if(_afterSesSave){const _cb=_afterSesSave;_afterSesSave=null;_cb(_newSesId);}
 }
@@ -1973,7 +2011,7 @@ function renderSessions(){
   buildPager('ses-pagination-bot',total,sesPage,perPage,'goSesPage');
   sessions=sessions.slice((sesPage-1)*perPage,sesPage*perPage);
   const tbody=document.getElementById('ses-tbody');
-  if(!sessions.length){tbody.innerHTML=`<tr><td colspan="8" class="nl"><div class="empty"><div class="empty-icon">📅</div><div style="font-size:13px">등록된 모임 없음</div></div></td></tr>`;return;}
+  if(!sessions.length){tbody.innerHTML=`<tr><td colspan="9" class="nl"><div class="empty"><div class="empty-icon">📅</div><div style="font-size:13px">등록된 모임 없음</div></div></td></tr>`;return;}
   tbody.innerHTML=sessions.map(s=>{
     const prog=DB.programs.find(p=>p.id===s.program_id);
     const cost=calcSesCost(s),rev=(s.selling_price_snapshot||0)*s.participants,profit=rev-cost;
@@ -1985,7 +2023,7 @@ function renderSessions(){
       <td data-label="재료비" class="td-mono n-p">${fMoney(cost)}</td>
       <td data-label="예상수익" class="td-mono ${profit>=0?'n-g':'n-r'}">${fMoney(profit)}</td>
       <td data-label="메모" style="font-size:12px;color:var(--text2)">${esc(s.memo||'')}</td>
-      <td data-label="참가자" class="nl"><button class="btn btn-outline btn-xs" onclick="openParticipants('${s.id}')">👤 ${DB.participationLogs.filter(l=>l.session_id===s.id&&l.status==='참여확정').length}/${s.participants}</button></td>
+      <td data-label="참가자" class="nl">${sesPlogBadge(s.id,s.participants)}</td>
       <td data-label="사용기록" class="nl">
         ${locked?`<div><span class="badge badge-green" style="display:inline-block;margin-bottom:5px">기록됨</span><br><button class="btn btn-danger btn-xs" onclick="cancelUsage('${s.id}')">기록취소</button></div>`:`<button class="btn btn-green btn-sm" onclick="recordUsage('${s.id}')">기록하기</button>`}
       </td>
@@ -2843,18 +2881,27 @@ function setRepPeriod(type){
   document.getElementById('rep-from').value=from;document.getElementById('rep-to').value=t;renderReport();
 }
 // ══════════════════════════════════════════════════════════
+// 앱 설정 저장/불러오기 (localStorage — Sheets 불필요)
+// ══════════════════════════════════════════════════════════
+function saveAppSettings(){
+  try{localStorage.setItem('mkng_settings',JSON.stringify({memberChannels:DB.memberChannels,memberRoles:DB.memberRoles,plogStatuses:DB.plogStatuses,payStatuses:DB.payStatuses}));}catch(e){}
+}
+function loadAppSettings(){
+  try{
+    var d=JSON.parse(localStorage.getItem('mkng_settings')||'{}');
+    if(d.memberChannels&&d.memberChannels.length)DB.memberChannels=d.memberChannels;
+    if(d.memberRoles&&d.memberRoles.length)DB.memberRoles=d.memberRoles;
+    if(d.plogStatuses&&d.plogStatuses.length)DB.plogStatuses=d.plogStatuses;
+    if(d.payStatuses&&d.payStatuses.length)DB.payStatuses=d.payStatuses;
+  }catch(e){}
+}
+
+// ══════════════════════════════════════════════════════════
 // 참가자 & 참여 로그 (11단계)
 // ══════════════════════════════════════════════════════════
-
-// ── 콜백 훅 (모달 저장 후 연계 동작용) ──────────────────
-let _afterMemberSave = null; // (memberId) => void
-let _afterSesSave    = null; // (sesId)    => void
-
-// ── 참여 로그 컨텍스트 ───────────────────────────────────
-const PCTX = {
-  sesId:    null, // 현재 참가자 관리 세션 ID
-  memberId: null, // 현재 상세 중인 멤버 ID
-};
+var _afterMemberSave=null;
+var _afterSesSave=null;
+var PCTX={sesId:null,memberId:null};
 
 // ── 배지 헬퍼 ────────────────────────────────────────────
 function memberRoleBadge(role){
@@ -2865,6 +2912,7 @@ function memberRoleBadge(role){
 function plogStatusBadge(s){
   if(s==='참여확정')return'<span class="badge badge-green" style="font-size:10px">참여확정</span>';
   if(s==='취소')return'<span class="badge badge-muted" style="font-size:10px;opacity:.6">취소</span>';
+  if(s==='불참')return'<span class="badge" style="background:#fff0f0;color:#c00;border:1px solid #f0b0b0;font-size:10px">불참</span>';
   return'<span class="badge badge-yellow" style="font-size:10px">대기</span>';
 }
 function plogPayBadge(s){
@@ -2873,144 +2921,123 @@ function plogPayBadge(s){
   return'<span class="badge badge-muted" style="font-size:10px">미납</span>';
 }
 function channelBadge(ch){
-  return'<span class="badge" style="background:#f5f5ff;color:#555;border:1px solid #ddd;font-size:10px">'+esc(ch||'—')+'</span>';
+  if(!ch)return'<span style="color:var(--text3);font-size:11px">—</span>';
+  return'<span class="badge" style="background:#f5f5ff;color:#555;border:1px solid #ddd;font-size:10px">'+esc(ch)+'</span>';
+}
+function sesPlogBadge(sesId,pax){
+  var conf=DB.participationLogs.filter(function(l){return l.session_id===sesId&&l.status==='참여확정';}).length;
+  var wait=DB.participationLogs.filter(function(l){return l.session_id===sesId&&l.status==='대기';}).length;
+  var total=DB.participationLogs.filter(function(l){return l.session_id===sesId&&l.status!=='취소'&&l.status!=='불참';}).length;
+  var full=conf>=pax;
+  var inner='<span style="color:'+(full?'#2a7a00':'inherit')+'">✓ '+conf+'/'+pax+'</span>'
+    +(wait?' &nbsp;<span style="color:#c08000;font-size:10px">대기 '+wait+'</span>':'');
+  return'<button class="btn btn-outline btn-xs" onclick="openParticipants(\''+sesId+'\')" style="white-space:nowrap;'+(full?'border-color:#b0f080;background:#f0fff0;':'')+'">'
+    +inner+'</button>';
 }
 
-// ══════════════════════════════════════════════════════════
-// 채널 설정
-// ══════════════════════════════════════════════════════════
-function openChannelMgr(){
-  document.getElementById('channel-new-name').value='';
-  renderChannelList();
-  openModal('m-channel-mgr');
-}
-function renderChannelList(){
-  const el=document.getElementById('channel-list');
-  if(!el)return;
-  if(!DB.memberChannels.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">등록된 채널 없음</div>';return;}
-  el.innerHTML=DB.memberChannels.map(function(ch,i){
-    return'<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">'
-      +'<span style="flex:1;font-size:13px">'+esc(ch)+'</span>'
-      +'<button class="btn btn-outline btn-xs" onclick="renameChannelAt('+i+')">수정</button>'
-      +'<button class="btn btn-danger btn-xs" onclick="deleteChannelAt('+i+')">삭제</button>'
-      +'</div>';
-  }).join('');
-  syncChannelSelect();
-}
-function addChannel(){
-  var name=(document.getElementById('channel-new-name').value||'').trim();
-  if(!name){alert('채널명을 입력해주세요.');return;}
-  if(DB.memberChannels.includes(name)){alert('이미 있는 채널입니다.');return;}
-  DB.memberChannels.push(name);
-  document.getElementById('channel-new-name').value='';
-  renderChannelList();
-  toast('채널 추가: '+name);
-}
-function renameChannelAt(i){
-  var old=DB.memberChannels[i];
-  var nw=(prompt('채널명 수정',old)||'').trim();
-  if(!nw||nw===old)return;
-  DB.participationLogs.forEach(function(l){if(l.channel===old)l.channel=nw;});
-  DB.memberChannels[i]=nw;
-  renderChannelList();
-  toast('채널명 변경: '+old+' → '+nw);
-}
-function deleteChannelAt(i){
-  var name=DB.memberChannels[i];
-  var inUse=DB.participationLogs.some(function(l){return l.channel===name;});
-  if(inUse&&!confirm('['+name+'] 채널이 참여 로그에서 사용 중입니다. 그래도 삭제할까요?'))return;
-  DB.memberChannels.splice(i,1);
-  renderChannelList();
-  toast('채널 삭제: '+name,'warning');
-}
+// ── select 동기화 ────────────────────────────────────────
 function syncChannelSelect(){
   var sel=document.getElementById('plog-channel');
   if(!sel)return;
   var cur=sel.value;
-  sel.innerHTML=DB.memberChannels.map(function(ch){return'<option value="'+esc(ch)+'">'+esc(ch)+'</option>';}).join('');
+  sel.innerHTML='<option value="">없음</option>'
+    +DB.memberChannels.map(function(ch){return'<option value="'+esc(ch)+'">'+esc(ch)+'</option>';}).join('');
   if(cur&&DB.memberChannels.includes(cur))sel.value=cur;
+}
+function syncRoleSelects(){
+  var roles=DB.memberRoles;
+  // 역할 필터 select
+  var fEl=document.getElementById('member-filter-role');
+  if(fEl){
+    var fCur=fEl.value;
+    fEl.innerHTML='<option value="">역할 전체</option>'
+      +roles.map(function(r){return'<option value="'+esc(r)+'">'+esc(r)+'</option>';}).join('');
+    if(fCur&&roles.includes(fCur))fEl.value=fCur;
+  }
+  // 추가/수정 폼 select
+  var mEl=document.getElementById('member-role');
+  if(mEl){
+    var mCur=mEl.value;
+    mEl.innerHTML=roles.map(function(r){return'<option value="'+esc(r)+'">'+esc(r)+'</option>';}).join('');
+    if(mCur&&roles.includes(mCur))mEl.value=mCur;
+    else if(roles.length)mEl.value=roles[0];
+  }
+}
+
+// ── 유틸: z-index를 높여서 모달 오픈 (중첩 모달용) ──────
+function openModalOnTop(id){
+  var el=document.getElementById(id);
+  if(el)el.style.zIndex='520';
+  openModal(id);
 }
 
 // ══════════════════════════════════════════════════════════
 // 참가자 목록
 // ══════════════════════════════════════════════════════════
 function renderMembers(){
+  syncRoleSelects();
   var q=(document.getElementById('member-search')?.value||'').trim().toLowerCase();
   var filterRole=document.getElementById('member-filter-role')?.value||'';
   var filterActive=document.getElementById('member-filter-active')?.value||'';
   var list=[...DB.members].sort(function(a,b){return a.name.localeCompare(b.name,'ko');});
   if(q)list=list.filter(function(m){
-    return m.name.toLowerCase().includes(q)||
-      (m.phone||'').replace(/-/g,'').includes(q.replace(/-/g,''))||
-      (m.instagram_id||'').toLowerCase().includes(q);
+    return m.name.toLowerCase().includes(q)||(m.phone||'').replace(/-/g,'').includes(q.replace(/-/g,''))||(m.instagram_id||'').toLowerCase().includes(q);
   });
   if(filterRole)list=list.filter(function(m){return m.role===filterRole;});
   if(filterActive==='1')list=list.filter(function(m){return m.is_active;});
   else if(filterActive==='0')list=list.filter(function(m){return!m.is_active;});
-
-  var total=DB.members.length;
-  var active=DB.members.filter(function(m){return m.is_active;}).length;
+  var total=DB.members.length,active=DB.members.filter(function(m){return m.is_active;}).length;
   var ym=today().slice(0,7);
-  var thisMonth=DB.members.filter(function(m){return(m.joined_at||'').startsWith(ym);}).length;
+  var newThisMonth=DB.members.filter(function(m){return(m.joined_at||'').startsWith(ym);}).length;
   var statsEl=document.getElementById('member-stats');
-  if(statsEl){
-    statsEl.innerHTML=
-      '<div class="card" style="text-align:center"><div style="font-size:22px;font-weight:900">'+total+'</div><div style="font-size:11px;color:var(--text3);margin-top:2px">전체</div></div>'
-      +'<div class="card" style="text-align:center"><div style="font-size:22px;font-weight:900;color:#2a7a00">'+active+'</div><div style="font-size:11px;color:var(--text3);margin-top:2px">활성</div></div>'
-      +'<div class="card" style="text-align:center"><div style="font-size:22px;font-weight:900;color:var(--accent-dark)">'+thisMonth+'</div><div style="font-size:11px;color:var(--text3);margin-top:2px">이번 달 신규</div></div>';
-  }
+  if(statsEl)statsEl.innerHTML=
+    '<div class="card" style="text-align:center"><div style="font-size:22px;font-weight:900">'+total+'</div><div style="font-size:11px;color:var(--text3);margin-top:2px">전체</div></div>'
+    +'<div class="card" style="text-align:center"><div style="font-size:22px;font-weight:900;color:#2a7a00">'+active+'</div><div style="font-size:11px;color:var(--text3);margin-top:2px">활성</div></div>'
+    +'<div class="card" style="text-align:center"><div style="font-size:22px;font-weight:900;color:var(--accent-dark)">'+newThisMonth+'</div><div style="font-size:11px;color:var(--text3);margin-top:2px">이번 달 신규</div></div>';
   var tbody=document.getElementById('member-tbody');
   var empty=document.getElementById('member-empty');
   if(!list.length){if(tbody)tbody.innerHTML='';if(empty)empty.style.display='';return;}
   if(empty)empty.style.display='none';
   tbody.innerHTML=list.map(function(m){
     var plogs=DB.participationLogs.filter(function(l){return l.member_id===m.id&&l.status==='참여확정';});
-    var cnt=plogs.length;
-    var lastDate=plogs.reduce(function(best,l){
-      var s=DB.sessions.find(function(x){return x.id===l.session_id;});
-      if(!s)return best;
-      return(!best||s.session_date>best)?s.session_date:best;
-    },null);
-    var insta=m.instagram_id
-      ?('<a href="https://instagram.com/'+esc(m.instagram_id.replace(/^@/,''))+'" target="_blank" style="color:var(--accent-dark);text-decoration:none">'+esc(m.instagram_id)+'</a>')
-      :'<span style="color:var(--text3)">—</span>';
-    var statusBadge=m.is_active
-      ?'<span class="badge badge-green" style="font-size:10px">활성</span>'
-      :'<span class="badge badge-muted" style="font-size:10px">비활성</span>';
+    var lastDate=plogs.reduce(function(b,l){var s=DB.sessions.find(function(x){return x.id===l.session_id;});if(!s)return b;return(!b||s.session_date>b)?s.session_date:b;},null);
+    var insta=m.instagram_id?('<a href="https://instagram.com/'+esc(m.instagram_id.replace(/^@/,''))+'" target="_blank" style="color:var(--accent-dark);text-decoration:none">'+esc(m.instagram_id)+'</a>'):'<span style="color:var(--text3)">—</span>';
     return'<tr style="cursor:pointer" onclick="openMemberDetail(\''+m.id+'\')">'
       +'<td><strong>'+esc(m.name)+'</strong></td>'
       +'<td class="td-mono">'+(m.phone?esc(m.phone):'<span style="color:var(--text3)">—</span>')+'</td>'
       +'<td>'+insta+'</td>'
       +'<td>'+memberRoleBadge(m.role)+'</td>'
-      +'<td class="td-mono" style="text-align:center">'+(cnt>0?cnt+'회':'—')+'</td>'
+      +'<td class="td-mono" style="text-align:center">'+(plogs.length>0?plogs.length+'회':'—')+'</td>'
       +'<td class="td-mono">'+(lastDate?fDate(lastDate):'—')+'</td>'
       +'<td class="td-mono">'+(m.joined_at?fDate(m.joined_at.slice(0,10)):'—')+'</td>'
-      +'<td>'+statusBadge+'</td>'
+      +'<td>'+(m.is_active?'<span class="badge badge-green" style="font-size:10px">활성</span>':'<span class="badge badge-muted" style="font-size:10px">비활성</span>')+'</td>'
       +'<td><button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openMemberModal(\''+m.id+'\')">수정</button></td>'
       +'</tr>';
   }).join('');
 }
 
 function openMemberModal(id){
+  syncRoleSelects();
   var m=id?DB.members.find(function(x){return x.id===id;}):null;
   document.getElementById('m-member-title').textContent=m?'참가자 수정':'참가자 추가';
   document.getElementById('member-id').value=m?m.id:'';
   document.getElementById('member-name').value=m?m.name:'';
-  document.getElementById('member-role').value=m?m.role:'손님';
   document.getElementById('member-phone').value=m?m.phone||'':'';
   document.getElementById('member-insta').value=m?m.instagram_id||'':'';
   document.getElementById('member-memo').value=m?m.memo||'':'';
+  if(m){var sel=document.getElementById('member-role');if(sel)sel.value=m.role||DB.memberRoles[0]||'';}
   openModal('m-member');
   setTimeout(function(){document.getElementById('member-name').focus();},120);
 }
 
 function saveMember(){
+  if(!requireSheets())return;
   var name=(document.getElementById('member-name').value||'').trim();
   if(!name){alert('이름을 입력해주세요.');return;}
   var id=document.getElementById('member-id').value;
   var phone=(document.getElementById('member-phone').value||'').trim();
   var instagram_id=(document.getElementById('member-insta').value||'').trim();
-  var role=document.getElementById('member-role').value||'손님';
+  var role=document.getElementById('member-role').value||DB.memberRoles[0]||'손님';
   var memo=(document.getElementById('member-memo').value||'').trim();
   var now=new Date().toISOString();
   var savedId=id;
@@ -3018,7 +3045,7 @@ function saveMember(){
     var m=DB.members.find(function(x){return x.id===id;});
     if(!m)return;
     Object.assign(m,{name,phone,instagram_id,role,memo});
-    toast('참가자 정보 수정 완료');
+    toast('참가자 수정 완료');
   } else {
     if(phone&&DB.members.some(function(m){return m.name===name&&m.phone===phone;})){
       if(!confirm('같은 이름+전화번호의 참가자가 이미 있습니다. 그래도 추가할까요?'))return;
@@ -3027,7 +3054,9 @@ function saveMember(){
     DB.members.push({id:savedId,name,phone,instagram_id,role,memo,joined_at:now,is_active:true});
     toast('참가자 추가 완료 ✓');
   }
+  gsAfter('members');
   closeModal('m-member');
+  document.getElementById('m-member').style.zIndex='510';
   if(_afterMemberSave){var cb=_afterMemberSave;_afterMemberSave=null;cb(savedId);}
   else{
     if(document.getElementById('page-members').classList.contains('active'))renderMembers();
@@ -3064,8 +3093,7 @@ function openMemberDetail(id){
 function renderMemberPlogs(memberId){
   var el=document.getElementById('m-member-plogs');
   if(!el)return;
-  var logs=DB.participationLogs
-    .filter(function(l){return l.member_id===memberId;})
+  var logs=DB.participationLogs.filter(function(l){return l.member_id===memberId;})
     .sort(function(a,b){
       var sa=DB.sessions.find(function(x){return x.id===a.session_id;});
       var sb=DB.sessions.find(function(x){return x.id===b.session_id;});
@@ -3076,50 +3104,56 @@ function renderMemberPlogs(memberId){
     +logs.map(function(l){
       var ses=DB.sessions.find(function(x){return x.id===l.session_id;});
       var prog=ses?DB.programs.find(function(p){return p.id===ses.program_id;}):null;
-      return'<tr>'
-        +'<td class="td-mono">'+(ses?fDate(ses.session_date):'—')+'</td>'
+      return'<tr><td class="td-mono">'+(ses?fDate(ses.session_date):'—')+'</td>'
         +'<td>'+(prog?(esc(prog.emoji||'')+' '+esc(prog.name)):'—')+'</td>'
         +'<td>'+channelBadge(l.channel)+'</td>'
         +'<td>'+plogStatusBadge(l.status)+'</td>'
         +'<td>'+plogPayBadge(l.payment_status)+'</td>'
         +'<td class="td-mono">'+(l.payment_amount?fMoney(l.payment_amount):'—')+'</td>'
-        +'<td><button class="btn btn-outline btn-xs" onclick="openPlogEdit(\''+l.id+'\')">수정</button></td>'
-        +'</tr>';
-    }).join('')
-    +'</tbody></table></div>';
+        +'<td><button class="btn btn-outline btn-xs" onclick="openPlogEdit(\''+l.id+'\')">수정</button></td></tr>';
+    }).join('')+'</tbody></table></div>';
 }
 
 function deleteMember(id){
+  if(!requireSheets())return;
   var cnt=DB.participationLogs.filter(function(l){return l.member_id===id;}).length;
-  if(!confirm('이 참가자를 삭제할까요?'+(cnt?'\n참여 이력 '+cnt+'건도 함께 삭제됩니다.':'')))return;
+  if(!confirm('삭제할까요?'+(cnt?'\n참여 이력 '+cnt+'건도 함께 삭제됩니다.':'')))return;
   DB.participationLogs=DB.participationLogs.filter(function(l){return l.member_id!==id;});
   DB.members=DB.members.filter(function(x){return x.id!==id;});
+  gsAfter('members','participationLogs');
   closeModal('m-member-detail');
   renderMembers();
   toast('삭제 완료','warning');
 }
 
 function toggleMemberActive(id){
+  if(!requireSheets())return;
   var m=DB.members.find(function(x){return x.id===id;});
   if(!m)return;
   m.is_active=!m.is_active;
+  gsAfter('members');
   closeModal('m-member-detail');
   renderMembers();
-  toast(m.is_active?'활성화했습니다.':'비활성화했습니다.');
+  toast(m.is_active?'활성화됐습니다.':'비활성화됐습니다.');
 }
 
 // ══════════════════════════════════════════════════════════
-// 세션 참가자 관리 (m-participants)
+// 세션 참가자 관리
 // ══════════════════════════════════════════════════════════
 function openParticipants(sesId){
   PCTX.sesId=sesId;
   var s=DB.sessions.find(function(x){return x.id===sesId;});
   var prog=s?DB.programs.find(function(p){return p.id===s.program_id;}):null;
+  var isPast=s&&s.session_date<today();
   document.getElementById('m-participants-title').textContent=(prog?(prog.emoji?prog.emoji+' ':'')+prog.name:'모임')+' 참가자';
   document.getElementById('m-participants-sub').textContent=s?fDate(s.session_date)+(s.session_time?' '+s.session_time:''):'';
   document.getElementById('plog-search-panel').style.display='none';
   document.getElementById('plog-add-toggle-btn').textContent='+ 참가자 추가';
   document.getElementById('plog-member-q').value='';
+  var addArea=document.getElementById('plog-add-area');
+  var pastNotice=document.getElementById('plog-past-notice');
+  if(addArea)addArea.style.display=isPast?'none':'';
+  if(pastNotice)pastNotice.style.display=isPast?'':'none';
   renderParticipants();
   openModal('m-participants');
 }
@@ -3127,126 +3161,96 @@ function openParticipants(sesId){
 function renderParticipants(){
   var sesId=PCTX.sesId;
   if(!sesId)return;
-  var logs=DB.participationLogs
-    .filter(function(l){return l.session_id===sesId;})
+  var logs=DB.participationLogs.filter(function(l){return l.session_id===sesId;})
     .sort(function(a,b){return a.applied_at.localeCompare(b.applied_at);});
   var tbody=document.getElementById('plog-tbody');
   var empty=document.getElementById('plog-empty');
   var bar=document.getElementById('plog-bulk-bar');
   if(bar)bar.style.display='none';
+  // 벌크 상태 버튼 동적 생성
+  var bsBtns=document.getElementById('plog-bulk-status-btns');
+  if(bsBtns)bsBtns.innerHTML=DB.plogStatuses.map(function(s){return'<button class="btn btn-outline btn-sm" onclick="bulkSetStatus(\''+esc(s)+'\')">'+esc(s)+'</button>';}).join('');
   var chkAll=document.getElementById('plog-check-all');
   if(chkAll)chkAll.checked=false;
-  if(!logs.length){
-    if(tbody)tbody.innerHTML='';
-    if(empty)empty.style.display='';
-  } else {
+  if(!logs.length){if(tbody)tbody.innerHTML='';if(empty)empty.style.display='';}
+  else{
     if(empty)empty.style.display='none';
     tbody.innerHTML=logs.map(function(l){
       var m=DB.members.find(function(x){return x.id===l.member_id;});
       var mName=m?esc(m.name):'<span style="color:var(--text3)">(삭제됨)</span>';
-      var mInfo=m?(' <span style="font-size:10px;color:var(--text3)">'+(m.phone?esc(m.phone):'')+(m.instagram_id?' · '+esc(m.instagram_id):'')+'</span>'):'';
-      var roleBadge=m?(' '+memberRoleBadge(m.role)):'';
+      var mInfo=m?' <span style="font-size:10px;color:var(--text3)">'+(m.phone?esc(m.phone):'')+(m.instagram_id?' · '+esc(m.instagram_id):'')+'</span>':'';
       return'<tr id="prow-'+l.id+'">'
         +'<td style="width:32px"><input type="checkbox" class="plog-chk" data-id="'+l.id+'" onchange="onPlogCheck()"></td>'
-        +'<td>'+mName+mInfo+roleBadge+'</td>'
+        +'<td>'+mName+mInfo+(m?' '+memberRoleBadge(m.role):'')+'</td>'
         +'<td>'+channelBadge(l.channel)+'</td>'
         +'<td>'+plogStatusBadge(l.status)+'</td>'
         +'<td>'+plogPayBadge(l.payment_status)+'</td>'
         +'<td class="td-mono">'+(l.payment_amount?fMoney(l.payment_amount):'—')+'</td>'
-        +'<td style="font-size:11px;color:var(--text2);max-width:100px">'+esc(l.memo||'')+'</td>'
+        +'<td style="font-size:11px;color:var(--text2);max-width:90px">'+esc(l.memo||'')+'</td>'
         +'<td><button class="btn btn-outline btn-xs" onclick="openPlogEdit(\''+l.id+'\')">수정</button></td>'
         +'</tr>';
     }).join('');
   }
-  var confirmed=logs.filter(function(l){return l.status==='참여확정';});
-  var totalAmt=confirmed.reduce(function(s,l){return s+(l.payment_amount||0);},0);
-  var paid=confirmed.filter(function(l){return l.payment_status==='확인';}).length;
+  var conf=logs.filter(function(l){return l.status==='참여확정';});
+  var totalAmt=conf.reduce(function(s,l){return s+(l.payment_amount||0);},0);
+  var paid=conf.filter(function(l){return l.payment_status==='확인';}).length;
   var ses=DB.sessions.find(function(x){return x.id===sesId;});
   document.getElementById('plog-summary').innerHTML=
-    '참여확정 <strong>'+confirmed.length+'</strong>명'
+    '참여확정 <strong>'+conf.length+'</strong>명'
     +' &nbsp;·&nbsp; 결제확인 <strong>'+paid+'</strong>명'
     +' &nbsp;·&nbsp; 수납액 <strong>'+fMoney(totalAmt)+'</strong>'
-    +(ses?' &nbsp;·&nbsp; 정원 <strong>'+(ses.participants||'?')+'</strong>명':'');
+    +(ses?' &nbsp;·&nbsp; 정원 <strong>'+ses.participants+'</strong>명':'');
 }
 
 function onPlogCheck(){
   var all=document.querySelectorAll('.plog-chk');
-  var checked=document.querySelectorAll('.plog-chk:checked');
-  var chkAll=document.getElementById('plog-check-all');
-  if(chkAll)chkAll.checked=checked.length>0&&checked.length===all.length;
+  var chk=document.querySelectorAll('.plog-chk:checked');
+  var ca=document.getElementById('plog-check-all');
+  if(ca)ca.checked=chk.length>0&&chk.length===all.length;
   var bar=document.getElementById('plog-bulk-bar');
-  if(bar){
-    bar.style.display=checked.length?'flex':'none';
-    var cnt=document.getElementById('plog-bulk-count');
-    if(cnt)cnt.textContent=checked.length+'개 선택';
-  }
+  if(bar){bar.style.display=chk.length?'flex':'none';var c=document.getElementById('plog-bulk-count');if(c)c.textContent=chk.length+'개 선택';}
 }
-
-function toggleAllPlogs(checked){
-  document.querySelectorAll('.plog-chk').forEach(function(c){c.checked=checked;});
-  onPlogCheck();
-}
-
-function getCheckedPlogIds(){
-  return[...document.querySelectorAll('.plog-chk:checked')].map(function(c){return c.dataset.id;});
-}
+function toggleAllPlogs(checked){document.querySelectorAll('.plog-chk').forEach(function(c){c.checked=checked;});onPlogCheck();}
+function getCheckedPlogIds(){return[...document.querySelectorAll('.plog-chk:checked')].map(function(c){return c.dataset.id;});}
 
 function bulkSetPayment(status){
-  var ids=getCheckedPlogIds();
-  if(!ids.length)return;
+  if(!requireSheets())return;
+  var ids=getCheckedPlogIds();if(!ids.length)return;
   var now=new Date().toISOString();
-  ids.forEach(function(id){
-    var l=DB.participationLogs.find(function(x){return x.id===id;});
-    if(l){l.payment_status=status;if(status==='확인'&&!l.payment_confirmed_at)l.payment_confirmed_at=now;}
-  });
-  renderParticipants();
+  ids.forEach(function(id){var l=DB.participationLogs.find(function(x){return x.id===id;});if(l){l.payment_status=status;if(status==='확인'){if(!l.payment_confirmed_at)l.payment_confirmed_at=now;l.status='참여확정';}}});
+  gsAfter('participationLogs');renderParticipants();
+  if(document.getElementById('page-sessions').classList.contains('active'))renderSessions();
   toast(ids.length+'명 결제 '+status+' 처리');
 }
-
 function bulkSetStatus(status){
-  var ids=getCheckedPlogIds();
-  if(!ids.length)return;
-  ids.forEach(function(id){
-    var l=DB.participationLogs.find(function(x){return x.id===id;});
-    if(l)l.status=status;
-  });
-  renderParticipants();
+  if(!requireSheets())return;
+  var ids=getCheckedPlogIds();if(!ids.length)return;
+  ids.forEach(function(id){var l=DB.participationLogs.find(function(x){return x.id===id;});if(l)l.status=status;});
+  gsAfter('participationLogs');renderParticipants();
+  if(document.getElementById('page-sessions').classList.contains('active'))renderSessions();
   toast(ids.length+'명 '+status+' 처리');
 }
 
 function togglePlogAddArea(){
   var panel=document.getElementById('plog-search-panel');
   var btn=document.getElementById('plog-add-toggle-btn');
-  if(panel.style.display==='none'||!panel.style.display){
-    panel.style.display='';
-    if(btn)btn.textContent='접기 ▲';
-    document.getElementById('plog-member-q').focus();
-    renderPlogMemberSearch();
-  } else {
-    panel.style.display='none';
-    if(btn)btn.textContent='+ 참가자 추가';
-  }
+  var showing=panel.style.display!==''&&panel.style.display!=='none';
+  if(!showing){panel.style.display='';if(btn)btn.textContent='접기 ▲';document.getElementById('plog-member-q').focus();renderPlogMemberSearch();}
+  else{panel.style.display='none';if(btn)btn.textContent='+ 참가자 추가';}
 }
 
 function renderPlogMemberSearch(){
   var q=(document.getElementById('plog-member-q')?.value||'').trim().toLowerCase();
   var existing=new Set(DB.participationLogs.filter(function(l){return l.session_id===PCTX.sesId;}).map(function(l){return l.member_id;}));
   var members=[...DB.members].filter(function(m){return m.is_active;});
-  if(q)members=members.filter(function(m){
-    return m.name.toLowerCase().includes(q)||
-      (m.phone||'').replace(/-/g,'').includes(q.replace(/-/g,''))||
-      (m.instagram_id||'').toLowerCase().includes(q);
-  });
-  var el=document.getElementById('plog-member-results');
-  if(!el)return;
+  if(q)members=members.filter(function(m){return m.name.toLowerCase().includes(q)||(m.phone||'').replace(/-/g,'').includes(q.replace(/-/g,''))||(m.instagram_id||'').toLowerCase().includes(q);});
+  var el=document.getElementById('plog-member-results');if(!el)return;
   if(!members.length){el.innerHTML='<div style="padding:12px;text-align:center;color:var(--text3);font-size:12px">검색 결과 없음</div>';return;}
   el.innerHTML=members.map(function(m){
     var added=existing.has(m.id);
     return'<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);'+(added?'opacity:.5':'cursor:pointer')+'" '+(added?'':'onclick="selectMemberForPlog(\''+m.id+'\')"')+'>'
-      +'<div style="flex:1">'
-      +'<div style="font-size:13px;font-weight:600">'+esc(m.name)+' '+memberRoleBadge(m.role)+'</div>'
-      +'<div style="font-size:11px;color:var(--text3);margin-top:1px">'+(m.phone?esc(m.phone):'')+(m.instagram_id?' · '+esc(m.instagram_id):'')+'</div>'
-      +'</div>'
+      +'<div style="flex:1"><div style="font-size:13px;font-weight:600">'+esc(m.name)+' '+memberRoleBadge(m.role)+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);margin-top:1px">'+(m.phone?esc(m.phone):'')+(m.instagram_id?' · '+esc(m.instagram_id):'')+'</div></div>'
       +(added?'<span style="font-size:11px;color:var(--text3)">이미 추가됨</span>':'<button class="btn btn-outline btn-xs" onclick="event.stopPropagation();selectMemberForPlog(\''+m.id+'\')">추가 →</button>')
       +'</div>';
   }).join('');
@@ -3259,82 +3263,76 @@ function selectMemberForPlog(memberId){
 }
 
 function openMemberModalFromSes(){
-  _afterMemberSave=function(newId){
-    renderPlogMemberSearch();
-    toast('참가자 등록 완료 — 검색 결과에서 추가해주세요.');
-  };
-  openMemberModal();
+  _afterMemberSave=function(newId){renderPlogMemberSearch();toast('참가자 등록 완료 — 아래 목록에서 선택해주세요.');};
+  openModalOnTop('m-member');
 }
 
 // ══════════════════════════════════════════════════════════
-// 참여 로그 CRUD (m-plog)
+// 참여 로그 CRUD
 // ══════════════════════════════════════════════════════════
-function openPlogModal(plogId, memberId, sesId){
-  syncChannelSelect();
-  var l=plogId?DB.participationLogs.find(function(x){return x.id===plogId;}):null;
-  var rMemberId=memberId||(l?l.member_id:null);
-  var rSesId=sesId||(l?l.session_id:null);
-  document.getElementById('plog-id').value=l?l.id:'';
-  document.getElementById('plog-member-id').value=rMemberId||'';
-  document.getElementById('plog-session-id').value=rSesId||'';
+function onPlogPayStatusChange(){
+  var ps=document.getElementById('plog-payment-status').value;
+  var st=document.getElementById('plog-status');
+  if(ps==='확인')st.value='참여확정';
+  else if(ps==='미납')st.value='대기';
+}
 
-  // 참가자 표시
+function openPlogModal(plogId,memberId,sesId){
+  syncChannelSelect();syncPlogStatusSelects();
+  var l=plogId?DB.participationLogs.find(function(x){return x.id===plogId;}):null;
+  var rM=memberId||(l?l.member_id:null);
+  var rS=sesId||(l?l.session_id:null);
+  document.getElementById('plog-id').value=l?l.id:'';
+  document.getElementById('plog-member-id').value=rM||'';
+  document.getElementById('plog-session-id').value=rS||'';
   var mDisp=document.getElementById('plog-member-display');
   var mNameEl=document.getElementById('plog-member-name-display');
-  if(rMemberId){
-    var mObj=DB.members.find(function(x){return x.id===rMemberId;});
-    mNameEl.innerHTML=mObj
-      ?('<strong>'+esc(mObj.name)+'</strong> '+memberRoleBadge(mObj.role)
-        +(mObj.phone?' <span style="font-size:11px;color:var(--text3)">'+esc(mObj.phone)+'</span>':'')
-        +(mObj.instagram_id?' <span style="font-size:11px;color:var(--text3)">'+esc(mObj.instagram_id)+'</span>':''))
-      :'(알 수 없음)';
+  if(rM){
+    var mObj=DB.members.find(function(x){return x.id===rM;});
+    mNameEl.innerHTML=mObj?('<strong>'+esc(mObj.name)+'</strong> '+memberRoleBadge(mObj.role)+(mObj.phone?' <span style="font-size:11px;color:var(--text3)">'+esc(mObj.phone)+'</span>':'')+(mObj.instagram_id?' <span style="font-size:11px;color:var(--text3)">'+esc(mObj.instagram_id)+'</span>':'')):'(알 수 없음)';
     mDisp.style.display='';
-  } else { mDisp.style.display='none'; }
-
-  // 세션 표시 (멤버 화면에서 호출된 경우)
+  } else mDisp.style.display='none';
   var sDisp=document.getElementById('plog-session-display');
   var sNameEl=document.getElementById('plog-session-name-display');
-  if(rSesId&&PCTX.memberId&&!PCTX.sesId){
-    var sObj=DB.sessions.find(function(x){return x.id===rSesId;});
+  if(rS&&PCTX.memberId&&!PCTX.sesId){
+    var sObj=DB.sessions.find(function(x){return x.id===rS;});
     var pObj=sObj?DB.programs.find(function(x){return x.id===sObj.program_id;}):null;
-    sNameEl.innerHTML=sObj?(fDate(sObj.session_date)+(sObj.session_time?' '+sObj.session_time:'')
-      +' <strong>'+(pObj?(esc(pObj.emoji||'')+' '+esc(pObj.name)):'프로그램 미정')+'</strong>'):'—';
+    sNameEl.innerHTML=sObj?(fDate(sObj.session_date)+(sObj.session_time?' '+sObj.session_time:'')+' <strong>'+(pObj?(esc(pObj.emoji||'')+' '+esc(pObj.name)):'')+'</strong>'):'—';
     sDisp.style.display='';
-  } else { sDisp.style.display='none'; }
-
-  // 폼 값 설정
-  document.getElementById('plog-channel').value=l?l.channel:(DB.memberChannels[0]||'');
-  document.getElementById('plog-status').value=l?l.status:'참여확정';
+  } else sDisp.style.display='none';
+  document.getElementById('plog-channel').value=l?l.channel||'':'';
+  document.getElementById('plog-status').value=l?l.status:'대기';
   document.getElementById('plog-payment-status').value=l?l.payment_status:'미납';
   var defAmt=l?l.payment_amount:'';
-  if(!defAmt&&rSesId){var sSnap=DB.sessions.find(function(x){return x.id===rSesId;});if(sSnap)defAmt=sSnap.selling_price_snapshot||'';}
+  if(!defAmt&&rS){var sSnap=DB.sessions.find(function(x){return x.id===rS;});if(sSnap)defAmt=sSnap.selling_price_snapshot||'';}
   document.getElementById('plog-amount').value=defAmt||'';
   document.getElementById('plog-memo').value=l?l.memo||'':'';
-  var delBtn=document.getElementById('plog-del-btn');
-  if(delBtn)delBtn.style.display=l?'':'none';
+  var delBtn=document.getElementById('plog-del-btn');if(delBtn)delBtn.style.display=l?'':'none';
   document.getElementById('m-plog-title').textContent=l?'참여 정보 수정':'참여 정보 추가';
   openModal('m-plog');
 }
 
 function openPlogEdit(plogId){
-  var l=DB.participationLogs.find(function(x){return x.id===plogId;});
-  if(!l)return;
+  var l=DB.participationLogs.find(function(x){return x.id===plogId;});if(!l)return;
   openPlogModal(plogId,l.member_id,l.session_id);
 }
 
 function closePlogModal(){
   closeModal('m-plog');
-  if(PCTX.sesId){
-    document.getElementById('plog-search-panel').style.display='none';
-    document.getElementById('plog-add-toggle-btn').textContent='+ 참가자 추가';
-  }
+  if(PCTX.sesId){document.getElementById('plog-search-panel').style.display='none';document.getElementById('plog-add-toggle-btn').textContent='+ 참가자 추가';}
 }
 
 function savePlog(){
+  if(!requireSheets())return;
   var id=document.getElementById('plog-id').value;
   var memberId=document.getElementById('plog-member-id').value;
   var sesId=document.getElementById('plog-session-id').value;
   if(!memberId||!sesId){toast('참가자 또는 모임 정보가 없습니다.','error');return;}
+  // 과거 모임에 신규 추가 차단
+  if(!id){
+    var _ses=DB.sessions.find(function(x){return x.id===sesId;});
+    if(_ses&&_ses.session_date<today()){toast('지난 모임에는 새 참가자를 추가할 수 없습니다.','error');return;}
+  }
   var channel=document.getElementById('plog-channel').value;
   var status=document.getElementById('plog-status').value;
   var payStatus=document.getElementById('plog-payment-status').value;
@@ -3342,24 +3340,16 @@ function savePlog(){
   var memo=(document.getElementById('plog-memo').value||'').trim();
   var now=new Date().toISOString();
   if(id){
-    var l=DB.participationLogs.find(function(x){return x.id===id;});
-    if(!l)return;
+    var l=DB.participationLogs.find(function(x){return x.id===id;});if(!l)return;
     Object.assign(l,{channel,status,payment_status:payStatus,payment_amount:amount,memo});
     if(payStatus==='확인'&&!l.payment_confirmed_at)l.payment_confirmed_at=now;
     toast('수정 완료');
   } else {
-    if(DB.participationLogs.some(function(l){return l.member_id===memberId&&l.session_id===sesId;})){
-      toast('이미 이 모임에 등록된 참가자입니다.','error');return;
-    }
-    DB.participationLogs.push({
-      id:genId('PLG'),member_id:memberId,session_id:sesId,
-      applied_at:now,channel,status,
-      payment_status:payStatus,payment_amount:amount,
-      payment_confirmed_at:payStatus==='확인'?now:null,
-      memo,created_by:AUTH.userEmail||''
-    });
+    if(DB.participationLogs.some(function(l){return l.member_id===memberId&&l.session_id===sesId;})){toast('이미 이 모임에 등록된 참가자입니다.','error');return;}
+    DB.participationLogs.push({id:genId('PLG'),member_id:memberId,session_id:sesId,applied_at:now,channel,status,payment_status:payStatus,payment_amount:amount,payment_confirmed_at:payStatus==='확인'?now:null,memo,created_by:AUTH.userEmail||''});
     toast('참여 추가 완료 ✓');
   }
+  gsAfter('participationLogs');
   closeModal('m-plog');
   if(PCTX.sesId)renderParticipants();
   if(PCTX.memberId)renderMemberPlogs(PCTX.memberId);
@@ -3368,9 +3358,11 @@ function savePlog(){
 }
 
 function deletePlog(){
+  if(!requireSheets())return;
   var id=document.getElementById('plog-id').value;
   if(!id||!confirm('이 참여 기록을 삭제할까요?'))return;
   DB.participationLogs=DB.participationLogs.filter(function(x){return x.id!==id;});
+  gsAfter('participationLogs');
   closeModal('m-plog');
   if(PCTX.sesId)renderParticipants();
   if(PCTX.memberId)renderMemberPlogs(PCTX.memberId);
@@ -3379,57 +3371,206 @@ function deletePlog(){
   toast('삭제 완료','warning');
 }
 
-// 멤버 상세에서 "참여 추가" 클릭 → 세션 검색
 function openPlogFromMember(){
   document.getElementById('ses-search-q').value='';
   renderSesSearch();
   openModal('m-ses-search');
 }
 
-// ══════════════════════════════════════════════════════════
-// 세션 검색 (m-ses-search) — 미래 세션만
-// ══════════════════════════════════════════════════════════
+// ── 세션 검색 (미래 세션만) ───────────────────────────────
 function renderSesSearch(){
   var q=(document.getElementById('ses-search-q')?.value||'').trim().toLowerCase();
-  var sessions=DB.sessions
-    .filter(function(s){return s.session_date>=today();})
+  var sessions=DB.sessions.filter(function(s){return s.session_date>=today();})
     .sort(function(a,b){return a.session_date.localeCompare(b.session_date);});
-  if(q)sessions=sessions.filter(function(s){
-    var p=DB.programs.find(function(x){return x.id===s.program_id;});
-    return s.session_date.includes(q)||(p&&p.name.toLowerCase().includes(q));
-  });
-  var el=document.getElementById('ses-search-results');
-  if(!el)return;
-  if(!sessions.length){
-    el.innerHTML='<div style="padding:12px;text-align:center;color:var(--text3);font-size:12px">예정된 모임 없음</div>';
-    return;
-  }
+  if(q)sessions=sessions.filter(function(s){var p=DB.programs.find(function(x){return x.id===s.program_id;});return s.session_date.includes(q)||(p&&p.name.toLowerCase().includes(q));});
+  var el=document.getElementById('ses-search-results');if(!el)return;
+  if(!sessions.length){el.innerHTML='<div style="padding:12px;text-align:center;color:var(--text3);font-size:12px">예정된 모임 없음</div>';return;}
   el.innerHTML=sessions.map(function(s){
     var p=DB.programs.find(function(x){return x.id===s.program_id;});
     var alreadyIn=PCTX.memberId&&DB.participationLogs.some(function(l){return l.session_id===s.id&&l.member_id===PCTX.memberId;});
-    var plogCnt=DB.participationLogs.filter(function(l){return l.session_id===s.id&&l.status==='참여확정';}).length;
+    var conf=DB.participationLogs.filter(function(l){return l.session_id===s.id&&l.status==='참여확정';}).length;
     return'<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);'+(alreadyIn?'opacity:.5':'cursor:pointer')+'" '+(alreadyIn?'':'onclick="selectSesForPlog(\''+s.id+'\')"')+'>'
-      +'<div style="flex:1">'
-      +'<div style="font-size:13px;font-weight:600">'+fDate(s.session_date)+(s.session_time?' '+s.session_time:'')+'</div>'
-      +'<div style="font-size:11px;color:var(--text3)">'+(p?(esc(p.emoji||'')+' '+esc(p.name)):'프로그램 미정')+' &nbsp;·&nbsp; 확정 '+plogCnt+'/'+s.participants+'명</div>'
-      +'</div>'
+      +'<div style="flex:1"><div style="font-size:13px;font-weight:600">'+fDate(s.session_date)+(s.session_time?' '+s.session_time:'')+'</div>'
+      +'<div style="font-size:11px;color:var(--text3)">'+(p?(esc(p.emoji||'')+' '+esc(p.name)):'프로그램 미정')+' · 확정 '+conf+'/'+s.participants+'명</div></div>'
       +(alreadyIn?'<span style="font-size:11px;color:var(--text3)">이미 등록됨</span>':'<button class="btn btn-outline btn-xs" onclick="event.stopPropagation();selectSesForPlog(\''+s.id+'\')">선택 →</button>')
       +'</div>';
   }).join('');
 }
 
-function selectSesForPlog(sesId){
-  closeModal('m-ses-search');
-  openPlogModal(null,PCTX.memberId,sesId);
-}
+function selectSesForPlog(sesId){closeModal('m-ses-search');openPlogModal(null,PCTX.memberId,sesId);}
 
 function openSesModalFromMember(){
   closeModal('m-ses-search');
-  _afterSesSave=function(newSesId){
-    renderSesSearch();
-    openModal('m-ses-search');
-  };
+  _afterSesSave=function(){renderSesSearch();openModal('m-ses-search');};
+  openModalOnTop('m-ses');
   openSesModal();
+}
+
+// ══════════════════════════════════════════════════════════
+// 설정 모달
+// ══════════════════════════════════════════════════════════
+function openSettings(){
+  openSettingsTab('ch');
+  openModal('m-settings');
+}
+
+function openSettingsTab(tab){
+  ['ch','role','type','cat','sheets','pstat','paystat','info'].forEach(function(t){
+    var btn=document.getElementById('settings-tab-'+t);
+    var panel=document.getElementById('settings-panel-'+t);
+    if(btn)btn.classList.toggle('active',t===tab);
+    if(panel)panel.style.display=t===tab?'':'none';
+  });
+  if(tab==='ch')renderSettingsCh();
+  else if(tab==='role')renderSettingsRole();
+  else if(tab==='type')renderSettingsType();
+  else if(tab==='cat')renderSettingsCat();
+  else if(tab==='sheets')renderSettingsSheets();
+  else if(tab==='pstat')renderSettingsPstat();
+  else if(tab==='paystat')renderSettingsPaystat();
+  else if(tab==='info')renderSettingsInfo();
+}
+
+function _settingsEditableList(items,onRename,onDelete,listId){
+  var el=document.getElementById(listId);if(!el)return;
+  if(!items.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">항목 없음</div>';return;}
+  el.innerHTML=items.map(function(item,i){
+    return'<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">'
+      +'<span style="flex:1;font-size:13px">'+esc(item)+'</span>'
+      +'<button class="btn btn-outline btn-xs" onclick="('+onRename+')('+i+')">수정</button>'
+      +'<button class="btn btn-danger btn-xs" onclick="('+onDelete+')('+i+')">삭제</button>'
+      +'</div>';
+  }).join('');
+}
+
+function renderSettingsCh(){
+  _settingsEditableList(DB.memberChannels,
+    'function(i){var n=(prompt("채널명 수정",DB.memberChannels[i])||"").trim();if(!n||n===DB.memberChannels[i])return;DB.participationLogs.forEach(function(l){if(l.channel===DB.memberChannels[i])l.channel=n;});DB.memberChannels[i]=n;saveAppSettings();renderSettingsCh();toast("변경: "+n);}',
+    'function(i){var nm=DB.memberChannels[i];if(DB.participationLogs.some(function(l){return l.channel===nm;})&&!confirm("["+nm+"] 채널이 사용 중입니다. 삭제할까요?"))return;DB.memberChannels.splice(i,1);saveAppSettings();renderSettingsCh();toast("삭제: "+nm,"warning");}',
+    'settings-ch-list');
+}
+function settingsAddCh(){
+  var name=(document.getElementById('settings-ch-new').value||'').trim();
+  if(!name)return;
+  if(DB.memberChannels.includes(name)){alert('이미 있는 채널입니다.');return;}
+  DB.memberChannels.push(name);saveAppSettings();
+  document.getElementById('settings-ch-new').value='';
+  renderSettingsCh();toast('채널 추가: '+name);
+}
+
+function renderSettingsRole(){
+  _settingsEditableList(DB.memberRoles,
+    'function(i){var n=(prompt("역할명 수정",DB.memberRoles[i])||"").trim();if(!n||n===DB.memberRoles[i])return;DB.members.forEach(function(m){if(m.role===DB.memberRoles[i])m.role=n;});DB.memberRoles[i]=n;saveAppSettings();syncRoleSelects();renderSettingsRole();toast("변경: "+n);}',
+    'function(i){if(DB.memberRoles.length<=1){alert("최소 1개의 역할이 필요합니다.");return;}var old=DB.memberRoles[i];DB.members.forEach(function(m){if(m.role===old)m.role=DB.memberRoles[0]||"손님";});DB.memberRoles.splice(i,1);saveAppSettings();syncRoleSelects();renderSettingsRole();toast("삭제: "+old,"warning");}',
+    'settings-role-list');
+}
+function settingsAddRole(){
+  var name=(document.getElementById('settings-role-new').value||'').trim();
+  if(!name)return;
+  if(DB.memberRoles.includes(name)){alert('이미 있는 역할입니다.');return;}
+  DB.memberRoles.push(name);saveAppSettings();
+  document.getElementById('settings-role-new').value='';
+  syncRoleSelects();renderSettingsRole();toast('역할 추가: '+name);
+}
+
+function renderSettingsType(){
+  var el=document.getElementById('settings-type-list');if(!el)return;
+  if(!DB.programTypes.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">등록된 타입 없음</div>';return;}
+  el.innerHTML=DB.programTypes.map(function(t){
+    return'<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">'
+      +'<span style="width:14px;height:14px;border-radius:4px;background:'+(t.color||'#eee')+';display:inline-block;flex-shrink:0"></span>'
+      +'<span style="flex:1;font-size:13px">'+esc(t.name)+'</span>'
+      +'<button class="btn btn-outline btn-xs" onclick="closeModal(\'m-settings\');openProgTypeModal(\''+t.id+'\')">수정</button>'
+      +'</div>';
+  }).join('');
+}
+
+function renderSettingsCat(){
+  var el=document.getElementById('settings-cat-list');if(!el)return;
+  if(!DB.categories.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">등록된 카테고리 없음</div>';return;}
+  el.innerHTML=DB.categories.map(function(c){
+    return'<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">'
+      +'<span style="width:14px;height:14px;border-radius:4px;background:'+(c.color||'#eee')+';display:inline-block;flex-shrink:0"></span>'
+      +'<span style="flex:1;font-size:13px">'+esc(c.name)+'</span>'
+      +'<button class="btn btn-outline btn-xs" onclick="closeModal(\'m-settings\');openCatModal(\''+c.id+'\')">수정</button>'
+      +'</div>';
+  }).join('');
+}
+
+
+function syncPlogStatusSelects(){
+  var pSel=document.getElementById('plog-status');
+  var pySel=document.getElementById('plog-payment-status');
+  if(pSel){var cv=pSel.value;pSel.innerHTML=DB.plogStatuses.map(function(s){return'<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join('');if(cv)pSel.value=cv;}
+  if(pySel){var cyv=pySel.value;pySel.innerHTML=DB.payStatuses.map(function(s){return'<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join('');if(cyv)pySel.value=cyv;}
+}
+
+function renderSettingsPstat(){
+  _settingsEditableList(DB.plogStatuses,
+    'function(i){var n=(prompt("상태명 수정",DB.plogStatuses[i])||"").trim();if(!n||n===DB.plogStatuses[i])return;DB.participationLogs.forEach(function(l){if(l.status===DB.plogStatuses[i])l.status=n;});DB.plogStatuses[i]=n;saveAppSettings();syncPlogStatusSelects();renderSettingsPstat();toast("변경: "+n);}',
+    'function(i){if(DB.plogStatuses.length<=1){alert("최소 1개 필요합니다.");return;}var old=DB.plogStatuses[i];DB.participationLogs.forEach(function(l){if(l.status===old)l.status=DB.plogStatuses[0];});DB.plogStatuses.splice(i,1);saveAppSettings();syncPlogStatusSelects();renderSettingsPstat();toast("삭제: "+old,"warning");}',
+    'settings-pstat-list');
+}
+function settingsAddPstat(){
+  var name=(document.getElementById('settings-pstat-new').value||'').trim();
+  if(!name)return;
+  if(DB.plogStatuses.includes(name)){alert('이미 있는 상태입니다.');return;}
+  DB.plogStatuses.push(name);saveAppSettings();syncPlogStatusSelects();
+  document.getElementById('settings-pstat-new').value='';
+  renderSettingsPstat();toast('참여 상태 추가: '+name);
+}
+
+function renderSettingsPaystat(){
+  _settingsEditableList(DB.payStatuses,
+    'function(i){var n=(prompt("상태명 수정",DB.payStatuses[i])||"").trim();if(!n||n===DB.payStatuses[i])return;DB.participationLogs.forEach(function(l){if(l.payment_status===DB.payStatuses[i])l.payment_status=n;});DB.payStatuses[i]=n;saveAppSettings();syncPlogStatusSelects();renderSettingsPaystat();toast("변경: "+n);}',
+    'function(i){if(DB.payStatuses.length<=1){alert("최소 1개 필요합니다.");return;}var old=DB.payStatuses[i];DB.participationLogs.forEach(function(l){if(l.payment_status===old)l.payment_status=DB.payStatuses[0];});DB.payStatuses.splice(i,1);saveAppSettings();syncPlogStatusSelects();renderSettingsPaystat();toast("삭제: "+old,"warning");}',
+    'settings-paystat-list');
+}
+function settingsAddPaystat(){
+  var name=(document.getElementById('settings-paystat-new').value||'').trim();
+  if(!name)return;
+  if(DB.payStatuses.includes(name)){alert('이미 있는 상태입니다.');return;}
+  DB.payStatuses.push(name);saveAppSettings();syncPlogStatusSelects();
+  document.getElementById('settings-paystat-new').value='';
+  renderSettingsPaystat();toast('결제 상태 추가: '+name);
+}
+
+function renderSettingsInfo(){
+  var el=document.getElementById('settings-info-body');if(!el)return;
+  var rows=[
+    ['앱 버전','v4.1 (11단계)'],
+    ['참가자',DB.members.length+'명'],
+    ['참여 로그',DB.participationLogs.length+'건'],
+    ['모임 세션',DB.sessions.length+'개'],
+    ['프로그램',DB.programs.length+'개'],
+    ['원가 항목',DB.ingredients.length+'개'],
+    ['재고 로그',DB.inventoryLog.length+'건'],
+    ['신청 채널',DB.memberChannels.length+'개'],
+    ['참가자 역할',DB.memberRoles.length+'개'],
+    ['참여 상태',DB.plogStatuses.length+'개'],
+    ['결제 상태',DB.payStatuses.length+'개'],
+  ];
+  el.innerHTML='<table style="width:100%;font-size:13px;border-collapse:collapse">'
+    +rows.map(function(r){return'<tr style="border-bottom:1px solid var(--border)"><td style="padding:9px 8px;color:var(--text2);font-weight:600;font-size:11px;font-family:var(--mono);text-transform:uppercase;width:110px">'+r[0]+'</td><td style="padding:9px 8px">'+r[1]+'</td></tr>';}).join('')
+    +'</table>'
+    +'<div style="margin-top:16px;padding:12px;background:#fafafa;border-radius:8px;font-size:11px;color:var(--text3)">데이터는 현재 브라우저 메모리에만 저장됩니다. Google Sheets 연결 시 영구 저장됩니다.</div>';
+}
+
+function renderSettingsSheets(){
+  var el=document.getElementById('settings-sheets-body');if(!el)return;
+  var conn=GS.isConnected();
+  el.innerHTML='<div style="padding:4px 0">'
+    +'<div style="font-size:13px;margin-bottom:14px">'+(conn?'<span class="badge badge-green">연결됨</span>':'<span class="badge badge-muted">미연결</span>')+'</div>'
+    +'<table style="font-size:12px;width:100%;border-collapse:collapse">'
+    +(GS.clientId?'<tr><td style="padding:6px 8px;color:var(--text3);width:100px">Client ID</td><td style="padding:6px 8px;font-family:var(--mono)">'+esc(GS.clientId.slice(0,30))+'…</td></tr>':'')
+    +(GS.sheetId?'<tr><td style="padding:6px 8px;color:var(--text3)">Sheet ID</td><td style="padding:6px 8px;font-family:var(--mono)">'+esc(GS.sheetId)+'</td></tr>':'')
+    +(AUTH.userEmail?'<tr><td style="padding:6px 8px;color:var(--text3)">로그인</td><td style="padding:6px 8px">'+esc(AUTH.userEmail)+'</td></tr>':'')
+    +'</table>'
+    +(conn?''
+      :'<div style="margin-top:16px;padding:12px 14px;background:#fff8cc;border-radius:8px;font-size:12px;color:#7a6000">'
+      +'⚠ Sheets가 연결되지 않아 데이터가 저장되지 않습니다.<br>사이드바 하단의 연결 패널에서 Client ID와 Sheet ID를 입력 후 연결해주세요.'
+      +'</div>')
+    +'</div>';
 }
 
 function renderReport(){
@@ -3545,6 +3686,7 @@ function seedData(){
 // 초기화
 // ══════════════════════════════════════════════════════════
 function init(){
+  loadAppSettings();
   seedData();
   document.getElementById('log-date').value=today();onLogTypeChange();
   syncIngSelects();syncProgSelects();syncCatSelect();
