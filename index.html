@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>먹거리 모임 관리자</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap');
 :root{
@@ -819,13 +820,13 @@ tbody td{padding:11px 11px;vertical-align:middle}
 const AUTH={
   // ★ 접근 허용할 Google 이메일 목록 — 여기에 추가/제거하세요
   ALLOWED_EMAILS:[
-    'itsbeybusiness@gmail.com',   // 본인 이메일로 교체
-    'baekeun0@gmail.com',        // 동료 이메일 추가 예시
+    'beybusiness.bit@gmail.com',   // 본인 이메일로 교체
+    // 'partner@gmail.com',        // 동료 이메일 추가 예시
   ],
   // ★ Google OAuth Client ID — 연결 후 여기 붙여넣어 두면 자동 로그인 가능
-  CLIENT_ID:'27055656717-pgddfisd182i8jqlg574v7vrbkff2b2b.apps.googleusercontent.com',   // 예: '123456789-abc.apps.googleusercontent.com'
+  CLIENT_ID:'',   // 예: '123456789-abc.apps.googleusercontent.com'
   // ★ Google Spreadsheet ID
-  SHEET_ID:'1QHzz73LzPSGWCwl6SN7TPaxxdyqnkIxzlq9TQpGopag',    // 예: '1abc2def3ghi...'
+  SHEET_ID:'',    // 예: '1abc2def3ghi...'
 
   userEmail:null,
   userName:null,
@@ -853,6 +854,18 @@ const AUTH={
   }
 };
 
+// GIS 준비 대기 (head에서 async 로드하므로 타이밍 보정)
+function waitForGIS(timeout=8000){
+  return new Promise((resolve,reject)=>{
+    if(window.google?.accounts?.oauth2){resolve();return;}
+    const start=Date.now();
+    const t=setInterval(()=>{
+      if(window.google?.accounts?.oauth2){clearInterval(t);resolve();}
+      else if(Date.now()-start>timeout){clearInterval(t);reject(new Error('Google 라이브러리 로드 실패. 인터넷 연결을 확인해주세요.'));}
+    },100);
+  });
+}
+
 // Google 로그인 버튼 클릭
 async function authLogin(){
   const errEl=document.getElementById('auth-error');
@@ -877,15 +890,8 @@ async function authLogin(){
   }
 
   try{
-    // GIS 동적 로드
-    if(!window.google?.accounts?.oauth2){
-      await new Promise((res,rej)=>{
-        const s=document.createElement('script');
-        s.src='https://accounts.google.com/gsi/client';
-        s.onload=res;s.onerror=()=>rej(new Error('Google 라이브러리 로드 실패. 인터넷 연결을 확인해주세요.'));
-        document.head.appendChild(s);
-      });
-    }
+    // GIS 로드 대기
+    await waitForGIS();
 
     // 토큰 요청 (Sheets 스코프 + email 확인용 openid)
     const token = await new Promise((resolve,reject)=>{
@@ -1144,6 +1150,7 @@ async function gsConnect(){
   GS.clientId=cid;GS.sheetId=sid;
   GS.updateUI('sync','연결 중...');
   try{
+    await waitForGIS();
     await GS.requestToken();
     await GS.initSheets();
     await GS.loadAll();
