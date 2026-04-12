@@ -573,16 +573,11 @@ tbody td{padding:11px 11px;vertical-align:middle}
 <div class="page" id="page-stock">
   <div class="page-header"><div><div class="page-title">재고 관리</div></div></div>
   <div class="page-body">
-    <!-- 최상위 탭: 재고 현황 / 발주 관리 -->
-    <div class="tab-bar" style="margin-bottom:16px">
-      <button class="tab-btn active" id="stock-main-tab-stock" onclick="setStockMainTab('stock',this)">재고 현황</button>
-      <button class="tab-btn" id="stock-main-tab-order" onclick="setStockMainTab('order',this)">발주 관리</button>
-    </div>
 
-    <!-- 재고 현황 탭 -->
-    <div id="stock-panel-stock">
+    <!-- ── 현재 재고 섹션 ── -->
+    <div id="stock-panel-stock" style="margin-bottom:24px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-        <div class="tab-bar">
+        <div class="tab-bar" id="stock-sub-tabs">
           <button class="tab-btn active" onclick="setStockView('all',this)">전체</button>
           <button class="tab-btn" onclick="setStockView('category',this)">카테고리별</button>
           <button class="tab-btn" onclick="setStockView('program',this)">프로그램별</button>
@@ -612,10 +607,10 @@ tbody td{padding:11px 11px;vertical-align:middle}
       </div>
     </div>
 
-    <!-- 발주 관리 탭 -->
-    <div id="stock-panel-order" style="display:none">
+    <!-- ── 발주 관리 섹션 ── -->
+    <div id="stock-panel-order">
       <div class="card">
-        <div class="sec-title">발주 알림</div>
+        <div class="sec-title">발주 관리</div>
         <div style="font-size:12px;color:var(--text3);margin-bottom:12px">미래 모임의 재료 수요를 기반으로 발주가 필요한 항목을 자동 계산합니다.</div>
         <div class="tbl-wrap">
           <table><thead><tr><th>원가 항목</th><th>부족 발생 모임</th><th>부족량</th><th>발주 마감</th><th>배송 소요</th><th>상태</th></tr></thead>
@@ -1450,6 +1445,7 @@ const esc=s=>{const m={'<':'lt','>':'gt','&':'amp'};return String(s).replace(/[<
 // ══════════════════════════════════════════════════════════
 const PAGE_TITLES={dashboard:'대시보드',sessions:'일정 관리',programs:'프로그램',members:'참가자',options:'추가 옵션',benefits:'혜택 관리',ingredients:'원가 항목',stock:'재고 관리',history:'입출고 이력',report:'리포트'};
 function navigate(id){
+  if(!id||!document.getElementById('page-'+id))return;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
@@ -1458,7 +1454,7 @@ function navigate(id){
   closeSidebar();
   ({dashboard:renderDashboard,sessions:renderSessions,programs:renderPrograms,members:()=>{},options:()=>{},benefits:()=>{},stock:renderStock,history:renderHistory,ingredients:renderIngredients,report:renderReport})[id]?.();
 }
-document.querySelectorAll('.nav-item').forEach(el=>el.addEventListener('click',()=>navigate(el.dataset.page)));
+document.querySelectorAll('.nav-item[data-page]').forEach(el=>el.addEventListener('click',()=>navigate(el.dataset.page)));
 const openSidebar=()=>{document.getElementById('sidebar').classList.add('open');document.getElementById('sidebar-overlay').classList.add('open');};
 const closeSidebar=()=>{document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open');};
 document.getElementById('hamburger').addEventListener('click',openSidebar);
@@ -1771,50 +1767,53 @@ function renderSessions(){
 // ══════════════════════════════════════════════════════════
 // 재고 현황
 // ══════════════════════════════════════════════════════════
-let stockViewMode='all',selStockProgId=null,stockMainTab='stock';
-function setStockMainTab(tab,btn){
-  stockMainTab=tab;
-  document.getElementById('stock-main-tab-stock').classList.remove('active');
-  document.getElementById('stock-main-tab-order').classList.remove('active');
-  btn.classList.add('active');
-  document.getElementById('stock-panel-stock').style.display=tab==='stock'?'':'none';
-  document.getElementById('stock-panel-order').style.display=tab==='order'?'':'none';
-  if(tab==='order')renderOrderAlerts();
-}
+let stockViewMode='all',selStockProgId=null,selStockCatId='';
 function setStockView(mode,btn){
   stockViewMode=mode;
-  document.querySelectorAll('#stock-panel-stock .tab-bar:first-child .tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#stock-sub-tabs .tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   const progSel=document.getElementById('stock-prog-selector');
+  const catSel=document.getElementById('stock-cat-selector');
+  if(progSel)progSel.style.display='none';
+  if(catSel)catSel.style.display='none';
   if(mode==='program'){
-    progSel.style.display='';
+    if(progSel)progSel.style.display='';
     if(!selStockProgId&&DB.programs.length)selStockProgId=DB.programs.filter(p=>p.is_active)[0]?.id;
     renderStockProgSelector();
-  } else {
-    progSel.style.display='none';
+  } else if(mode==='category'){
+    if(catSel)catSel.style.display='';
+    renderStockCatSelector();
   }
   renderStock();
 }
+function renderStockCatSelector(){
+  const el=document.getElementById('stock-cat-selector');
+  if(!el)return;
+  const cats=[{id:'',name:'전체'},...DB.categories,{id:'none',name:'미분류'}];
+  el.innerHTML='<div class="tab-bar">'+cats.map(c=>'<button class="tab-btn'+(selStockCatId===c.id?' active':'')+'" onclick="selStockCatId=\''+c.id+'\';renderStockCatSelector();renderStock()">'+esc(c.name)+'</button>').join('')+'</div>';
+}
 function renderStockProgSelector(){
   const el=document.getElementById('stock-prog-selector');
-  el.innerHTML='<div class="tab-bar">'
-    +DB.programs.filter(p=>p.is_active).map(p=>'<button class="tab-btn'+(p.id===selStockProgId?' active':'')+'" onclick="selStockProgId=\''+p.id+'\';renderStockProgSelector();renderStock()">'+(p.emoji||'')+' '+esc(p.name)+'</button>').join('')
-    +'</div>';
+  if(!el)return;
+  el.innerHTML='<div class="tab-bar">'+DB.programs.filter(p=>p.is_active).map(p=>'<button class="tab-btn'+(p.id===selStockProgId?' active':'')+'" onclick="selStockProgId=\''+p.id+'\';renderStockProgSelector();renderStock()">'+(p.emoji||'')+' '+esc(p.name)+'</button>').join('')+'</div>';
 }
 function renderOrderAlerts(){
   const orders=calcOrderAlerts();
-  document.getElementById('order-tbody').innerHTML=orders.length
+  const el=document.getElementById('order-tbody');
+  if(!el)return;
+  el.innerHTML=orders.length
     ?orders.map(o=>'<tr><td data-label="원가 항목"><b>'+esc(o.name)+'</b></td><td data-label="부족 발생" class="td-mono">'+fDate(o.sessionDate)+'</td><td data-label="부족량" class="n-r">'+fNum(o.shortage)+' '+o.unit+'</td><td data-label="발주 마감" class="td-mono">'+fDate(o.orderDeadline)+'</td><td data-label="배송 소요" class="td-mono">'+o.leadTime+'일</td><td data-label="상태"><span class="badge '+(o.status==='urgent'?'badge-danger':'badge-yellow')+'">'+(o.status==='urgent'?'긴급':'예정')+'</span></td></tr>').join('')
     :'<tr><td colspan="6" class="nl"><div class="empty"><div class="empty-icon">✅</div><div style="font-size:13px">발주 필요 없음<br><span style="font-size:11px;color:var(--text3)">미래 모임 등록 시 자동 계산</span></div></div></td></tr>';
 }
 function renderStock(){
-  const sort=document.getElementById('stock-sort').value;
+  const sort=(document.getElementById('stock-sort')?.value)||'name-asc';
   let ings=[...DB.ingredients.filter(i=>i.is_active)];
   if(sort==='name-asc')ings.sort((a,b)=>a.name.localeCompare(b.name,'ko'));
   else if(sort==='name-desc')ings.sort((a,b)=>b.name.localeCompare(a.name,'ko'));
   else if(sort==='qty-asc')ings.sort((a,b)=>calcStock(a.id)-calcStock(b.id));
   else if(sort==='qty-desc')ings.sort((a,b)=>calcStock(b.id)-calcStock(a.id));
   const cont=document.getElementById('stock-content');
+  if(!cont)return;
   if(stockViewMode==='category'){
     if(selStockCatId==='none')ings=ings.filter(i=>!i.category_id);
     else if(selStockCatId)ings=ings.filter(i=>i.category_id===selStockCatId);
@@ -1834,7 +1833,7 @@ function renderStock(){
   } else if(stockViewMode==='program'){
     const prog=DB.programs.find(p=>p.id===selStockProgId);
     if(!prog){cont.innerHTML='<div class="empty"><div style="font-size:13px">프로그램을 선택해주세요</div></div>';}
-    else {
+    else{
       const recipe=DB.programRecipes.filter(r=>r.program_id===prog.id&&!r.valid_until);
       const progIngs=recipe.map(r=>ings.find(i=>i.id===r.ingredient_id)).filter(Boolean);
       cont.innerHTML=progIngs.length
@@ -1844,8 +1843,7 @@ function renderStock(){
         :'<div class="empty"><div style="font-size:13px">등록된 항목 없음</div></div>';
     }
   }
-  // 발주 탭이 열려있으면 함께 갱신
-  if(stockMainTab==='order')renderOrderAlerts();
+  renderOrderAlerts();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -2616,7 +2614,16 @@ function renderReport(){
   document.getElementById('rep-summary').innerHTML=`<div class="g2" style="gap:10px">${[['총 모임',ss.length+'회','n-y'],['총 참여자',ss.reduce((a,x)=>a+x.participants,0)+'명','n-y'],['총 매출',fMoney(totalRev),'n-g'],['총 수익',fMoney(totalProfit),totalProfit>=0?'n-g':'n-r'],['총 재료비',fMoney(totalCost),'n-p'],['수익률',totalRev?Math.round(totalProfit/totalRev*100)+'%':'—','n-y']].map(([l,v,c])=>`<div><div class="card-label">${l}</div><div class="${c}" style="font-size:20px;font-weight:800">${v}</div></div>`).join('')}</div>`;
   const mMap={};ss.forEach(s=>{const ym=s.session_date.slice(0,7);if(!mMap[ym]){mMap[ym]={rev:0,cost:0};}mMap[ym].rev+=(s.selling_price_snapshot||0)*s.participants;mMap[ym].cost+=calcSesCost(s);});
   const mons=Object.keys(mMap).sort(),mx=Math.max(...mons.map(m=>mMap[m].rev),1);
-  document.getElementById('rep-chart').innerHTML=mons.length?`<div style="font-size:10px;color:var(--text3);font-family:var(--mono);text-align:right;margin-bottom:4px">단위: 천원</div><div class="chart-wrap" style="height:120px">${mons.map(m=>`<div class="chart-col"><div class="chart-val">${Math.round(mMap[m].rev/1000).toLocaleString()}</div><div class="chart-bar" style="height:${Math.max(mMap[m].rev/mx*95,4)}px"></div><div class="chart-lbl">${m.slice(5)}월</div></div>`).join('')}</div>`:`<div class="empty"><div style="font-size:13px">데이터 없음</div></div>`;
+  if(mons.length){
+    const chartEl=document.getElementById('rep-chart');
+    const colW=Math.floor((chartEl.offsetWidth||600)/Math.max(mons.length,1));
+    const useShort=colW<56;
+    const fmtVal=v=>useShort?Math.round(v/1000).toLocaleString():Math.round(v).toLocaleString();
+    const unitLabel=useShort?'<div style="font-size:10px;color:var(--text3);font-family:var(--mono);text-align:right;margin-bottom:4px">단위: 천원</div>':'';
+    chartEl.innerHTML=unitLabel+'<div class="chart-wrap" style="height:120px">'+mons.map(m=>'<div class="chart-col"><div class="chart-val">'+fmtVal(mMap[m].rev)+'</div><div class="chart-bar" style="height:'+Math.max(mMap[m].rev/mx*95,4)+'px"></div><div class="chart-lbl">'+m.slice(5)+'월</div></div>').join('')+'</div>';
+  } else {
+    document.getElementById('rep-chart').innerHTML='<div class="empty"><div style="font-size:13px">데이터 없음</div></div>';
+  }
   const pMap={};ss.forEach(s=>{const pid=s.program_id;if(!pMap[pid]){pMap[pid]={rev:0,cost:0,cnt:0,prog:DB.programs.find(p=>p.id===pid)};}pMap[pid].rev+=(s.selling_price_snapshot||0)*s.participants;pMap[pid].cost+=calcSesCost(s);pMap[pid].cnt++;});
   document.getElementById('rep-by-prog').innerHTML=Object.values(pMap).length?Object.values(pMap).map(d=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="font-size:14px;font-weight:700">${d.prog?.emoji||''} ${esc(d.prog?.name||'—')} <span style="font-size:11px;color:var(--text3)">${d.cnt}회</span></div><div style="display:flex;gap:12px;margin-top:5px;flex-wrap:wrap"><span style="font-size:12px">매출 <span class="n-g">${fMoney(d.rev)}</span></span><span style="font-size:12px">재료비 <span class="n-p">${fMoney(d.cost)}</span></span><span style="font-size:12px">수익 <span class="${d.rev-d.cost>=0?'n-g':'n-r'}">${fMoney(d.rev-d.cost)}</span></span></div></div>`).join(''):`<div class="empty"><div style="font-size:13px">데이터 없음</div></div>`;
   const repPerPage=parseInt(document.getElementById('rep-per-page')?.value||'20');
@@ -2745,8 +2752,8 @@ function init(){
           },
           error_callback:(err)=>reject(new Error(err?.type||'token_error'))
         });
-        // prompt 없이 요청 — 브라우저에 세션 있으면 자동, 없으면 팝업
-        client.requestAccessToken();
+        // prompt:'none' — 브라우저에 기존 세션이 있으면 자동, 없으면 에러로 빠짐(팝업 X)
+        client.requestAccessToken({prompt:'none'});
       });
     }).then(token=>{
       GS.clientId=cid;GS.sheetId=sid;
