@@ -1140,7 +1140,7 @@ const GS={
           const obj={};
           headers.forEach((h,j)=>{
             let v=r[j]??'';
-            if(h==='is_active'||h==='usage_recorded')v=v==='true'||v===true;
+            if(h==='is_active'||h==='usage_recorded')v=v===true||v===1||String(v).toLowerCase()==='true'||v==='1';
             else if(['purchase_unit_qty','price_per_unit','lead_time_days','selling_price','max_participants','participants','qty_per_person','quantity','selling_price_snapshot'].includes(h))v=v===''||v===null?null:Number(v);
             else if(h==='recipe_snapshot'){try{v=v?JSON.parse(v):{};}catch(e){v={};}}
             else if(h==='valid_until'||h==='order_date'||h==='session_id'||h==='usage_recorded_at')v=v||null;
