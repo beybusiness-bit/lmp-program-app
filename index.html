@@ -970,8 +970,18 @@ async function authLogin(){
 
     // Sheets 연동
     spinEl.textContent='Sheets 연결 중...';
-    await GS.initSheets();
-    await GS.loadAll();
+    try{
+      await GS.initSheets();
+    }catch(e){
+      console.error('initSheets 오류:',e);
+      throw new Error('시트 초기화 실패: '+e.message);
+    }
+    try{
+      await GS.loadAll();
+    }catch(e){
+      console.error('loadAll 오류:',e);
+      throw new Error('데이터 로드 실패: '+e.message);
+    }
     afterLoad();
     updateUserInfo();
     GS.updateUI('ok','연결됨 · '+sid.slice(0,14)+'...');
@@ -2370,28 +2380,22 @@ function init(){
     document.getElementById('auth-screen').style.display='none';
     updateUserInfo();
     renderDashboard();
-    GS.updateUI('sync','Sheets 자동 연결 중...');
-    // 토큰 재발급 + Sheets 재연결 (백그라운드, 계정선택 팝업 없이)
+    // silent 토큰 재발급 시도 — 실패해도 배너로 안내
+    GS.updateUI('sync','Sheets 연결 중...');
     waitForGIS().then(()=>{
       return new Promise((resolve,reject)=>{
         const client=google.accounts.oauth2.initTokenClient({
           client_id:cid,
           scope:'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
-          prompt:'none',   // 계정 선택 팝업 억제
-          hint:AUTH.userEmail||'',  // 이미 알고 있는 계정으로 바로 발급
+          hint:AUTH.userEmail||'',
           callback:(resp)=>{
-            if(resp.error==='interaction_required'||resp.error==='access_denied'){
-              // silent 실패 → 조용히 처리 (팝업 안 띄움)
-              reject(new Error('silent_fail'));
-            } else if(resp.error){
-              reject(new Error(resp.error));
-            } else {
-              resolve(resp.access_token);
-            }
+            if(resp.error){reject(new Error(resp.error));}
+            else{resolve(resp.access_token);}
           },
-          error_callback:(err)=>reject(new Error(err?.type||'token error'))
+          error_callback:(err)=>reject(new Error(err?.type||'token_error'))
         });
-        client.requestAccessToken({prompt:'none'});
+        // prompt 없이 요청 — 브라우저에 세션 있으면 자동, 없으면 팝업
+        client.requestAccessToken();
       });
     }).then(token=>{
       GS.clientId=cid;GS.sheetId=sid;
@@ -2400,11 +2404,9 @@ function init(){
     }).then(()=>{
       afterLoad();
       GS.updateUI('ok','연결됨 · '+sid.slice(0,14)+'...');
-      toast('Sheets 자동 연결 완료 ✓');
     }).catch(e=>{
       console.warn('자동 재연결 실패:', e.message);
-      // silent_fail이면 아무 팝업 없이 조용히 미연결 상태로만 표시
-      GS.updateUI('','Sheets 미연결 (사이드바에서 연결)');
+      GS.updateUI('err','Sheets 미연결 — 사이드바 연결 버튼 클릭');
     });
   } else {
     document.getElementById('auth-screen').style.display='flex';
