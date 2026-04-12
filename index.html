@@ -972,12 +972,7 @@ async function authLogin(){
     spinEl.textContent='Sheets 연결 중...';
     await GS.initSheets();
     await GS.loadAll();
-
-    syncIngSelects();syncProgSelects();syncCatSelect();
-    const allDone=DB.sessions.filter(s=>s.usage_recorded).sort((a,b)=>a.session_date.localeCompare(b.session_date));
-    document.getElementById('rep-from').value=allDone[0]?.session_date||today();
-    document.getElementById('rep-to').value=today();
-    renderDashboard();renderPrograms();renderIngredients();
+    afterLoad();
     updateUserInfo();
     GS.updateUI('ok','연결됨 · '+sid.slice(0,14)+'...');
     toast('환영합니다, '+(AUTH.userName||AUTH.userEmail)+' ✓');
@@ -1125,9 +1120,10 @@ const GS={
       try{
         const resp=await this.apiRequest('GET',`/${this.sheetId}/values/${encodeURIComponent(sheet.name+'!A:Z')}`);
         const rows=(resp.values||[]);
-        if(rows.length<2){DB[key]=[];continue;}
+        // 데이터 행이 없으면 DB 그대로 유지 (seedData 보호)
+        if(rows.length<2){continue;}
         const headers=rows[0];
-        DB[key]=rows.slice(1).filter(r=>r[0]).map(r=>{
+        const parsed=rows.slice(1).filter(r=>r[0]).map(r=>{
           const obj={};
           headers.forEach((h,j)=>{
             let v=r[j]??'';
@@ -1139,9 +1135,10 @@ const GS={
           });
           return obj;
         });
+        // 파싱된 결과가 있을 때만 DB 교체
+        if(parsed.length>0){DB[key]=parsed;}
       }catch(e){
         console.warn('loadAll 시트 오류 ('+sheet.name+'):', e.message);
-        // 개별 시트 오류는 건너뜀 (다른 시트는 계속 로드)
       }
     }
     this.lastSync=new Date().toISOString();
@@ -1195,11 +1192,7 @@ async function gsConnect(){
     await GS.initSheets();
     await GS.loadAll();
     GS.saveConfig();
-    syncIngSelects();syncProgSelects();syncCatSelect();
-    const allDone=DB.sessions.filter(s=>s.usage_recorded).sort((a,b)=>a.session_date.localeCompare(b.session_date));
-    document.getElementById('rep-from').value=allDone[0]?.session_date||today();
-    document.getElementById('rep-to').value=today();
-    renderDashboard();renderPrograms();renderIngredients();renderSessions();renderStock();
+    afterLoad();
     toast('Google Sheets 연동 완료 ✓');
   }catch(e){
     console.error(e);
@@ -1220,16 +1213,25 @@ async function gsSyncAll(){
   if(!GS.isConnected()){toast('먼저 연결해주세요','error');return;}
   try{
     await GS.loadAll();
-    syncIngSelects();syncProgSelects();syncCatSelect();
-    const allDone=DB.sessions.filter(s=>s.usage_recorded).sort((a,b)=>a.session_date.localeCompare(b.session_date));
-    document.getElementById('rep-from').value=allDone[0]?.session_date||today();
-    document.getElementById('rep-to').value=today();
-    renderDashboard();renderPrograms();renderIngredients();renderSessions();renderStock();
+    afterLoad();
     toast('전체 동기화 완료 ✓');
   }catch(e){toast('동기화 실패: '+e.message,'error');}
 }
 
 function gsShowHelp(){openModal('m-gs-help');}
+
+// loadAll 완료 후 공통 렌더링
+function afterLoad(){
+  syncIngSelects();syncProgSelects();syncCatSelect();
+  const done=DB.sessions.filter(s=>s.usage_recorded).sort((a,b)=>a.session_date.localeCompare(b.session_date));
+  document.getElementById('rep-from').value=done[0]?.session_date||today();
+  document.getElementById('rep-to').value=today();
+  renderDashboard();
+  renderPrograms();
+  renderIngredients();
+  renderSessions();
+  renderStock();
+}
 
 // 변경 이력 모달
 function openChangeHistory(){
@@ -2391,11 +2393,7 @@ function init(){
       GS.accessToken=token;GS.tokenExpiry=Date.now()+3500000;
       return GS.initSheets().then(()=>GS.loadAll());
     }).then(()=>{
-      syncIngSelects();syncProgSelects();syncCatSelect();
-      const done=DB.sessions.filter(s=>s.usage_recorded).sort((a,b)=>a.session_date.localeCompare(b.session_date));
-      document.getElementById('rep-from').value=done[0]?.session_date||today();
-      document.getElementById('rep-to').value=today();
-      renderDashboard();renderPrograms();renderIngredients();renderSessions();renderStock();
+      afterLoad();
       GS.updateUI('ok','연결됨 · '+sid.slice(0,14)+'...');
       toast('Sheets 자동 연결 완료 ✓');
     }).catch(e=>{
