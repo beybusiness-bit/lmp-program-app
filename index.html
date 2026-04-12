@@ -276,9 +276,58 @@ tbody td{padding:11px 11px;vertical-align:middle}
   .cal-event{font-size:10px;padding:2px 4px}
 }
 @media(min-width:769px){.mob-only{display:none!important}}
+
+/* ── Google Sheets 연동 UI ── */
+.gs-bar{padding:10px 12px;border-top:1px solid var(--border);font-size:11px;font-family:var(--mono)}
+.gs-status{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.gs-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#ccc}
+.gs-dot.ok{background:#2a7a00}.gs-dot.err{background:var(--danger)}.gs-dot.sync{background:#c8a800;animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.gs-label{flex:1;color:var(--text2);font-size:10px;line-height:1.4}
+.gs-btn{padding:4px 9px;font-size:10px;border-radius:5px;border:1px solid var(--border);background:#fff;cursor:pointer;font-family:var(--mono);transition:all .12s;white-space:nowrap}
+.gs-btn:hover{background:var(--bg-hover)}.gs-btn.primary{background:var(--yellow);border-color:#e6c800;color:#5a4000}
+.gs-input-wrap{display:flex;flex-direction:column;gap:5px;margin-top:4px}
+.gs-input{width:100%;padding:5px 8px;border:1.5px solid var(--border);border-radius:5px;font-size:10px;font-family:var(--mono);background:var(--bg-input);color:var(--text);outline:none}
+.gs-input:focus{border-color:var(--accent-dark)}
+
+/* ── 변경 이력 모달 ── */
+.hist-timeline{display:flex;flex-direction:column;gap:0}
+.hist-tl-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.hist-tl-item:last-child{border-bottom:none}
+.hist-tl-dot{width:8px;height:8px;border-radius:50%;background:var(--yellow);border:1.5px solid var(--accent-dark);flex-shrink:0;margin-top:5px}
+.hist-tl-body{flex:1;min-width:0}
+.hist-tl-field{font-size:11px;font-weight:600;color:var(--text2);font-family:var(--mono)}
+.hist-tl-chg{font-size:12px;margin-top:2px}
+.hist-tl-time{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:2px}
+
+/* ── 접근 제어 화면 ── */
+.auth-screen{position:fixed;inset:0;background:#fff;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-card{width:100%;max-width:380px;border:1px solid var(--border);border-radius:var(--radius);padding:32px 28px;box-shadow:var(--sh-md);text-align:center}
+.auth-logo{font-size:28px;font-weight:900;margin-bottom:4px}
+.auth-logo span{color:var(--accent-dark)}
+.auth-sub{font-size:12px;color:var(--text3);font-family:var(--mono);margin-bottom:28px}
+.auth-google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px 16px;border:1.5px solid var(--border-md);border-radius:var(--radius-sm);background:#fff;cursor:pointer;font-size:14px;font-weight:600;font-family:var(--font);transition:all .15s;color:var(--text)}
+.auth-google-btn:hover{background:var(--bg-hover);border-color:#aaa}
+.auth-google-btn svg{flex-shrink:0}
+.auth-error{margin-top:14px;padding:10px 14px;background:#fff0f0;border:1px solid #ffb0b0;border-radius:var(--radius-sm);font-size:12px;color:var(--danger);display:none}
+.auth-spinner{display:none;margin-top:14px;font-size:12px;color:var(--text3);font-family:var(--mono)}
 </style>
 </head>
 <body>
+<!-- ════ 접근 제어 화면 ════ -->
+<div id="auth-screen" class="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">먹거리<span>모임 관리자</span></div>
+    <div class="auth-sub">허가된 계정으로만 접속 가능합니다</div>
+    <button class="auth-google-btn" id="auth-btn" onclick="authLogin()">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.33 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.67 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+      Google 계정으로 로그인
+    </button>
+    <div class="auth-spinner" id="auth-spinner">로그인 중...</div>
+    <div class="auth-error" id="auth-error"></div>
+    <div style="margin-top:20px;font-size:11px;color:var(--text3);line-height:1.6">로그인 후 Google Sheets와 자동 연동됩니다.<br>접근 권한 문의: 관리자에게 연락하세요.</div>
+  </div>
+</div>
 <div class="app">
 <!-- ── 사이드바 ── -->
 <nav class="sidebar" id="sidebar">
@@ -294,9 +343,80 @@ tbody td{padding:11px 11px;vertical-align:middle}
     <div class="nav-item" data-page="history"><span class="nav-icon">📝</span>입고/사용 이력</div>
     <div class="nav-item" data-page="ingredients"><span class="nav-icon">🧂</span>재료 목록</div>
     <div class="nav-item" data-page="report"><span class="nav-icon">📊</span>수익 리포트</div>
+    <div class="nav-item" onclick="openChangeHistory()" style="margin-top:4px;border-top:1px solid var(--border);padding-top:10px"><span class="nav-icon">🕐</span>변경 이력</div>
   </div>
-  <div class="sidebar-footer" id="footer-status">로딩 중...</div>
+  <div class="sidebar-footer" id="footer-status" style="font-size:10px;color:var(--text3);padding:8px 12px;border-top:1px solid var(--border)">로딩 중...</div>
+  <!-- Google Sheets 연동 패널 -->
+  <div class="gs-bar" id="gs-panel">
+    <div class="gs-status">
+      <div class="gs-dot" id="gs-dot"></div>
+      <div class="gs-label" id="gs-label">Google Sheets 미연결</div>
+    </div>
+    <div id="gs-setup" style="display:block">
+      <div class="gs-input-wrap">
+        <input class="gs-input" id="gs-client-id" placeholder="Client ID (.apps.googleusercontent.com)" autocomplete="off">
+        <input class="gs-input" id="gs-sheet-id" placeholder="Spreadsheet ID" autocomplete="off">
+        <div style="display:flex;gap:4px;margin-top:2px">
+          <button class="gs-btn primary" style="flex:1" onclick="gsConnect()">연결</button>
+          <button class="gs-btn" onclick="gsShowHelp()" title="설정 방법">?</button>
+        </div>
+      </div>
+    </div>
+    <div id="gs-connected" style="display:none">
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="gs-btn" onclick="gsSyncAll()" style="flex:1">↻ 전체 동기화</button>
+        <button class="gs-btn" onclick="gsDisconnect()">연결 해제</button>
+      </div>
+      <div id="gs-last-sync" style="font-size:9px;color:var(--text3);margin-top:4px"></div>
+    </div>
+  </div>
 </nav>
+<!-- Google Sheets 도움말 모달 -->
+<div class="overlay" id="m-gs-help">
+  <div class="modal">
+    <div class="modal-head"><div class="modal-title">Google Sheets 연동 설정</div><button class="modal-x" onclick="closeModal('m-gs-help')">×</button></div>
+    <div class="modal-body" style="font-size:13px;line-height:1.8">
+      <div style="background:#fffcf0;border:1.5px solid #ffe066;border-radius:8px;padding:12px;margin-bottom:14px">
+        <b>1단계: Google Cloud Console에서 OAuth 앱 만들기</b>
+        <ol style="margin:6px 0 0 16px;font-size:12px;color:var(--text2)">
+          <li><a href="https://console.cloud.google.com/" target="_blank" style="color:#c8a800">console.cloud.google.com</a> 접속</li>
+          <li>새 프로젝트 생성 또는 기존 프로젝트 선택</li>
+          <li>API 및 서비스 → 사용 설정된 API → Google Sheets API 활성화</li>
+          <li>사용자 인증 정보 → OAuth 2.0 클라이언트 ID 만들기</li>
+          <li>유형: 웹 애플리케이션</li>
+          <li>승인된 JavaScript 출처에 이 파일을 여는 도메인 또는 <b>http://localhost</b> 추가</li>
+          <li><b>로컬 파일(file://)에서 실행 시</b>: 출처에 아무것도 안 넣어도 됨</li>
+        </ol>
+      </div>
+      <div style="background:#f0fff0;border:1.5px solid #b0f080;border-radius:8px;padding:12px;margin-bottom:14px">
+        <b>2단계: Google Sheets 준비</b>
+        <ol style="margin:6px 0 0 16px;font-size:12px;color:var(--text2)">
+          <li>새 Google Sheets 파일 생성</li>
+          <li>URL에서 Spreadsheet ID 복사 (<code style="background:#eee;padding:1px 4px;border-radius:3px">/d/여기부분/edit</code>)</li>
+          <li>앱이 시트를 자동으로 생성합니다</li>
+        </ol>
+      </div>
+      <div style="background:#f0f0ff;border:1.5px solid #c0c0ff;border-radius:8px;padding:12px">
+        <b>3단계: 동업자 공유</b>
+        <ol style="margin:6px 0 0 16px;font-size:12px;color:var(--text2)">
+          <li>이 HTML 파일을 동업자에게 전달</li>
+          <li>Google Sheets를 동업자 계정에 공유 (편집 권한)</li>
+          <li>동업자도 같은 Client ID + Sheet ID 입력 후 연결</li>
+          <li>데이터는 Sheets에서 자동 공유됩니다</li>
+        </ol>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('m-gs-help')">닫기</button></div>
+  </div>
+</div>
+<!-- 변경 이력 모달 -->
+<div class="overlay" id="m-change-history">
+  <div class="modal modal-lg">
+    <div class="modal-head"><div class="modal-title" id="m-ch-title">변경 이력</div><button class="modal-x" onclick="closeModal('m-change-history')">×</button></div>
+    <div class="modal-body" id="m-ch-body"></div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('m-change-history')">닫기</button></div>
+  </div>
+</div>
 <div class="sidebar-overlay" id="sidebar-overlay"></div>
 <div class="main">
 <header class="mobile-header">
@@ -694,8 +814,404 @@ tbody td{padding:11px 11px;vertical-align:middle}
 
 <script>
 // ══════════════════════════════════════════════════════════
-// DB
+// 접근 제어 (Google OAuth 이메일 화이트리스트)
 // ══════════════════════════════════════════════════════════
+const AUTH={
+  // ★ 접근 허용할 Google 이메일 목록 — 여기에 추가/제거하세요
+  ALLOWED_EMAILS:[
+    'beybusiness.bit@gmail.com',   // 본인 이메일로 교체
+    // 'partner@gmail.com',        // 동료 이메일 추가 예시
+  ],
+  // ★ Google OAuth Client ID — 연결 후 여기 붙여넣어 두면 자동 로그인 가능
+  CLIENT_ID:'',   // 예: '123456789-abc.apps.googleusercontent.com'
+  // ★ Google Spreadsheet ID
+  SHEET_ID:'',    // 예: '1abc2def3ghi...'
+
+  userEmail:null,
+  userName:null,
+  userPicture:null,
+
+  LS_AUTH:'mkng_auth',
+
+  // 저장된 인증 세션 복원 시도
+  loadSession(){
+    try{
+      const d=JSON.parse(sessionStorage.getItem(this.LS_AUTH)||'{}');
+      if(d.email&&this.ALLOWED_EMAILS.includes(d.email)){
+        this.userEmail=d.email;this.userName=d.name;this.userPicture=d.picture;
+        return true;
+      }
+    }catch(e){}
+    return false;
+  },
+  saveSession(){
+    try{sessionStorage.setItem(this.LS_AUTH,JSON.stringify({email:this.userEmail,name:this.userName,picture:this.userPicture}));}catch(e){}
+  },
+  clearSession(){
+    try{sessionStorage.removeItem(this.LS_AUTH);}catch(e){}
+    this.userEmail=null;this.userName=null;this.userPicture=null;
+  }
+};
+
+// Google 로그인 버튼 클릭
+async function authLogin(){
+  const errEl=document.getElementById('auth-error');
+  const spinEl=document.getElementById('auth-spinner');
+  const btn=document.getElementById('auth-btn');
+  errEl.style.display='none';
+  spinEl.style.display='block';
+  btn.disabled=true;
+
+  // CLIENT_ID가 코드에 없으면 입력 받기
+  let cid=AUTH.CLIENT_ID.trim();
+  if(!cid){
+    cid=prompt('Google OAuth Client ID를 입력해주세요:\n(설정 후 코드에 저장하면 다음엔 자동 입력됩니다)');
+    if(!cid){spinEl.style.display='none';btn.disabled=false;return;}
+    cid=cid.trim();
+  }
+  let sid=AUTH.SHEET_ID.trim();
+  if(!sid){
+    sid=prompt('Google Spreadsheet ID를 입력해주세요:');
+    if(!sid){spinEl.style.display='none';btn.disabled=false;return;}
+    sid=sid.trim();
+  }
+
+  try{
+    // GIS 동적 로드
+    if(!window.google?.accounts?.oauth2){
+      await new Promise((res,rej)=>{
+        const s=document.createElement('script');
+        s.src='https://accounts.google.com/gsi/client';
+        s.onload=res;s.onerror=()=>rej(new Error('Google 라이브러리 로드 실패. 인터넷 연결을 확인해주세요.'));
+        document.head.appendChild(s);
+      });
+    }
+
+    // 토큰 요청 (Sheets 스코프 + email 확인용 openid)
+    const token = await new Promise((resolve,reject)=>{
+      const client=google.accounts.oauth2.initTokenClient({
+        client_id:cid,
+        scope:'https://www.googleapis.com/auth/spreadsheets openid email profile',
+        callback:(resp)=>{
+          if(resp.error){reject(new Error(resp.error_description||resp.error));return;}
+          resolve(resp.access_token);
+        }
+      });
+      client.requestAccessToken();
+    });
+
+    // 이메일 확인
+    const info=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{
+      headers:{Authorization:'Bearer '+token}
+    }).then(r=>r.json());
+
+    if(!AUTH.ALLOWED_EMAILS.includes(info.email)){
+      throw new Error('접근 권한이 없는 계정입니다.\n('+info.email+')\n관리자에게 문의하세요.');
+    }
+
+    // 인증 성공
+    AUTH.userEmail=info.email;
+    AUTH.userName=info.name;
+    AUTH.userPicture=info.picture;
+    AUTH.saveSession();
+
+    // GS 모듈에 토큰/설정 전달
+    GS.clientId=cid;
+    GS.sheetId=sid;
+    GS.accessToken=token;
+    GS.tokenExpiry=Date.now()+3500000;
+    GS.saveConfig();
+
+    // 앱 초기화 & Sheets 연동
+    document.getElementById('auth-screen').style.display='none';
+    document.getElementById('gs-client-id').value=cid;
+    document.getElementById('gs-sheet-id').value=sid;
+
+    await GS.initSheets();
+    await GS.loadAll();
+    syncIngSelects();syncProgSelects();syncCatSelect();
+    const allDone=DB.sessions.filter(s=>s.usage_recorded).sort((a,b)=>a.session_date.localeCompare(b.session_date));
+    document.getElementById('rep-from').value=allDone[0]?.session_date||today();
+    document.getElementById('rep-to').value=today();
+    renderDashboard();
+
+    // 사이드바 유저 정보 표시
+    updateUserInfo();
+    GS.updateUI('ok','연결됨 · '+cid.slice(0,14)+'...');
+    toast('환영합니다, '+(AUTH.userName||AUTH.userEmail)+' ✓');
+
+  }catch(e){
+    console.error(e);
+    spinEl.style.display='none';
+    btn.disabled=false;
+    errEl.textContent=e.message||'로그인 실패';
+    errEl.style.display='block';
+  }
+}
+
+function updateUserInfo(){
+  const el=document.getElementById('footer-status');
+  if(el&&AUTH.userEmail){
+    el.innerHTML=(AUTH.userPicture?'<img src="'+AUTH.userPicture+'" style="width:16px;height:16px;border-radius:50%;vertical-align:middle;margin-right:5px">':'')
+      +(AUTH.userName||AUTH.userEmail)
+      +' <button onclick="authLogout()" style="margin-left:6px;padding:1px 6px;font-size:9px;border:1px solid var(--border);border-radius:4px;background:#fff;cursor:pointer;font-family:var(--mono)">로그아웃</button>';
+  }
+}
+
+function authLogout(){
+  if(!confirm('로그아웃 할까요?'))return;
+  AUTH.clearSession();
+  GS.accessToken=null;GS.tokenExpiry=0;
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('auth-error').style.display='none';
+  document.getElementById('auth-spinner').style.display='none';
+  document.getElementById('auth-btn').disabled=false;
+  toast('로그아웃 완료','warning');
+}
+
+
+const GS={
+  clientId:'',
+  sheetId:'',
+  accessToken:null,
+  tokenExpiry:0,
+  syncing:false,
+  lastSync:null,
+  SCOPES:'https://www.googleapis.com/auth/spreadsheets',
+  DISCOVERY:'https://sheets.googleapis.com/$discovery/rest?version=v4',
+  LS_KEY:'mkng_gs_cfg',
+  SHEETS:{
+    ingredients:{name:'ingredients',cols:['id','name','unit','purchase_unit_qty','price_per_unit','lead_time_days','category_id','is_active','created_at']},
+    ingredientsHistory:{name:'ingredients_history',cols:['id','ingredient_id','changed_field','old_value','new_value','changed_at']},
+    programs:{name:'programs',cols:['id','name','emoji','description','selling_price','max_participants','is_active','created_at']},
+    programsHistory:{name:'programs_history',cols:['id','program_id','changed_field','old_value','new_value','changed_at']},
+    programRecipes:{name:'program_recipes',cols:['id','program_id','ingredient_id','qty_per_person','valid_from','valid_until','created_at']},
+    sessions:{name:'sessions',cols:['id','program_id','session_date','session_time','participants','selling_price_snapshot','recipe_snapshot','usage_recorded','usage_recorded_at','created_at','memo']},
+    inventoryLog:{name:'inventory_log',cols:['id','log_date','ingredient_id','type','quantity','order_date','session_id','created_at','memo']},
+    categories:{name:'categories',cols:['id','name','color']}
+  },
+
+  isConnected(){return !!this.accessToken && Date.now()<this.tokenExpiry;},
+
+  saveConfig(){
+    try{localStorage.setItem(this.LS_KEY,JSON.stringify({clientId:this.clientId,sheetId:this.sheetId}));}catch(e){}
+  },
+  loadConfig(){
+    try{const d=JSON.parse(localStorage.getItem(this.LS_KEY)||'{}');this.clientId=d.clientId||'';this.sheetId=d.sheetId||'';}catch(e){}
+  },
+
+  // UI 상태 업데이트
+  updateUI(state,msg){
+    const dot=document.getElementById('gs-dot');
+    const lbl=document.getElementById('gs-label');
+    const setup=document.getElementById('gs-setup');
+    const connected=document.getElementById('gs-connected');
+    dot.className='gs-dot';
+    if(state==='ok'){dot.classList.add('ok');connected.style.display='block';setup.style.display='none';}
+    else if(state==='sync'){dot.classList.add('sync');connected.style.display='block';setup.style.display='none';}
+    else if(state==='err'){dot.classList.add('err');connected.style.display='none';setup.style.display='block';}
+    else{connected.style.display='none';setup.style.display='block';}
+    lbl.textContent=msg||'';
+    if(this.lastSync&&state==='ok'){
+      const el=document.getElementById('gs-last-sync');
+      if(el)el.textContent='마지막 동기화: '+new Date(this.lastSync).toLocaleTimeString('ko-KR');
+    }
+  },
+
+  // 토큰 요청 (Google Identity Services)
+  requestToken(){
+    return new Promise((resolve,reject)=>{
+      if(!window.google?.accounts?.oauth2){reject(new Error('GIS 라이브러리 미로드'));return;}
+      const client=google.accounts.oauth2.initTokenClient({
+        client_id:this.clientId,
+        scope:this.SCOPES,
+        callback:(resp)=>{
+          if(resp.error){reject(new Error(resp.error));return;}
+          this.accessToken=resp.access_token;
+          this.tokenExpiry=Date.now()+(resp.expires_in-60)*1000;
+          resolve(resp.access_token);
+        }
+      });
+      client.requestAccessToken();
+    });
+  },
+
+  // Sheets API 요청
+  async apiRequest(method,path,body){
+    if(!this.isConnected()){await this.requestToken();}
+    const url='https://sheets.googleapis.com/v4/spreadsheets'+path;
+    const opts={method,headers:{'Authorization':'Bearer '+this.accessToken,'Content-Type':'application/json'}};
+    if(body)opts.body=JSON.stringify(body);
+    const resp=await fetch(url,opts);
+    if(resp.status===401){
+      this.accessToken=null;
+      await this.requestToken();
+      return this.apiRequest(method,path,body);
+    }
+    if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||resp.status);}
+    return resp.json();
+  },
+
+  // 시트 초기화 (없는 시트 생성)
+  async initSheets(){
+    const meta=await this.apiRequest('GET',`/${this.sheetId}?fields=sheets.properties.title`);
+    const existing=(meta.sheets||[]).map(s=>s.properties.title);
+    const needed=Object.values(this.SHEETS).map(s=>s.name).filter(n=>!existing.includes(n));
+    if(!needed.length)return;
+    await this.apiRequest('POST',`/${this.sheetId}:batchUpdate`,{
+      requests:needed.map(title=>({addSheet:{properties:{title}}}))
+    });
+    // 헤더 작성
+    const data=[];
+    for(const [key,sheet] of Object.entries(this.SHEETS)){
+      if(needed.includes(sheet.name)){
+        data.push({range:sheet.name+'!A1',values:[sheet.cols]});
+      }
+    }
+    if(data.length){
+      await this.apiRequest('POST',`/${this.sheetId}/values:batchUpdate`,{valueInputOption:'RAW',data});
+    }
+  },
+
+  // 전체 로드 (Sheets → DB)
+  async loadAll(){
+    this.updateUI('sync','동기화 중...');
+    const ranges=Object.values(this.SHEETS).map(s=>s.name+'!A:Z');
+    const resp=await this.apiRequest('GET',`/${this.sheetId}/values:batchGet?ranges=${ranges.map(encodeURIComponent).join('&ranges=')}`);
+    const vrs=resp.valueRanges||[];
+    const keys=Object.keys(this.SHEETS);
+    keys.forEach((key,i)=>{
+      const sheet=this.SHEETS[key];
+      const rows=(vrs[i]?.values||[]);
+      if(rows.length<2){DB[key]=[];return;}
+      const headers=rows[0];
+      DB[key]=rows.slice(1).filter(r=>r[0]).map(r=>{
+        const obj={};
+        headers.forEach((h,j)=>{
+          let v=r[j]??'';
+          if(h==='is_active'||h==='usage_recorded')v=v==='true'||v===true;
+          else if(['purchase_unit_qty','price_per_unit','lead_time_days','selling_price','max_participants','participants','qty_per_person','quantity','selling_price_snapshot'].includes(h))v=v===''||v===null?null:Number(v);
+          else if(h==='recipe_snapshot'){try{v=v?JSON.parse(v):{};}catch(e){v={};}}
+          else if(h==='valid_until'||h==='order_date'||h==='session_id'||h==='usage_recorded_at')v=v||null;
+          obj[h]=v;
+        });
+        return obj;
+      });
+    });
+    this.lastSync=new Date().toISOString();
+    this.updateUI('ok','연결됨 · '+this.sheetId.slice(0,12)+'...');
+  },
+
+  // 단일 시트 전체 덮어쓰기 (upsert 방식)
+  async writeSheet(key){
+    const sheet=this.SHEETS[key];
+    const rows=[sheet.cols];
+    DB[key].forEach(obj=>{
+      rows.push(sheet.cols.map(c=>{
+        const v=obj[c];
+        if(v===null||v===undefined)return '';
+        if(typeof v==='object')return JSON.stringify(v);
+        return String(v);
+      }));
+    });
+    // 먼저 클리어 후 쓰기
+    await this.apiRequest('POST',`/${this.sheetId}/values/${encodeURIComponent(sheet.name+'!A:Z')}:clear`,{});
+    await this.apiRequest('PUT',`/${this.sheetId}/values/${encodeURIComponent(sheet.name+'!A1')}?valueInputOption=RAW`,{values:rows});
+  },
+
+  // 변경 후 시트 동기화 (키 배열)
+  async syncSheets(keys){
+    if(this.syncing||!this.isConnected())return;
+    this.syncing=true;
+    this.updateUI('sync','저장 중...');
+    try{
+      await Promise.all(keys.map(k=>this.writeSheet(k)));
+      this.lastSync=new Date().toISOString();
+      this.updateUI('ok','연결됨 · '+this.sheetId.slice(0,12)+'...');
+    }catch(e){
+      console.error('GS sync error',e);
+      toast('Sheets 동기화 실패: '+e.message,'error');
+      this.updateUI('ok','연결됨 (동기화 오류)');
+    }finally{this.syncing=false;}
+  }
+};
+
+// 연결 버튼 (사이드바 패널용 — 이미 로그인 후 재연결 시)
+async function gsConnect(){
+  const cid=document.getElementById('gs-client-id').value.trim();
+  const sid=document.getElementById('gs-sheet-id').value.trim();
+  if(!cid||!sid){toast('Client ID와 Spreadsheet ID를 모두 입력해주세요','error');return;}
+  GS.clientId=cid;GS.sheetId=sid;
+  GS.updateUI('sync','연결 중...');
+  try{
+    await GS.requestToken();
+    await GS.initSheets();
+    await GS.loadAll();
+    GS.saveConfig();
+    syncIngSelects();syncProgSelects();syncCatSelect();
+    const allDone=DB.sessions.filter(s=>s.usage_recorded).sort((a,b)=>a.session_date.localeCompare(b.session_date));
+    document.getElementById('rep-from').value=allDone[0]?.session_date||today();
+    document.getElementById('rep-to').value=today();
+    renderDashboard();
+    toast('Google Sheets 연동 완료 ✓');
+  }catch(e){
+    console.error(e);
+    GS.updateUI('err','연결 실패: '+e.message);
+    toast('연결 실패: '+e.message,'error');
+  }
+}
+
+function gsDisconnect(){
+  if(!confirm('Google Sheets 연결을 해제할까요?\n(데이터는 앱 메모리에 유지됩니다)'))return;
+  GS.accessToken=null;GS.tokenExpiry=0;
+  try{localStorage.removeItem(GS.LS_KEY);}catch(e){}
+  GS.updateUI('','Google Sheets 미연결');
+  toast('연결 해제됨','warning');
+}
+
+async function gsSyncAll(){
+  if(!GS.isConnected()){toast('먼저 연결해주세요','error');return;}
+  try{
+    await GS.loadAll();
+    syncIngSelects();syncProgSelects();syncCatSelect();
+    renderDashboard();
+    toast('전체 동기화 완료 ✓');
+  }catch(e){toast('동기화 실패: '+e.message,'error');}
+}
+
+function gsShowHelp(){openModal('m-gs-help');}
+
+// 변경 이력 모달
+function openChangeHistory(){
+  const ingH=[...DB.ingredientsHistory].sort((a,b)=>b.changed_at.localeCompare(a.changed_at));
+  const progH=[...DB.programsHistory].sort((a,b)=>b.changed_at.localeCompare(a.changed_at));
+  const all=[
+    ...ingH.map(h=>{const ing=DB.ingredients.find(i=>i.id===h.ingredient_id);return{...h,entity:'재료',name:ing?.name||h.ingredient_id};}),
+    ...progH.map(h=>{const p=DB.programs.find(x=>x.id===h.program_id);return{...h,entity:'프로그램',name:p?.name||h.program_id};})
+  ].sort((a,b)=>b.changed_at.localeCompare(a.changed_at));
+  const fieldMap={purchase_unit_qty:'구매 단위 용량',price_per_unit:'단가',lead_time_days:'배송 소요일',selling_price:'판매가',max_participants:'최대 인원'};
+  const body=document.getElementById('m-ch-body');
+  if(!all.length){body.innerHTML='<div class="empty"><div class="empty-icon">📝</div><div style="font-size:13px">변경 이력 없음</div></div>';openModal('m-change-history');return;}
+  body.innerHTML='<div class="hist-timeline">'+all.slice(0,100).map(h=>{
+    const f=fieldMap[h.changed_field]||h.changed_field;
+    const t=new Date(h.changed_at).toLocaleString('ko-KR');
+    return '<div class="hist-tl-item"><div class="hist-tl-dot"></div><div class="hist-tl-body">'
+      +'<div class="hist-tl-field"><span class="badge badge-muted">'+esc(h.entity)+'</span> <b>'+esc(h.name)+'</b> · '+f+'</div>'
+      +'<div class="hist-tl-chg"><span style="color:var(--danger);text-decoration:line-through">'+esc(h.old_value)+'</span> → <span style="color:#2a7a00;font-weight:600">'+esc(h.new_value)+'</span></div>'
+      +'<div class="hist-tl-time">'+t+'</div>'
+      +'</div></div>';
+  }).join('')+'</div>';
+  document.getElementById('m-ch-title').textContent='변경 이력 (최근 '+Math.min(all.length,100)+'건)';
+  openModal('m-change-history');
+}
+
+// ── Sheets 자동 동기화 래퍼 ──
+// 각 save 함수 실행 후 해당 시트만 동기화
+function gsAfter(...keys){
+  if(GS.isConnected())GS.syncSheets(keys);
+}
+
+
 const DB={ingredients:[],ingredientsHistory:[],programs:[],programsHistory:[],programRecipes:[],sessions:[],inventoryLog:[],categories:[]};
 
 // ══════════════════════════════════════════════════════════
@@ -961,6 +1477,7 @@ function saveSes(){
     toast('모임 추가 완료');
   }
   closeModal('m-ses');renderSessions();if(sesViewMode==='calendar')renderCalendar();
+  gsAfter('sessions');
 }
 function recordUsage(sesId){
   const s=DB.sessions.find(x=>x.id===sesId);
@@ -969,6 +1486,7 @@ function recordUsage(sesId){
   Object.entries(s.recipe_snapshot||{}).forEach(([ingId,qty])=>{DB.inventoryLog.push({id:genId('LOG'),log_date:s.session_date,ingredient_id:ingId,type:'사용',quantity:-(qty*s.participants),order_date:null,session_id:sesId,created_at:now,memo:`모임 사용 (${s.participants}명)`});});
   s.usage_recorded=true;s.usage_recorded_at=now;
   toast('사용 기록 완료');renderSessions();renderStock();
+  gsAfter('sessions','inventoryLog');
 }
 function cancelUsage(sesId){
   const s=DB.sessions.find(x=>x.id===sesId);
@@ -977,6 +1495,7 @@ function cancelUsage(sesId){
   DB.inventoryLog=DB.inventoryLog.filter(l=>l.session_id!==sesId);
   s.usage_recorded=false;s.usage_recorded_at=null;
   toast('사용 기록 취소','warning');renderSessions();renderStock();
+  gsAfter('sessions','inventoryLog');
 }
 function deleteSession(sesId){
   const s=DB.sessions.find(x=>x.id===sesId);
@@ -985,6 +1504,7 @@ function deleteSession(sesId){
   if(s.usage_recorded)DB.inventoryLog=DB.inventoryLog.filter(l=>l.session_id!==sesId);
   DB.sessions=DB.sessions.filter(x=>x.id!==sesId);
   toast('모임 삭제 완료','warning');renderSessions();
+  gsAfter('sessions','inventoryLog');
 }
 function renderSessions(){
   if(sesViewMode==='calendar'){renderCalendar();return;}
@@ -1134,6 +1654,7 @@ function saveMultiLog(){
     DB.inventoryLog.push({id:genId('LOG'),log_date:date,ingredient_id:ingId,type,quantity:fq,order_date:od||null,session_id:null,created_at:now,memo});
   });
   toast(entries.length+'개 항목 저장');closeModal('m-log');renderStock();renderHistory();
+  gsAfter('inventoryLog');
 }
 function downloadCsvTemplate(){
   const header='입출고일,재료명,구분,수량,주문일,메모';
@@ -1201,6 +1722,7 @@ function importCsv(event){
           DB.inventoryLog.push({id:genId('LOG'),log_date:date,ingredient_id:ingId,type,quantity:fq,order_date:od||null,session_id:null,created_at:now,memo});
         });
         toast(valid.length+'개 항목 기록 완료');closeModal('m-csv-preview');renderStock();renderHistory();
+          gsAfter('inventoryLog');
       };
       openModal('m-csv-preview');
     }catch(err){toast('CSV 파싱 중 오류가 발생했어요','error');console.error(err);}
@@ -1272,10 +1794,12 @@ function deleteCheckedLogs(){
   if(!confirm('선택한 '+ids.length+'개의 기록을 삭제할까요?'))return;
   DB.inventoryLog=DB.inventoryLog.filter(l=>!ids.includes(l.id));
   toast(ids.length+'개 삭제 완료','warning');renderStock();renderHistory();
+  gsAfter('inventoryLog');
 }
 function deleteLog(id){
   DB.inventoryLog=DB.inventoryLog.filter(l=>l.id!==id);
   toast('삭제 완료','warning');renderStock();renderHistory();
+  gsAfter('inventoryLog');
 }
 
 
@@ -1378,12 +1902,14 @@ function saveIng(){
   if(id){const ing=DB.ingredients.find(i=>i.id===id);[{f:'purchase_unit_qty',v:pqty},{f:'price_per_unit',v:price},{f:'lead_time_days',v:lead}].forEach(({f,v})=>{if(ing[f]!==v){DB.ingredientsHistory.push({id:genId('IH'),ingredient_id:id,changed_field:f,old_value:String(ing[f]),new_value:String(v),changed_at:now});}ing[f]=v;});ing.name=name;ing.unit=unit;ing.category_id=catId||null;toast('재료 수정 완료');}
   else{DB.ingredients.push({id:genId('ING'),name,unit,purchase_unit_qty:pqty,price_per_unit:price,lead_time_days:lead,category_id:catId||null,created_at:now,is_active:true});toast('재료 추가 완료');}
   closeModal('m-ing');renderIngredients();syncIngSelects();
+  gsAfter('ingredients','ingredientsHistory');
 }
 function deleteIng(id){
   const ing=DB.ingredients.find(i=>i.id===id);
   if(!confirm(`"${ing?.name}"을 삭제할까요?`))return;
   DB.ingredients=DB.ingredients.filter(i=>i.id!==id);DB.programRecipes=DB.programRecipes.filter(r=>r.ingredient_id!==id);
   toast('재료 삭제 완료','warning');closeModal('m-ing-detail');renderIngredients();syncIngSelects();
+  gsAfter('ingredients','programRecipes');
 }
 // 카테고리
 let catDragSrc=null;
@@ -1506,6 +2032,7 @@ function toggleIngCat(ingId,catId){
   const ing=DB.ingredients.find(i=>i.id===ingId);if(!ing)return;
   ing.category_id=ing.category_id===catId?null:catId;
   renderCatIngTags(catId);renderIngredients();
+  gsAfter('ingredients');
 }
 function selCatClr(color,el){
   document.getElementById('cat-color').value=color;
@@ -1518,12 +2045,14 @@ function saveCat(){
   if(id){const c=DB.categories.find(x=>x.id===id);c.name=name;c.color=color;toast('카테고리 수정 완료');}
   else{DB.categories.push({id:genId('CAT'),name,color});toast('카테고리 추가 완료');}
   closeModal('m-cat');syncCatSelect();renderIngredients();
+  gsAfter('categories');
 }
 function deleteCat(id){
   const c=DB.categories.find(x=>x.id===id);
   if(!confirm(`"${c?.name}" 삭제 시 속한 재료의 카테고리가 해제됩니다. 계속할까요?`))return;
   DB.categories=DB.categories.filter(x=>x.id!==id);DB.ingredients.filter(i=>i.category_id===id).forEach(i=>i.category_id=null);
   toast('카테고리 삭제','warning');syncCatSelect();renderIngredients();
+  gsAfter('categories','ingredients');
 }
 function syncCatSelect(){const el=document.getElementById('ing-cat');const v=el.value;el.innerHTML='<option value="">없음</option>'+DB.categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');el.value=v;}
 
@@ -1611,6 +2140,7 @@ function saveProg(){
   if(id){const p=DB.programs.find(x=>x.id===id);[{f:'selling_price',v:price},{f:'max_participants',v:maxP}].forEach(({f,v})=>{if(p[f]!==v){DB.programsHistory.push({id:genId('PH'),program_id:id,changed_field:f,old_value:String(p[f]),new_value:String(v),changed_at:now});}p[f]=v;});p.name=name;p.description=desc;p.emoji=emoji;DB.programRecipes.filter(r=>r.program_id===id&&!r.valid_until).forEach(r=>r.valid_until=now);recipe.forEach(r=>DB.programRecipes.push({id:genId('REC'),program_id:id,...r,valid_from:now,valid_until:null,created_at:now}));toast('프로그램 수정 완료');}
   else{const pid=genId('PRG');DB.programs.push({id:pid,name,description:desc,emoji,selling_price:price,max_participants:maxP,created_at:now,is_active:true});recipe.forEach(r=>DB.programRecipes.push({id:genId('REC'),program_id:pid,...r,valid_from:now,valid_until:null,created_at:now}));toast('프로그램 추가 완료');}
   closeModal('m-prog');renderPrograms();syncProgSelects();
+  gsAfter('programs','programsHistory','programRecipes');
 }
 function renderPrograms(){
   const el=document.getElementById('prog-list');const progs=DB.programs.filter(p=>p.is_active);
@@ -1733,8 +2263,31 @@ function init(){
   const allDone=DB.sessions.filter(s=>s.usage_recorded).sort((a,b)=>a.session_date.localeCompare(b.session_date));
   document.getElementById('rep-from').value=allDone[0]?.session_date||today();
   document.getElementById('rep-to').value=today();
-  renderDashboard();
-  document.getElementById('footer-status').textContent='기존 데이터 로드 완료 ✓';
+
+  // GS 저장 설정 복원
+  GS.loadConfig();
+  if(GS.clientId){document.getElementById('gs-client-id').value=GS.clientId;}
+  if(GS.sheetId){document.getElementById('gs-sheet-id').value=GS.sheetId;}
+
+  // 세션 복원 시도 (같은 브라우저 탭/세션이면 재로그인 불필요)
+  if(AUTH.loadSession()){
+    document.getElementById('auth-screen').style.display='none';
+    updateUserInfo();
+    renderDashboard();
+    document.getElementById('footer-status').textContent='데이터 로드 완료 ✓';
+    GS.updateUI('','Sheets 미연결 (연결 버튼 클릭)');
+    // Client ID 있으면 자동 재연결 시도
+    if(GS.clientId&&GS.sheetId){
+      GS.updateUI('sync','자동 연결 중...');
+      gsConnect().catch(()=>{GS.updateUI('err','자동 연결 실패 — 수동 연결하세요');});
+    }
+  } else {
+    // 로그인 화면 표시 (이미 HTML에서 보임)
+    document.getElementById('auth-screen').style.display='flex';
+    // CLIENT_ID/SHEET_ID 코드에 하드코딩된 경우 입력창에 미리 채우기
+    if(AUTH.CLIENT_ID)document.getElementById('gs-client-id').value=AUTH.CLIENT_ID;
+    if(AUTH.SHEET_ID)document.getElementById('gs-sheet-id').value=AUTH.SHEET_ID;
+  }
 }
 init();
 </script>
