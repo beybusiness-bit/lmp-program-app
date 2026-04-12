@@ -368,7 +368,6 @@ tbody td{padding:11px 11px;vertical-align:middle}
         <button class="gs-btn" onclick="gsSyncAll()" style="flex:1">↻ 전체 동기화</button>
         <button class="gs-btn" onclick="gsDisconnect()">연결 해제</button>
       </div>
-      <button class="gs-btn" style="width:100%;margin-top:4px;background:#fffcf0;border-color:#ffe066" onclick="gsSeedToSheets()">📦 샘플 데이터 → Sheets 저장</button>
       <div id="gs-last-sync" style="font-size:9px;color:var(--text3);margin-top:4px"></div>
     </div>
   </div>
@@ -821,13 +820,13 @@ tbody td{padding:11px 11px;vertical-align:middle}
 const AUTH={
   // ★ 접근 허용할 Google 이메일 목록 — 여기에 추가/제거하세요
   ALLOWED_EMAILS:[
-    'itsbeybusiness@gmail.com',   // 본인 이메일로 교체
-    'baekeun0@gmail.com',        // 동료 이메일 추가 예시
+    'beybusiness.bit@gmail.com',   // 본인 이메일로 교체
+    // 'partner@gmail.com',        // 동료 이메일 추가 예시
   ],
   // ★ Google OAuth Client ID — 연결 후 여기 붙여넣어 두면 자동 로그인 가능
-  CLIENT_ID:'27055656717-pgddfisd182i8jqlg574v7vrbkff2b2b.apps.googleusercontent.com',   // 예: '123456789-abc.apps.googleusercontent.com'
+  CLIENT_ID:'',   // 예: '123456789-abc.apps.googleusercontent.com'
   // ★ Google Spreadsheet ID
-  SHEET_ID:'1QHzz73LzPSGWCwl6SN7TPaxxdyqnkIxzlq9TQpGopag',    // 예: '1abc2def3ghi...'
+  SHEET_ID:'',    // 예: '1abc2def3ghi...'
 
   userEmail:null,
   userName:null,
@@ -1225,25 +1224,6 @@ async function gsSyncAll(){
     renderDashboard();
     toast('전체 동기화 완료 ✓');
   }catch(e){toast('동기화 실패: '+e.message,'error');}
-}
-
-// 샘플 데이터(현재 메모리 DB)를 Sheets에 통째로 저장
-async function gsSeedToSheets(){
-  if(!GS.isConnected()){toast('먼저 Sheets에 연결해주세요','error');return;}
-  if(!confirm('현재 앱의 샘플 데이터를 Google Sheets에 저장합니다.\n기존 Sheets 데이터가 덮어써집니다. 계속할까요?'))return;
-  GS.updateUI('sync','샘플 데이터 저장 중...');
-  try{
-    await GS.initSheets();
-    const keys=Object.keys(GS.SHEETS);
-    for(const k of keys){await GS.writeSheet(k);}
-    GS.lastSync=new Date().toISOString();
-    GS.updateUI('ok','연결됨 · '+GS.sheetId.slice(0,12)+'...');
-    toast('샘플 데이터 저장 완료 ✓ ('+keys.length+'개 시트)');
-  }catch(e){
-    console.error(e);
-    GS.updateUI('err','저장 실패: '+e.message);
-    toast('저장 실패: '+e.message,'error');
-  }
 }
 
 function gsShowHelp(){openModal('m-gs-help');}
