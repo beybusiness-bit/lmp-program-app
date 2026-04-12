@@ -1767,6 +1767,8 @@ function renderSessions(){
 // ══════════════════════════════════════════════════════════
 // 재고 현황
 // ══════════════════════════════════════════════════════════
+let stockPage=1;
+function goStockPage(p){stockPage=p;renderStock();}
 let stockViewMode='all',selStockProgId=null,selStockCatId='';
 function setStockView(mode,btn){
   stockViewMode=mode;
