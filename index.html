@@ -821,13 +821,13 @@ tbody td{padding:11px 11px;vertical-align:middle}
 const AUTH={
   // ★ 접근 허용할 Google 이메일 목록 — 여기에 추가/제거하세요
   ALLOWED_EMAILS:[
-    'itsbeybusiness@gmail.com',   // 본인 이메일로 교체
-    'baekeun0@gmail.com',        // 동료 이메일 추가 예시
+    'beybusiness.bit@gmail.com',   // 본인 이메일로 교체
+    // 'partner@gmail.com',        // 동료 이메일 추가 예시
   ],
   // ★ Google OAuth Client ID — 연결 후 여기 붙여넣어 두면 자동 로그인 가능
-  CLIENT_ID:'27055656717-pgddfisd182i8jqlg574v7vrbkff2b2b.apps.googleusercontent.com',   // 예: '123456789-abc.apps.googleusercontent.com'
+  CLIENT_ID:'',   // 예: '123456789-abc.apps.googleusercontent.com'
   // ★ Google Spreadsheet ID
-  SHEET_ID:'1QHzz73LzPSGWCwl6SN7TPaxxdyqnkIxzlq9TQpGopag',    // 예: '1abc2def3ghi...'
+  SHEET_ID:'',    // 예: '1abc2def3ghi...'
 
   userEmail:null,
   userName:null,
@@ -902,7 +902,7 @@ async function authLogin(){
     const token=await new Promise((resolve,reject)=>{
       const client=google.accounts.oauth2.initTokenClient({
         client_id:cid,
-        scope:'https://www.googleapis.com/auth/spreadsheets openid email profile',
+        scope:'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
         callback:(resp)=>{
           if(resp.error){reject(new Error(resp.error_description||resp.error));return;}
           resolve(resp.access_token);
@@ -914,21 +914,51 @@ async function authLogin(){
       client.requestAccessToken({prompt:'select_account'});
     });
 
-    // 이메일 확인
+    // 이메일 확인 — access_token으로 userinfo 호출 (실패시 token payload 파싱 시도)
     spinEl.textContent='계정 확인 중...';
-    const info=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{
-      headers:{Authorization:'Bearer '+token}
-    }).then(r=>r.json());
+    let loginEmail='';
+    let userName='';
+    let userPicture='';
+    try{
+      const infoResp=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{
+        headers:{Authorization:'Bearer '+token}
+      });
+      if(infoResp.ok){
+        const info=await infoResp.json();
+        loginEmail=(info.email||'').trim().toLowerCase();
+        userName=info.name||'';
+        userPicture=info.picture||'';
+      }
+    }catch(e){console.warn('userinfo fetch 실패, 토큰 파싱 시도',e);}
 
-    if(!info.email){throw new Error('이메일 정보를 가져올 수 없습니다.');}
-    if(!AUTH.ALLOWED_EMAILS.includes(info.email)){
-      throw new Error('접근 권한이 없는 계정입니다.\n('+info.email+')\n관리자에게 문의하세요.');
+    // userinfo 실패시 — People API fallback
+    if(!loginEmail){
+      try{
+        const pResp=await fetch('https://people.googleapis.com/v1/people/me?personFields=emailAddresses,names,photos',{
+          headers:{Authorization:'Bearer '+token}
+        });
+        if(pResp.ok){
+          const p=await pResp.json();
+          loginEmail=((p.emailAddresses||[])[0]?.value||'').trim().toLowerCase();
+          userName=(p.names||[])[0]?.displayName||'';
+          userPicture=(p.photos||[])[0]?.url||'';
+        }
+      }catch(e){console.warn('People API fallback 실패',e);}
+    }
+
+    if(!loginEmail){
+      throw new Error('이메일 정보를 가져올 수 없습니다.\nGoogle Cloud Console에서 People API 또는 OAuth 동의 화면에 email 스코프가 추가되어 있는지 확인해주세요.');
+    }
+
+    const allowed=AUTH.ALLOWED_EMAILS.map(e=>e.trim().toLowerCase());
+    if(!allowed.includes(loginEmail)){
+      throw new Error('접근 권한이 없는 계정입니다.\n로그인 계정: '+loginEmail+'\n허가 목록: '+AUTH.ALLOWED_EMAILS.join(', '));
     }
 
     // 인증 성공 — GS 모듈에 토큰/설정 전달
-    AUTH.userEmail=info.email;
-    AUTH.userName=info.name;
-    AUTH.userPicture=info.picture;
+    AUTH.userEmail=loginEmail;
+    AUTH.userName=userName;
+    AUTH.userPicture=userPicture;
     AUTH.saveSession();
 
     GS.clientId=cid;
@@ -960,6 +990,7 @@ async function authLogin(){
     console.error('authLogin error:',e);
     spinEl.style.display='none';
     btn.disabled=false;
+    errEl.style.whiteSpace='pre-line';
     errEl.textContent=e.message||'로그인 실패';
     errEl.style.display='block';
   }
@@ -2355,7 +2386,7 @@ function init(){
       return new Promise((resolve,reject)=>{
         const client=google.accounts.oauth2.initTokenClient({
           client_id:cid,
-          scope:'https://www.googleapis.com/auth/spreadsheets openid email profile',
+          scope:'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
           callback:(resp)=>{resp.error?reject(new Error(resp.error)):resolve(resp.access_token);},
           error_callback:(err)=>reject(new Error(err?.message||'token error'))
         });
