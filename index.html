@@ -3748,9 +3748,14 @@ const _DEFAULT_NAV={dashboard:'대시보드',sessions:'일정 관리',programs:'
 function applyNavOrder(){
   if(!DB.navOrder||!DB.navOrder.length)return;
   var nav=document.querySelector('.sidebar-nav');if(!nav)return;
+  // 1. data-page 항목들을 지정 순서대로 뒤로 이동
   DB.navOrder.forEach(function(key){
     var el=document.querySelector('.nav-item[data-page="'+key+'"]');
     if(el)nav.appendChild(el);
+  });
+  // 2. data-page 없는 항목(변경이력·설정)은 항상 맨 뒤 유지
+  nav.querySelectorAll('.nav-item:not([data-page])').forEach(function(el){
+    nav.appendChild(el);
   });
 }
 function applyNavLabels(){
