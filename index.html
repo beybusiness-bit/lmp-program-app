@@ -475,12 +475,22 @@ tbody td{padding:11px 11px;vertical-align:middle}
     <!-- 목록 뷰 -->
     <div id="ses-list-view">
       <div class="card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <div class="pagination" id="ses-pagination-top" style="flex:1;min-width:0"></div>
+          <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+            <span style="font-size:12px;color:var(--text3)">페이지당</span>
+            <select class="form-select" style="width:75px" id="ses-per-page" onchange="sesPage=1;renderSessions()">
+              <option value="20">20개</option><option value="50">50개</option><option value="100">100개</option>
+            </select>
+          </div>
+        </div>
         <div class="tbl-wrap">
           <table>
             <thead><tr><th>날짜</th><th>프로그램</th><th>인원</th><th>재료비</th><th>예상수익</th><th>메모</th><th>사용기록</th><th>관리</th></tr></thead>
             <tbody id="ses-tbody"></tbody>
           </table>
         </div>
+        <div class="pagination" id="ses-pagination-bot" style="margin-top:10px"></div>
       </div>
     </div>
     <!-- 캘린더 뷰 -->
@@ -495,7 +505,19 @@ tbody td{padding:11px 11px;vertical-align:middle}
 <!-- ════ 프로그램 관리 ════ -->
 <div class="page" id="page-programs">
   <div class="page-header"><div><div class="page-title">프로그램 관리</div></div><button class="btn btn-primary" onclick="openProgModal()">+ 프로그램 추가</button></div>
-  <div class="page-body"><div id="prog-list"></div></div>
+  <div class="page-body">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <div class="pagination" id="prog-pagination-top" style="flex:1;min-width:0"></div>
+      <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+        <span style="font-size:12px;color:var(--text3)">페이지당</span>
+        <select class="form-select" style="width:75px" id="prog-per-page" onchange="progPage=1;renderPrograms()">
+          <option value="10">10개</option><option value="20">20개</option><option value="50">50개</option>
+        </select>
+      </div>
+    </div>
+    <div id="prog-list"></div>
+    <div class="pagination" id="prog-pagination-bot" style="margin-top:10px"></div>
+  </div>
 </div>
 
 <!-- ════ 재고 현황 ════ -->
@@ -505,6 +527,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
       <div class="tab-bar">
         <button class="tab-btn active" onclick="setStockView('all',this)">전체</button>
+        <button class="tab-btn" onclick="setStockView('category',this)">카테고리별</button>
         <button class="tab-btn" onclick="setStockView('program',this)">프로그램별</button>
       </div>
       <select class="form-select" style="width:180px" id="stock-sort" onchange="renderStock()">
@@ -513,11 +536,22 @@ tbody td{padding:11px 11px;vertical-align:middle}
         <option value="qty-asc">재고량 ↑</option>
         <option value="qty-desc">재고량 ↓</option>
       </select>
+      <div id="stock-cat-selector" style="display:none"></div>
       <div id="stock-prog-selector" style="display:none"></div>
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="sec-title">현재 재고</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <div class="pagination" id="stock-pagination-top" style="flex:1;min-width:0"></div>
+        <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+          <span style="font-size:12px;color:var(--text3)">페이지당</span>
+          <select class="form-select" style="width:75px" id="stock-per-page" onchange="stockPage=1;renderStock()">
+            <option value="20">20개</option><option value="50">50개</option><option value="100">100개</option>
+          </select>
+        </div>
+      </div>
       <div id="stock-content"></div>
+      <div class="pagination" id="stock-pagination-bot" style="margin-top:10px"></div>
     </div>
     <div class="card">
       <div class="sec-title">발주 알림</div>
@@ -630,7 +664,17 @@ tbody td{padding:11px 11px;vertical-align:middle}
       <div class="card"><div class="sec-title">프로그램별 수익</div><div id="rep-by-prog"></div></div>
     </div>
     <div class="card"><div class="sec-title">모임별 내역</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <div class="pagination" id="rep-pagination-top" style="flex:1;min-width:0"></div>
+        <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+          <span style="font-size:12px;color:var(--text3)">페이지당</span>
+          <select class="form-select" style="width:75px" id="rep-per-page" onchange="repPage=1;renderReport()">
+            <option value="20">20개</option><option value="50">50개</option><option value="100">100개</option>
+          </select>
+        </div>
+      </div>
       <div class="tbl-wrap"><table><thead><tr><th>날짜</th><th>프로그램</th><th>인원</th><th>매출</th><th>재료비</th><th>수익</th><th>수익률</th></tr></thead><tbody id="rep-tbody"></tbody></table></div>
+      <div class="pagination" id="rep-pagination-bot" style="margin-top:10px"></div>
     </div>
   </div>
 </div>
@@ -1235,6 +1279,22 @@ async function gsSyncAll(){
 function gsShowHelp(){openModal('m-gs-help');}
 
 // loadAll 완료 후 공통 렌더링
+// 공통 페이저 빌더
+function buildPager(elId,total,page,perPage,onPageChange){
+  const pg=document.getElementById(elId);
+  if(!pg)return;
+  const pages=Math.max(1,Math.ceil(total/perPage));
+  pg.innerHTML='<span style="font-size:12px;color:var(--text3);font-family:var(--mono)">전체 '+total+'개</span>';
+  if(pages>1){
+    pg.innerHTML+='<button class="pg-btn" onclick="'+onPageChange+'(Math.max(1,'+page+'-1))" '+(page===1?'disabled':'')+'>‹</button>';
+    for(let i=1;i<=pages;i++){
+      if(i===1||i===pages||Math.abs(i-page)<=2)pg.innerHTML+='<button class="pg-btn'+(i===page?' active':'')+'" onclick="'+onPageChange+'('+i+')">'+i+'</button>';
+      else if(Math.abs(i-page)===3)pg.innerHTML+='<span style="color:var(--text3);padding:0 4px">…</span>';
+    }
+    pg.innerHTML+='<button class="pg-btn" onclick="'+onPageChange+'(Math.min('+pages+','+page+'+1))" '+(page===pages?'disabled':'')+'>›</button>';
+  }
+}
+
 function afterLoad(){
   console.log('[afterLoad] DB 상태 — ingredients:',DB.ingredients?.length,'programs:',DB.programs?.length,'sessions:',DB.sessions?.length);
   syncIngSelects();syncProgSelects();syncCatSelect();
@@ -1377,6 +1437,7 @@ function renderMiniChart(elId,months){
 // ══════════════════════════════════════════════════════════
 // 모임 일정
 // ══════════════════════════════════════════════════════════
+let sesPage=1;
 let sesViewMode='list',calMode='month',calYear=new Date().getFullYear(),calMonth=new Date().getMonth(),calWeekStart=null;
 // 월요일 기준 주 시작일 계산 (0=일,1=월,...,6=토 → 월요일 기준으로)
 function getMondayOf(dateStr){
@@ -1559,6 +1620,7 @@ function saveSes(){
   gsAfter('sessions');
 }
 function recordUsage(sesId){
+  if(!requireSheets())return;
   const s=DB.sessions.find(x=>x.id===sesId);
   if(!s||s.usage_recorded)return;
   const now=new Date().toISOString();
@@ -1568,6 +1630,7 @@ function recordUsage(sesId){
   gsAfter('sessions','inventoryLog');
 }
 function cancelUsage(sesId){
+  if(!requireSheets())return;
   const s=DB.sessions.find(x=>x.id===sesId);
   if(!s||!s.usage_recorded)return;
   if(!confirm('사용 기록을 취소할까요? 이 모임의 재고 사용 내역이 삭제됩니다.'))return;
@@ -1577,6 +1640,7 @@ function cancelUsage(sesId){
   gsAfter('sessions','inventoryLog');
 }
 function deleteSession(sesId){
+  if(!requireSheets())return;
   const s=DB.sessions.find(x=>x.id===sesId);
   if(!s)return;
   if(!confirm(s.usage_recorded?'사용 기록 완료된 모임입니다. 삭제 시 재고 기록도 함께 삭제됩니다. 계속할까요?':'이 모임을 삭제할까요?'))return;
@@ -1585,13 +1649,20 @@ function deleteSession(sesId){
   toast('모임 삭제 완료','warning');renderSessions();
   gsAfter('sessions','inventoryLog');
 }
+function goSesPage(p){sesPage=p;renderSessions();}
 function renderSessions(){
   if(sesViewMode==='calendar'){renderCalendar();return;}
   const sort=document.getElementById('ses-sort').value;
   const filterProg=document.getElementById('ses-filter-prog').value;
+  const perPage=parseInt(document.getElementById('ses-per-page')?.value||'20');
   let sessions=[...DB.sessions];
   if(filterProg)sessions=sessions.filter(s=>s.program_id===filterProg);
   sessions.sort((a,b)=>sort==='date-asc'?a.session_date.localeCompare(b.session_date):b.session_date.localeCompare(a.session_date));
+  const total=sessions.length,pages=Math.max(1,Math.ceil(total/perPage));
+  if(sesPage>pages)sesPage=1;
+  buildPager('ses-pagination-top',total,sesPage,perPage,'goSesPage');
+  buildPager('ses-pagination-bot',total,sesPage,perPage,'goSesPage');
+  sessions=sessions.slice((sesPage-1)*perPage,sesPage*perPage);
   const tbody=document.getElementById('ses-tbody');
   if(!sessions.length){tbody.innerHTML=`<tr><td colspan="8" class="nl"><div class="empty"><div class="empty-icon">📅</div><div style="font-size:13px">등록된 모임 없음</div></div></td></tr>`;return;}
   tbody.innerHTML=sessions.map(s=>{
@@ -1648,13 +1719,23 @@ function renderStock(){
   else if(sort==='qty-asc')ings.sort((a,b)=>calcStock(a.id)-calcStock(b.id));
   else if(sort==='qty-desc')ings.sort((a,b)=>calcStock(b.id)-calcStock(a.id));
   const cont=document.getElementById('stock-content');
-  if(stockViewMode==='all'){
-    cont.innerHTML=ings.length
+  if(stockViewMode==='category'){
+    if(selStockCatId==='none')ings=ings.filter(i=>!i.category_id);
+    else if(selStockCatId)ings=ings.filter(i=>i.category_id===selStockCatId);
+  }
+  if(stockViewMode==='all'||stockViewMode==='category'){
+    const perPageSt=parseInt(document.getElementById('stock-per-page')?.value||'20');
+    const totalSt=ings.length,pagesSt=Math.max(1,Math.ceil(totalSt/perPageSt));
+    if(stockPage>pagesSt)stockPage=1;
+    buildPager('stock-pagination-top',totalSt,stockPage,perPageSt,'goStockPage');
+    buildPager('stock-pagination-bot',totalSt,stockPage,perPageSt,'goStockPage');
+    const pagedIngs=ings.slice((stockPage-1)*perPageSt,stockPage*perPageSt);
+    cont.innerHTML=pagedIngs.length
       ?'<div class="tbl-wrap"><table><thead><tr><th>재료명</th><th>현재 재고</th><th>입고 예정</th><th>단위</th></tr></thead><tbody>'
-        +ings.map(ing=>{const st=calcStock(ing.id),pend=calcPending(ing.id);return'<tr><td data-label="재료명"><b>'+esc(ing.name)+'</b></td><td data-label="현재 재고" class="td-mono '+(st<0?'n-r':'')+'">'+fNum(st)+' '+ing.unit+'</td><td data-label="입고 예정" class="td-mono '+(pend>0?'n-g':'')+'">'+( pend>0?'+'+fNum(pend)+' '+ing.unit:'—')+'</td><td data-label="단위" class="td-mono">'+ing.unit+'</td></tr>';}).join('')
+        +pagedIngs.map(ing=>{const st=calcStock(ing.id),pend=calcPending(ing.id);return'<tr><td data-label="재료명"><b>'+esc(ing.name)+'</b></td><td data-label="현재 재고" class="td-mono '+(st<0?'n-r':'')+'">'+fNum(st)+' '+ing.unit+'</td><td data-label="입고 예정" class="td-mono '+(pend>0?'n-g':'')+'">'+( pend>0?'+'+fNum(pend)+' '+ing.unit:'—')+'</td><td data-label="단위" class="td-mono">'+ing.unit+'</td></tr>';}).join('')
         +'</tbody></table></div>'
       :'<div class="empty"><div style="font-size:13px">재료 없음</div></div>';
-  } else {
+  } else if(stockViewMode==='program'){
     // 선택된 프로그램 하나만 표시
     const prog=DB.programs.find(p=>p.id===selStockProgId);
     if(!prog){cont.innerHTML='<div class="empty"><div style="font-size:13px">프로그램을 선택해주세요</div></div>';} 
@@ -1831,6 +1912,7 @@ function importCsv(event){
       const btn=document.getElementById('csv-confirm-btn');
       btn.disabled=valid.length===0;
       btn.onclick=()=>{
+        if(!requireSheets())return;
         const now=new Date().toISOString();
         valid.forEach(({date,ingId,type,qty,od,memo})=>{
           let fq=qty;
@@ -1906,6 +1988,7 @@ function toggleAllHistChecks(master){
   onHistCheckChange();
 }
 function deleteCheckedLogs(){
+  if(!requireSheets())return;
   const ids=[...document.querySelectorAll('.hist-check:checked')].map(c=>c.dataset.id);
   if(!ids.length)return;
   if(!confirm('선택한 '+ids.length+'개의 기록을 삭제할까요?'))return;
@@ -1914,6 +1997,7 @@ function deleteCheckedLogs(){
   gsAfter('inventoryLog');
 }
 function deleteLog(id){
+  if(!requireSheets())return;
   DB.inventoryLog=DB.inventoryLog.filter(l=>l.id!==id);
   toast('삭제 완료','warning');renderStock();renderHistory();
   gsAfter('inventoryLog');
@@ -2023,6 +2107,7 @@ function saveIng(){
   gsAfter('ingredients','ingredientsHistory');
 }
 function deleteIng(id){
+  if(!requireSheets())return;
   const ing=DB.ingredients.find(i=>i.id===id);
   if(!confirm(`"${ing?.name}"을 삭제할까요?`))return;
   DB.ingredients=DB.ingredients.filter(i=>i.id!==id);DB.programRecipes=DB.programRecipes.filter(r=>r.ingredient_id!==id);
@@ -2167,6 +2252,7 @@ function saveCat(){
   gsAfter('categories');
 }
 function deleteCat(id){
+  if(!requireSheets())return;
   const c=DB.categories.find(x=>x.id===id);
   if(!confirm(`"${c?.name}" 삭제 시 속한 재료의 카테고리가 해제됩니다. 계속할까요?`))return;
   DB.categories=DB.categories.filter(x=>x.id!==id);DB.ingredients.filter(i=>i.category_id===id).forEach(i=>i.category_id=null);
@@ -2263,7 +2349,14 @@ function saveProg(){
   gsAfter('programs','programsHistory','programRecipes');
 }
 function renderPrograms(){
-  const el=document.getElementById('prog-list');const progs=DB.programs.filter(p=>p.is_active);
+  const el=document.getElementById('prog-list');
+  const perPage=parseInt(document.getElementById('prog-per-page')?.value||'10');
+  let progs=DB.programs.filter(p=>p.is_active);
+  const total=progs.length,pages=Math.max(1,Math.ceil(total/perPage));
+  if(progPage>pages)progPage=1;
+  buildPager('prog-pagination-top',total,progPage,perPage,'goProgPage');
+  buildPager('prog-pagination-bot',total,progPage,perPage,'goProgPage');
+  progs=progs.slice((progPage-1)*perPage,progPage*perPage);
   if(!progs.length){el.innerHTML=`<div class="empty card"><div class="empty-icon">📋</div><div style="font-size:13px">등록된 프로그램 없음</div></div>`;return;}
   el.innerHTML=progs.map(prog=>{
     const recipe=DB.programRecipes.filter(r=>r.program_id===prog.id&&!r.valid_until);const costPer=calcCostPer(recipe);const profitPer=prog.selling_price-costPer;
@@ -2271,9 +2364,13 @@ function renderPrograms(){
   }).join('');
 }
 
+let progPage=1;
+function goProgPage(p){progPage=p;renderPrograms();}
 // ══════════════════════════════════════════════════════════
 // 수익 리포트
 // ══════════════════════════════════════════════════════════
+let repPage=1;
+function goRepPage(p){repPage=p;renderReport();}
 function setRepPeriod(type){
   const t=today();let from;
   if(type==='month'){const n=new Date();from=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-01';}
@@ -2292,7 +2389,14 @@ function renderReport(){
   document.getElementById('rep-chart').innerHTML=mons.length?`<div style="font-size:10px;color:var(--text3);font-family:var(--mono);text-align:right;margin-bottom:4px">단위: 천원</div><div class="chart-wrap" style="height:120px">${mons.map(m=>`<div class="chart-col"><div class="chart-val">${Math.round(mMap[m].rev/1000).toLocaleString()}</div><div class="chart-bar" style="height:${Math.max(mMap[m].rev/mx*95,4)}px"></div><div class="chart-lbl">${m.slice(5)}월</div></div>`).join('')}</div>`:`<div class="empty"><div style="font-size:13px">데이터 없음</div></div>`;
   const pMap={};ss.forEach(s=>{const pid=s.program_id;if(!pMap[pid]){pMap[pid]={rev:0,cost:0,cnt:0,prog:DB.programs.find(p=>p.id===pid)};}pMap[pid].rev+=(s.selling_price_snapshot||0)*s.participants;pMap[pid].cost+=calcSesCost(s);pMap[pid].cnt++;});
   document.getElementById('rep-by-prog').innerHTML=Object.values(pMap).length?Object.values(pMap).map(d=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="font-size:14px;font-weight:700">${d.prog?.emoji||''} ${esc(d.prog?.name||'—')} <span style="font-size:11px;color:var(--text3)">${d.cnt}회</span></div><div style="display:flex;gap:12px;margin-top:5px;flex-wrap:wrap"><span style="font-size:12px">매출 <span class="n-g">${fMoney(d.rev)}</span></span><span style="font-size:12px">재료비 <span class="n-p">${fMoney(d.cost)}</span></span><span style="font-size:12px">수익 <span class="${d.rev-d.cost>=0?'n-g':'n-r'}">${fMoney(d.rev-d.cost)}</span></span></div></div>`).join(''):`<div class="empty"><div style="font-size:13px">데이터 없음</div></div>`;
-  document.getElementById('rep-tbody').innerHTML=[...ss].sort((a,b)=>b.session_date.localeCompare(a.session_date)).map(s=>{const prog=DB.programs.find(p=>p.id===s.program_id);const rev=(s.selling_price_snapshot||0)*s.participants;const cost=calcSesCost(s);const profit=rev-cost;return`<tr><td data-label="날짜" class="td-mono">${fDate(s.session_date)}</td><td data-label="프로그램">${prog?`${prog.emoji||''} ${esc(prog.name)}`:'—'}</td><td data-label="인원" class="td-mono">${s.participants}명</td><td data-label="매출" class="td-mono n-g">${fMoney(rev)}</td><td data-label="재료비" class="td-mono n-p">${fMoney(cost)}</td><td data-label="수익" class="td-mono ${profit>=0?'n-g':'n-r'}">${fMoney(profit)}</td><td data-label="수익률" class="td-mono">${rev?Math.round(profit/rev*100)+'%':'—'}</td></tr>`;}).join('')||`<tr><td colspan="7" class="nl"><div class="empty"><div style="font-size:13px">해당 기간 내역 없음</div></div></td></tr>`;
+  const repPerPage=parseInt(document.getElementById('rep-per-page')?.value||'20');
+  const repSorted=[...ss].sort((a,b)=>b.session_date.localeCompare(a.session_date));
+  const repTotal=repSorted.length,repPages=Math.max(1,Math.ceil(repTotal/repPerPage));
+  if(repPage>repPages)repPage=1;
+  buildPager('rep-pagination-top',repTotal,repPage,repPerPage,'goRepPage');
+  buildPager('rep-pagination-bot',repTotal,repPage,repPerPage,'goRepPage');
+  const repPaged=repSorted.slice((repPage-1)*repPerPage,repPage*repPerPage);
+  document.getElementById('rep-tbody').innerHTML=repPaged.map(s=>{const prog=DB.programs.find(p=>p.id===s.program_id);const rev=(s.selling_price_snapshot||0)*s.participants;const cost=calcSesCost(s);const profit=rev-cost;return`<tr><td data-label="날짜" class="td-mono">${fDate(s.session_date)}</td><td data-label="프로그램">${prog?`${prog.emoji||''} ${esc(prog.name)}`:'—'}</td><td data-label="인원" class="td-mono">${s.participants}명</td><td data-label="매출" class="td-mono n-g">${fMoney(rev)}</td><td data-label="재료비" class="td-mono n-p">${fMoney(cost)}</td><td data-label="수익" class="td-mono ${profit>=0?'n-g':'n-r'}">${fMoney(profit)}</td><td data-label="수익률" class="td-mono">${rev?Math.round(profit/rev*100)+'%':'—'}</td></tr>`;}).join('')||`<tr><td colspan="7" class="nl"><div class="empty"><div style="font-size:13px">해당 기간 내역 없음</div></div></td></tr>`;
 }
 
 // ══════════════════════════════════════════════════════════
