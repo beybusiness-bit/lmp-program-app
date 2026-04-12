@@ -1275,7 +1275,18 @@ function openChangeHistory(){
 // ── Sheets 자동 동기화 래퍼 ──
 // 각 save 함수 실행 후 해당 시트만 동기화
 function gsAfter(...keys){
-  if(GS.isConnected())GS.syncSheets(keys);
+  if(!GS.isConnected()){
+    toast('⚠️ Sheets 미연결 상태입니다. 사이드바에서 연결 후 다시 시도해주세요.','error');
+    return false;
+  }
+  GS.syncSheets(keys);
+  return true;
+}
+// Sheets 연결 여부 확인 후 작업 허용
+function requireSheets(){
+  if(GS.isConnected())return true;
+  toast('Google Sheets에 연결되지 않았습니다. 사이드바 하단 연결 버튼을 눌러 연결 후 다시 시도해주세요.','error');
+  return false;
 }
 
 
@@ -1360,7 +1371,7 @@ function renderMiniChart(elId,months){
   const list=[];
   for(let i=months-1;i>=0;i--){const d=new Date();d.setMonth(d.getMonth()-i);const ym=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');const ss=DB.sessions.filter(x=>x.usage_recorded&&x.session_date.startsWith(ym));const rev=ss.reduce((a,x)=>a+(x.selling_price_snapshot||0)*x.participants,0);const cost=ss.reduce((a,x)=>a+calcSesCost(x),0);list.push({lbl:ym.slice(5)+'월',rev,profit:rev-cost});}
   const mx=Math.max(...list.map(x=>x.rev),1);
-  el.innerHTML=`<div class="chart-wrap">${list.map(d=>`<div class="chart-col"><div class="chart-val">${d.rev?'₩'+(d.rev/10000).toFixed(0)+'w':''}</div><div class="chart-bar" style="height:${Math.max(d.rev/mx*80,d.rev?4:2)}px;opacity:${d.rev?1:0.25}"></div><div class="chart-lbl">${d.lbl}</div></div>`).join('')}</div>`;
+  el.innerHTML=`<div style="font-size:9px;color:var(--text3);font-family:var(--mono);text-align:right;margin-bottom:2px">단위: 천원</div><div class="chart-wrap">${list.map(d=>`<div class="chart-col"><div class="chart-val">${d.rev?Math.round(d.rev/1000).toLocaleString():''}</div><div class="chart-bar" style="height:${Math.max(d.rev/mx*80,d.rev?4:2)}px;opacity:${d.rev?1:0.25}"></div><div class="chart-lbl">${d.lbl}</div></div>`).join('')}</div>`;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1529,6 +1540,7 @@ function saveSes(){
   const progId=document.getElementById('ses-prog').value;
   const memo=document.getElementById('ses-memo').value.trim();
   if(!date||isNaN(pax)||!progId){toast('날짜, 인원, 프로그램을 모두 입력해주세요','error');return;}
+  if(!requireSheets())return;
   const prog=DB.programs.find(p=>p.id===progId);
   const recipe=DB.programRecipes.filter(r=>r.program_id===progId&&!r.valid_until);
   const snap={};recipe.forEach(r=>snap[r.ingredient_id]=r.qty_per_person);
@@ -1750,6 +1762,7 @@ function saveMultiLog(){
     entries.push({ingId:ingEl.value,type:typeEl?.value||'입고',qty:parseFloat(qtyEl.value),od:odEl?.value||'',memo:memoEl?.value?.trim()||''});
   }
   if(!entries.length){toast('재료와 수량을 입력해주세요','error');return;}
+  if(!requireSheets())return;
   const now=new Date().toISOString();
   entries.forEach(({ingId,type,qty,od,memo})=>{
     let fq=qty;
@@ -2002,6 +2015,7 @@ function openIngModal(id=''){
 function saveIng(){
   const name=document.getElementById('ing-name').value.trim(),unit=document.getElementById('ing-unit').value,pqty=parseFloat(document.getElementById('ing-pqty').value),price=parseFloat(document.getElementById('ing-price').value),lead=parseInt(document.getElementById('ing-lead').value),catId=document.getElementById('ing-cat').value;
   if(!name||isNaN(pqty)||isNaN(price)||isNaN(lead)){toast('모든 항목을 입력해주세요','error');return;}
+  if(!requireSheets())return;
   const id=document.getElementById('ing-id').value,now=new Date().toISOString();
   if(id){const ing=DB.ingredients.find(i=>i.id===id);[{f:'purchase_unit_qty',v:pqty},{f:'price_per_unit',v:price},{f:'lead_time_days',v:lead}].forEach(({f,v})=>{if(ing[f]!==v){DB.ingredientsHistory.push({id:genId('IH'),ingredient_id:id,changed_field:f,old_value:String(ing[f]),new_value:String(v),changed_at:now});}ing[f]=v;});ing.name=name;ing.unit=unit;ing.category_id=catId||null;toast('재료 수정 완료');}
   else{DB.ingredients.push({id:genId('ING'),name,unit,purchase_unit_qty:pqty,price_per_unit:price,lead_time_days:lead,category_id:catId||null,created_at:now,is_active:true});toast('재료 추가 완료');}
@@ -2146,6 +2160,7 @@ function selCatClr(color,el){
 function saveCat(){
   const name=document.getElementById('cat-name').value.trim(),color=document.getElementById('cat-color').value,id=document.getElementById('cat-id').value;
   if(!name){toast('카테고리명을 입력해주세요','error');return;}
+  if(!requireSheets())return;
   if(id){const c=DB.categories.find(x=>x.id===id);c.name=name;c.color=color;toast('카테고리 수정 완료');}
   else{DB.categories.push({id:genId('CAT'),name,color});toast('카테고리 추가 완료');}
   closeModal('m-cat');syncCatSelect();renderIngredients();
@@ -2240,6 +2255,7 @@ function openProgModal(id=''){
 function saveProg(){
   const name=document.getElementById('prog-name').value.trim(),price=parseFloat(document.getElementById('prog-price').value),maxP=parseInt(document.getElementById('prog-max').value)||6,desc=document.getElementById('prog-desc').value.trim(),emoji=document.getElementById('prog-emoji').value||'🍪',id=document.getElementById('prog-id').value,recipe=getRecipe();
   if(!name||isNaN(price)){toast('프로그램명과 판매가를 입력해주세요','error');return;}
+  if(!requireSheets())return;
   const now=new Date().toISOString();
   if(id){const p=DB.programs.find(x=>x.id===id);[{f:'selling_price',v:price},{f:'max_participants',v:maxP}].forEach(({f,v})=>{if(p[f]!==v){DB.programsHistory.push({id:genId('PH'),program_id:id,changed_field:f,old_value:String(p[f]),new_value:String(v),changed_at:now});}p[f]=v;});p.name=name;p.description=desc;p.emoji=emoji;DB.programRecipes.filter(r=>r.program_id===id&&!r.valid_until).forEach(r=>r.valid_until=now);recipe.forEach(r=>DB.programRecipes.push({id:genId('REC'),program_id:id,...r,valid_from:now,valid_until:null,created_at:now}));toast('프로그램 수정 완료');}
   else{const pid=genId('PRG');DB.programs.push({id:pid,name,description:desc,emoji,selling_price:price,max_participants:maxP,created_at:now,is_active:true});recipe.forEach(r=>DB.programRecipes.push({id:genId('REC'),program_id:pid,...r,valid_from:now,valid_until:null,created_at:now}));toast('프로그램 추가 완료');}
@@ -2273,7 +2289,7 @@ function renderReport(){
   document.getElementById('rep-summary').innerHTML=`<div class="g2" style="gap:10px">${[['총 모임',ss.length+'회','n-y'],['총 참여자',ss.reduce((a,x)=>a+x.participants,0)+'명','n-y'],['총 매출',fMoney(totalRev),'n-g'],['총 수익',fMoney(totalProfit),totalProfit>=0?'n-g':'n-r'],['총 재료비',fMoney(totalCost),'n-p'],['수익률',totalRev?Math.round(totalProfit/totalRev*100)+'%':'—','n-y']].map(([l,v,c])=>`<div><div class="card-label">${l}</div><div class="${c}" style="font-size:20px;font-weight:800">${v}</div></div>`).join('')}</div>`;
   const mMap={};ss.forEach(s=>{const ym=s.session_date.slice(0,7);if(!mMap[ym]){mMap[ym]={rev:0,cost:0};}mMap[ym].rev+=(s.selling_price_snapshot||0)*s.participants;mMap[ym].cost+=calcSesCost(s);});
   const mons=Object.keys(mMap).sort(),mx=Math.max(...mons.map(m=>mMap[m].rev),1);
-  document.getElementById('rep-chart').innerHTML=mons.length?`<div class="chart-wrap" style="height:120px">${mons.map(m=>`<div class="chart-col"><div class="chart-val">₩${(mMap[m].rev/10000).toFixed(0)}w</div><div class="chart-bar" style="height:${Math.max(mMap[m].rev/mx*95,4)}px"></div><div class="chart-lbl">${m.slice(5)}월</div></div>`).join('')}</div>`:`<div class="empty"><div style="font-size:13px">데이터 없음</div></div>`;
+  document.getElementById('rep-chart').innerHTML=mons.length?`<div style="font-size:10px;color:var(--text3);font-family:var(--mono);text-align:right;margin-bottom:4px">단위: 천원</div><div class="chart-wrap" style="height:120px">${mons.map(m=>`<div class="chart-col"><div class="chart-val">${Math.round(mMap[m].rev/1000).toLocaleString()}</div><div class="chart-bar" style="height:${Math.max(mMap[m].rev/mx*95,4)}px"></div><div class="chart-lbl">${m.slice(5)}월</div></div>`).join('')}</div>`:`<div class="empty"><div style="font-size:13px">데이터 없음</div></div>`;
   const pMap={};ss.forEach(s=>{const pid=s.program_id;if(!pMap[pid]){pMap[pid]={rev:0,cost:0,cnt:0,prog:DB.programs.find(p=>p.id===pid)};}pMap[pid].rev+=(s.selling_price_snapshot||0)*s.participants;pMap[pid].cost+=calcSesCost(s);pMap[pid].cnt++;});
   document.getElementById('rep-by-prog').innerHTML=Object.values(pMap).length?Object.values(pMap).map(d=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="font-size:14px;font-weight:700">${d.prog?.emoji||''} ${esc(d.prog?.name||'—')} <span style="font-size:11px;color:var(--text3)">${d.cnt}회</span></div><div style="display:flex;gap:12px;margin-top:5px;flex-wrap:wrap"><span style="font-size:12px">매출 <span class="n-g">${fMoney(d.rev)}</span></span><span style="font-size:12px">재료비 <span class="n-p">${fMoney(d.cost)}</span></span><span style="font-size:12px">수익 <span class="${d.rev-d.cost>=0?'n-g':'n-r'}">${fMoney(d.rev-d.cost)}</span></span></div></div>`).join(''):`<div class="empty"><div style="font-size:13px">데이터 없음</div></div>`;
   document.getElementById('rep-tbody').innerHTML=[...ss].sort((a,b)=>b.session_date.localeCompare(a.session_date)).map(s=>{const prog=DB.programs.find(p=>p.id===s.program_id);const rev=(s.selling_price_snapshot||0)*s.participants;const cost=calcSesCost(s);const profit=rev-cost;return`<tr><td data-label="날짜" class="td-mono">${fDate(s.session_date)}</td><td data-label="프로그램">${prog?`${prog.emoji||''} ${esc(prog.name)}`:'—'}</td><td data-label="인원" class="td-mono">${s.participants}명</td><td data-label="매출" class="td-mono n-g">${fMoney(rev)}</td><td data-label="재료비" class="td-mono n-p">${fMoney(cost)}</td><td data-label="수익" class="td-mono ${profit>=0?'n-g':'n-r'}">${fMoney(profit)}</td><td data-label="수익률" class="td-mono">${rev?Math.round(profit/rev*100)+'%':'—'}</td></tr>`;}).join('')||`<tr><td colspan="7" class="nl"><div class="empty"><div style="font-size:13px">해당 기간 내역 없음</div></div></td></tr>`;
