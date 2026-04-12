@@ -2976,9 +2976,8 @@ function loadAppSettings(){
     if(d.plogStatuses&&d.plogStatuses.length)DB.plogStatuses=d.plogStatuses;
     if(d.payStatuses&&d.payStatuses.length)DB.payStatuses=d.payStatuses;
     if(d.navLabels)DB.navLabels=d.navLabels;
-    if(d.navOrder&&d.navOrder.length)DB.navOrder=d.navOrder;
+    if(d.navOrder&&d.navOrder.length){DB.navOrder=d.navOrder;applyNavOrder();}
     applyNavLabels();
-    applyNavOrder();
   }catch(e){}
 }
 
@@ -3545,11 +3544,27 @@ function settingsItemMove(key,i,dir){
   else saveAppSettings();
   openSettingsTab(key==='role'?'role':key==='pstat'?'pstat':key==='paystat'?'paystat':key==='type'?'type':key==='cat'?'cat':'ch');
 }
+// 설정 항목 인라인 편집 (모든 수정은 설정 팝업 안에서)
 function settingsItemRename(key,i){
+  var listId='settings-'+key+'-list';
+  var list=document.getElementById(listId);if(!list)return;
+  var row=list.children[i];if(!row)return;
   var arr=key==='ch'?DB.memberChannels:key==='role'?DB.memberRoles:key==='pstat'?DB.plogStatuses:DB.payStatuses;
   var old=arr[i];
-  var nw=(prompt('수정',old)||'').trim();
-  if(!nw||nw===old)return;
+  row.innerHTML='<div style="display:flex;align-items:center;gap:6px;width:100%;padding:4px 0">'
+    +'<input class="form-input" id="set-edit-inp" value="'+esc(old)+'" style="flex:1;padding:5px 8px" autofocus'
+    +' onkeydown="if(event.key===\'Enter\')settingsItemRenameConfirm(\''+key+'\','+i+');if(event.key===\'Escape\')openSettingsTab(\''+key+'\')">'
+    +'<button class="btn btn-primary btn-xs" onclick="settingsItemRenameConfirm(\''+key+'\','+i+')">확인</button>'
+    +'<button class="btn btn-outline btn-xs" onclick="openSettingsTab(\''+key+'\')">취소</button>'
+    +'</div>';
+  setTimeout(function(){var inp=document.getElementById('set-edit-inp');if(inp){inp.focus();inp.select();}},50);
+}
+function settingsItemRenameConfirm(key,i){
+  var nw=(document.getElementById('set-edit-inp')?.value||'').trim();
+  if(!nw){openSettingsTab(key);return;}
+  var arr=key==='ch'?DB.memberChannels:key==='role'?DB.memberRoles:key==='pstat'?DB.plogStatuses:DB.payStatuses;
+  var old=arr[i];
+  if(nw===old){openSettingsTab(key);return;}
   if(key==='ch')DB.participationLogs.forEach(function(l){if(l.channel===old)l.channel=nw;});
   else if(key==='role')DB.members.forEach(function(m){if(m.role===old)m.role=nw;});
   else if(key==='pstat')DB.participationLogs.forEach(function(l){if(l.status===old)l.status=nw;});
@@ -3557,8 +3572,51 @@ function settingsItemRename(key,i){
   arr[i]=nw;saveAppSettings();
   if(key==='role')syncRoleSelects();
   if(key==='pstat'||key==='paystat')syncPlogStatusSelects();
-  openSettingsTab(key==='role'?'role':key==='pstat'?'pstat':key==='paystat'?'paystat':'ch');
+  openSettingsTab(key);
   toast('변경: '+old+' → '+nw);
+}
+// 타입/카테고리 인라인 편집
+function inlineTypeEdit(btn,i){
+  var t=DB.programTypes[i];
+  var row=btn.closest('[data-settings-row]');if(!row)return;
+  row.innerHTML='<div style="display:flex;align-items:center;gap:6px;width:100%;padding:4px 0">'
+    +'<input class="form-input" id="set-edit-inp" value="'+esc(t.name)+'" style="flex:1;padding:5px 8px"'
+    +' onkeydown="if(event.key===\'Enter\')inlineTypeEditSave('+i+');if(event.key===\'Escape\')renderSettingsType()">'
+    +'<input type="color" id="set-edit-clr" value="'+(t.color||'#cccccc')+'" style="width:30px;height:28px;border:1px solid var(--border);border-radius:4px;cursor:pointer;padding:0 2px">'
+    +'<button class="btn btn-primary btn-xs" onclick="inlineTypeEditSave('+i+')">확인</button>'
+    +'<button class="btn btn-outline btn-xs" onclick="renderSettingsType()">취소</button>'
+    +'</div>';
+  setTimeout(function(){var inp=document.getElementById('set-edit-inp');if(inp){inp.focus();inp.select();}},50);
+}
+function inlineTypeEditSave(i){
+  var nw=(document.getElementById('set-edit-inp')?.value||'').trim();
+  if(!nw){renderSettingsType();return;}
+  var clr=document.getElementById('set-edit-clr')?.value||'#cccccc';
+  var t=DB.programTypes[i];var old=t.name;
+  t.name=nw;t.color=clr;
+  gsAfter('programTypes');syncProgTypeSelect();renderPrograms();renderSettingsType();
+  toast(old!==nw?'변경: '+old+' → '+nw:'색상 변경');
+}
+function inlineCatEdit(btn,i){
+  var c=DB.categories[i];
+  var row=btn.closest('[data-settings-row]');if(!row)return;
+  row.innerHTML='<div style="display:flex;align-items:center;gap:6px;width:100%;padding:4px 0">'
+    +'<input class="form-input" id="set-edit-inp" value="'+esc(c.name)+'" style="flex:1;padding:5px 8px"'
+    +' onkeydown="if(event.key===\'Enter\')inlineCatEditSave('+i+');if(event.key===\'Escape\')renderSettingsCat()">'
+    +'<input type="color" id="set-edit-clr" value="'+(c.color||'#cccccc')+'" style="width:30px;height:28px;border:1px solid var(--border);border-radius:4px;cursor:pointer;padding:0 2px">'
+    +'<button class="btn btn-primary btn-xs" onclick="inlineCatEditSave('+i+')">확인</button>'
+    +'<button class="btn btn-outline btn-xs" onclick="renderSettingsCat()">취소</button>'
+    +'</div>';
+  setTimeout(function(){var inp=document.getElementById('set-edit-inp');if(inp){inp.focus();inp.select();}},50);
+}
+function inlineCatEditSave(i){
+  var nw=(document.getElementById('set-edit-inp')?.value||'').trim();
+  if(!nw){renderSettingsCat();return;}
+  var clr=document.getElementById('set-edit-clr')?.value||'#cccccc';
+  var c=DB.categories[i];var old=c.name;
+  c.name=nw;c.color=clr;
+  gsAfter('categories');syncCatSelect();renderIngredients();renderSettingsCat();
+  toast(old!==nw?'변경: '+old+' → '+nw:'색상 변경');
 }
 function settingsItemDelete(key,i){
   var arr=key==='ch'?DB.memberChannels:key==='role'?DB.memberRoles:key==='pstat'?DB.plogStatuses:DB.payStatuses;
@@ -3624,14 +3682,14 @@ function renderSettingsType(){
   if(!DB.programTypes.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">등록된 타입 없음</div>';return;}
   el.innerHTML=DB.programTypes.map(function(t,i){
     var isFirst=i===0,isLast=i===DB.programTypes.length-1;
-    return'<div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--border)">'
+    return'<div data-settings-row style="display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--border)">'
       +'<div style="display:flex;flex-direction:column;gap:1px">'
       +'<button class="btn btn-outline btn-xs" style="padding:1px 5px;font-size:10px" '+(isFirst?'disabled':'')+' onclick="settingsItemMove(\'type\','+i+',-1)">▲</button>'
       +'<button class="btn btn-outline btn-xs" style="padding:1px 5px;font-size:10px" '+(isLast?'disabled':'')+' onclick="settingsItemMove(\'type\','+i+',1)">▼</button>'
       +'</div>'
       +'<span style="width:14px;height:14px;border-radius:4px;background:'+(t.color||'#eee')+';display:inline-block;flex-shrink:0"></span>'
       +'<span style="flex:1;font-size:13px">'+esc(t.name)+'</span>'
-      +'<button class="btn btn-outline btn-xs" onclick="closeModal(\'m-settings\');openProgTypeModal(\''+t.id+'\')">수정</button>'
+      +'<button class="btn btn-outline btn-xs" onclick="inlineTypeEdit(this,'+i+')">수정</button>'
       +'</div>';
   }).join('');
 }
@@ -3641,14 +3699,14 @@ function renderSettingsCat(){
   if(!DB.categories.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">등록된 카테고리 없음</div>';return;}
   el.innerHTML=DB.categories.map(function(c,i){
     var isFirst=i===0,isLast=i===DB.categories.length-1;
-    return'<div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--border)">'
+    return'<div data-settings-row style="display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--border)">'
       +'<div style="display:flex;flex-direction:column;gap:1px">'
       +'<button class="btn btn-outline btn-xs" style="padding:1px 5px;font-size:10px" '+(isFirst?'disabled':'')+' onclick="settingsItemMove(\'cat\','+i+',-1)">▲</button>'
       +'<button class="btn btn-outline btn-xs" style="padding:1px 5px;font-size:10px" '+(isLast?'disabled':'')+' onclick="settingsItemMove(\'cat\','+i+',1)">▼</button>'
       +'</div>'
       +'<span style="width:14px;height:14px;border-radius:4px;background:'+(c.color||'#eee')+';display:inline-block;flex-shrink:0"></span>'
       +'<span style="flex:1;font-size:13px">'+esc(c.name)+'</span>'
-      +'<button class="btn btn-outline btn-xs" onclick="closeModal(\'m-settings\');openCatModal(\''+c.id+'\')">수정</button>'
+      +'<button class="btn btn-outline btn-xs" onclick="inlineCatEdit(this,'+i+')">수정</button>'
       +'</div>';
   }).join('');
 }
@@ -3688,9 +3746,9 @@ function settingsAddPaystat(){
 // ── 메뉴명 관리 ──────────────────────────────────────────
 const _DEFAULT_NAV={dashboard:'대시보드',sessions:'일정 관리',programs:'프로그램',members:'참가자',options:'추가 옵션',benefits:'혜택 관리',ingredients:'원가 항목',stock:'재고 관리',history:'입출고 이력',report:'리포트'};
 function applyNavOrder(){
-  var keys=DB.navOrder&&DB.navOrder.length?DB.navOrder:Object.keys(_DEFAULT_NAV);
+  if(!DB.navOrder||!DB.navOrder.length)return;
   var nav=document.querySelector('.sidebar-nav');if(!nav)return;
-  keys.forEach(function(key){
+  DB.navOrder.forEach(function(key){
     var el=document.querySelector('.nav-item[data-page="'+key+'"]');
     if(el)nav.appendChild(el);
   });
@@ -3709,16 +3767,31 @@ function applyNavLabels(){
 }
 function renderSettingsNav(){
   var el=document.getElementById('settings-nav-list');if(!el)return;
-  el.innerHTML=Object.entries(_DEFAULT_NAV).map(function(e){
-    var key=e[0],def=e[1];
+  var keys=DB.navOrder&&DB.navOrder.length?DB.navOrder:Object.keys(_DEFAULT_NAV);
+  var n=keys.length;
+  el.innerHTML='<div style="font-size:11px;color:var(--text3);margin-bottom:8px">순서 변경 시 사이드바에 즉시 반영됩니다.</div>'
+  +keys.map(function(key,i){
+    var def=_DEFAULT_NAV[key]||key;
     var cur=DB.navLabels[key]||def;
-    return'<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">'
-      +'<span style="font-size:11px;color:var(--text3);width:70px;flex-shrink:0;font-family:var(--mono)">'+def+'</span>'
+    var isFirst=i===0,isLast=i===n-1;
+    return'<div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--border)">'
+      +'<div style="display:flex;flex-direction:column;gap:1px;flex-shrink:0">'
+      +'<button class="btn btn-outline btn-xs" style="padding:1px 5px;font-size:10px" '+(isFirst?'disabled':'')+' onclick="navMoveItem(\''+key+'\',-1)">▲</button>'
+      +'<button class="btn btn-outline btn-xs" style="padding:1px 5px;font-size:10px" '+(isLast?'disabled':'')+' onclick="navMoveItem(\''+key+'\',1)">▼</button>'
+      +'</div>'
+      +'<span style="font-size:11px;color:var(--text3);width:60px;flex-shrink:0;font-family:var(--mono)">'+esc(def)+'</span>'
       +'<input class="form-input" id="nav-lbl-'+key+'" value="'+esc(cur)+'" style="flex:1;padding:5px 8px;font-size:12px" placeholder="'+esc(def)+'">'
       +'<button class="btn btn-outline btn-xs" onclick="applyOneNavLabel(\''+key+'\')">적용</button>'
       +'<button class="btn btn-danger btn-xs" onclick="resetNavLabel(\''+key+'\')">초기화</button>'
       +'</div>';
   }).join('');
+}
+function navMoveItem(key,dir){
+  if(!DB.navOrder||!DB.navOrder.length)DB.navOrder=Object.keys(_DEFAULT_NAV).slice();
+  var i=DB.navOrder.indexOf(key);if(i<0)return;
+  var j=i+dir;if(j<0||j>=DB.navOrder.length)return;
+  var tmp=DB.navOrder[i];DB.navOrder[i]=DB.navOrder[j];DB.navOrder[j]=tmp;
+  saveAppSettings();applyNavOrder();renderSettingsNav();
 }
 function applyOneNavLabel(key){
   var val=(document.getElementById('nav-lbl-'+key)?.value||'').trim();
