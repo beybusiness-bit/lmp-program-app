@@ -820,13 +820,13 @@ tbody td{padding:11px 11px;vertical-align:middle}
 const AUTH={
   // ★ 접근 허용할 Google 이메일 목록 — 여기에 추가/제거하세요
   ALLOWED_EMAILS:[
-    'itsbeybusiness@gmail.com',   // 본인 이메일로 교체
-    'baekeun0@gmail.com',        // 동료 이메일 추가 예시
+    'beybusiness.bit@gmail.com',   // 본인 이메일로 교체
+    // 'partner@gmail.com',        // 동료 이메일 추가 예시
   ],
   // ★ Google OAuth Client ID — 연결 후 여기 붙여넣어 두면 자동 로그인 가능
-  CLIENT_ID:'27055656717-pgddfisd182i8jqlg574v7vrbkff2b2b.apps.googleusercontent.com',   // 예: '123456789-abc.apps.googleusercontent.com'
+  CLIENT_ID:'',   // 예: '123456789-abc.apps.googleusercontent.com'
   // ★ Google Spreadsheet ID
-  SHEET_ID:'1QHzz73LzPSGWCwl6SN7TPaxxdyqnkIxzlq9TQpGopag',    // 예: '1abc2def3ghi...'
+  SHEET_ID:'',    // 예: '1abc2def3ghi...'
 
   userEmail:null,
   userName:null,
@@ -1128,9 +1128,13 @@ const GS={
     const vrs=resp.valueRanges||[];
     keys.forEach((key,i)=>{
       const sheet=this.SHEETS[key];
-      // range 이름으로 매칭 (인덱스 의존 제거)
-      const vr=vrs.find(v=>(v.range||'').toLowerCase().startsWith("'"+sheet.name.toLowerCase()+"'!")||
-                             (v.range||'').toLowerCase().startsWith(sheet.name.toLowerCase()+'!'))||vrs[i];
+      // range 응답 형식: "'SheetName'!A1:Z100" 또는 "SheetName!A1:Z100"
+      // 시트명만 추출해서 비교
+      const vr=vrs.find(v=>{
+        const r=(v.range||'');
+        const sheetPart=r.includes('!')?r.split('!')[0].replace(/^'+|'+$/g,'').trim():'';
+        return sheetPart.toLowerCase()===sheet.name.toLowerCase();
+      })||vrs[i];
       const rows=(vr?.values||[]);
       if(rows.length<2){
         // 데이터 없는 시트는 DB를 비우지 않고 유지 (기존 seedData 보호)
@@ -2371,16 +2375,27 @@ function init(){
     updateUserInfo();
     renderDashboard();
     GS.updateUI('sync','Sheets 자동 연결 중...');
-    // 토큰 재발급 + Sheets 재연결 (백그라운드)
+    // 토큰 재발급 + Sheets 재연결 (백그라운드, 계정선택 팝업 없이)
     waitForGIS().then(()=>{
       return new Promise((resolve,reject)=>{
         const client=google.accounts.oauth2.initTokenClient({
           client_id:cid,
           scope:'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
-          callback:(resp)=>{resp.error?reject(new Error(resp.error)):resolve(resp.access_token);},
-          error_callback:(err)=>reject(new Error(err?.message||'token error'))
+          prompt:'none',   // 계정 선택 팝업 억제
+          hint:AUTH.userEmail||'',  // 이미 알고 있는 계정으로 바로 발급
+          callback:(resp)=>{
+            if(resp.error==='interaction_required'||resp.error==='access_denied'){
+              // silent 실패 → 조용히 처리 (팝업 안 띄움)
+              reject(new Error('silent_fail'));
+            } else if(resp.error){
+              reject(new Error(resp.error));
+            } else {
+              resolve(resp.access_token);
+            }
+          },
+          error_callback:(err)=>reject(new Error(err?.type||'token error'))
         });
-        client.requestAccessToken({prompt:''});  // prompt:'' → 팝업 없이 자동 시도
+        client.requestAccessToken({prompt:'none'});
       });
     }).then(token=>{
       GS.clientId=cid;GS.sheetId=sid;
@@ -2391,13 +2406,13 @@ function init(){
       const done=DB.sessions.filter(s=>s.usage_recorded).sort((a,b)=>a.session_date.localeCompare(b.session_date));
       document.getElementById('rep-from').value=done[0]?.session_date||today();
       document.getElementById('rep-to').value=today();
-      renderDashboard();
+      renderDashboard();renderPrograms();renderIngredients();renderSessions();renderStock();
       GS.updateUI('ok','연결됨 · '+sid.slice(0,14)+'...');
       toast('Sheets 자동 연결 완료 ✓');
     }).catch(e=>{
-      console.warn('자동 재연결 실패(수동 로그인 필요):',e);
-      GS.updateUI('','Sheets 미연결');
-      // 자동 재연결 실패해도 앱은 정상 사용 가능, 사이드바 연결 버튼으로 재시도
+      console.warn('자동 재연결 실패:', e.message);
+      // silent_fail이면 아무 팝업 없이 조용히 미연결 상태로만 표시
+      GS.updateUI('','Sheets 미연결 (사이드바에서 연결)');
     });
   } else {
     document.getElementById('auth-screen').style.display='flex';
