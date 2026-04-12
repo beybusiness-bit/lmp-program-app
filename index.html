@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>먹거리 모임 관리자</title>
+<title>공간 프로그램 관리자</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap');
@@ -318,7 +318,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
 <!-- ════ 접근 제어 화면 ════ -->
 <div id="auth-screen" class="auth-screen">
   <div class="auth-card">
-    <div class="auth-logo">먹거리<span>모임 관리자</span></div>
+    <div class="auth-logo">공간 프로그램<span>관리자</span></div>
     <div class="auth-sub">허가된 계정으로만 접속 가능합니다</div>
     <button class="auth-google-btn" id="auth-btn" onclick="authLogin()">
       <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.33 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.67 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
@@ -333,17 +333,20 @@ tbody td{padding:11px 11px;vertical-align:middle}
 <!-- ── 사이드바 ── -->
 <nav class="sidebar" id="sidebar">
   <div class="logo-wrap">
-    <div class="logo-text">먹거리<br><span class="logo-accent">모임 관리자</span></div>
+    <div class="logo-text">공간 프로그램<br><span class="logo-accent">관리자</span></div>
     <div class="logo-sub">v4.0</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard"><span class="nav-icon">◈</span>대시보드</div>
-    <div class="nav-item" data-page="sessions"><span class="nav-icon">📅</span>모임 일정</div>
-    <div class="nav-item" data-page="programs"><span class="nav-icon">📋</span>프로그램 관리</div>
-    <div class="nav-item" data-page="stock"><span class="nav-icon">📦</span>재고 현황</div>
-    <div class="nav-item" data-page="history"><span class="nav-icon">📝</span>입고/사용 이력</div>
-    <div class="nav-item" data-page="ingredients"><span class="nav-icon">🧂</span>재료 목록</div>
-    <div class="nav-item" data-page="report"><span class="nav-icon">📊</span>수익 리포트</div>
+    <div class="nav-item" data-page="sessions"><span class="nav-icon">📅</span>일정 관리</div>
+    <div class="nav-item" data-page="programs"><span class="nav-icon">📋</span>프로그램</div>
+    <div class="nav-item" data-page="members"><span class="nav-icon">👥</span>참가자</div>
+    <div class="nav-item" data-page="options"><span class="nav-icon">➕</span>추가 옵션</div>
+    <div class="nav-item" data-page="benefits"><span class="nav-icon">🎁</span>혜택 관리</div>
+    <div class="nav-item" data-page="ingredients"><span class="nav-icon">🧂</span>원가 항목</div>
+    <div class="nav-item" data-page="stock"><span class="nav-icon">📦</span>재고 관리</div>
+    <div class="nav-item" data-page="history"><span class="nav-icon">📝</span>입출고 이력</div>
+    <div class="nav-item" data-page="report"><span class="nav-icon">📊</span>리포트</div>
     <div class="nav-item" onclick="openChangeHistory()" style="margin-top:4px;border-top:1px solid var(--border);padding-top:10px"><span class="nav-icon">🕐</span>변경 이력</div>
   </div>
   <div class="sidebar-footer" id="footer-status" style="font-size:10px;color:var(--text3);padding:8px 12px;border-top:1px solid var(--border)">로딩 중...</div>
@@ -365,9 +368,8 @@ tbody td{padding:11px 11px;vertical-align:middle}
     </div>
     <div id="gs-connected" style="display:none">
       <div style="display:flex;gap:4px;flex-wrap:wrap">
-        <button class="gs-btn" onclick="gsSyncAll()" style="flex:1" title="Sheets 최신 데이터를 앱에 불러옵니다">↻ 불러오기</button>
-        <button class="gs-btn primary" onclick="gsUploadAll()" style="flex:1" title="현재 앱 데이터 전체를 Sheets에 덮어씁니다">↑ 업로드</button>
-        <button class="gs-btn" onclick="gsDisconnect()" title="연결 해제">✕</button>
+        <button class="gs-btn" onclick="gsSyncAll()" style="flex:1">↻ 전체 동기화</button>
+        <button class="gs-btn" onclick="gsDisconnect()">연결 해제</button>
       </div>
       <div id="gs-last-sync" style="font-size:9px;color:var(--text3);margin-top:4px"></div>
     </div>
@@ -443,9 +445,9 @@ tbody td{padding:11px 11px;vertical-align:middle}
   </div>
 </div>
 
-<!-- ════ 모임 일정 ════ -->
+<!-- ════ 일정 관리 ════ -->
 <div class="page" id="page-sessions">
-  <div class="page-header"><div><div class="page-title">모임 일정</div></div><button class="btn btn-primary" onclick="openSesModal()">+ 모임 추가</button></div>
+  <div class="page-header"><div><div class="page-title">일정 관리</div></div><button class="btn btn-primary" onclick="openSesModal()">+ 모임 추가</button></div>
   <div class="page-body">
     <!-- 컨트롤 바 -->
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
@@ -503,12 +505,13 @@ tbody td{padding:11px 11px;vertical-align:middle}
   </div>
 </div>
 
-<!-- ════ 프로그램 관리 ════ -->
+<!-- ════ 프로그램 ════ -->
 <div class="page" id="page-programs">
-  <div class="page-header"><div><div class="page-title">프로그램 관리</div></div><button class="btn btn-primary" onclick="openProgModal()">+ 프로그램 추가</button></div>
+  <div class="page-header"><div><div class="page-title">프로그램</div></div><button class="btn btn-primary" onclick="openProgModal()">+ 프로그램 추가</button></div>
   <div class="page-body">
+    <!-- 타입 필터 + 페이저 -->
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-      <div class="pagination" id="prog-pagination-top" style="flex:1;min-width:0"></div>
+      <div id="prog-type-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
       <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
         <span style="font-size:12px;color:var(--text3)">페이지당</span>
         <select class="form-select" style="width:75px" id="prog-per-page" onchange="progPage=1;renderPrograms()">
@@ -516,57 +519,116 @@ tbody td{padding:11px 11px;vertical-align:middle}
         </select>
       </div>
     </div>
+    <div class="pagination" id="prog-pagination-top" style="margin-bottom:8px"></div>
     <div id="prog-list"></div>
     <div class="pagination" id="prog-pagination-bot" style="margin-top:10px"></div>
+    <!-- 프로그램 타입 관리 -->
+    <div style="margin-top:28px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="sec-title" style="margin-bottom:0">프로그램 타입 관리</div>
+        <button class="btn btn-outline btn-sm" onclick="openProgTypeModal()">+ 타입 추가</button>
+      </div>
+      <div id="prog-type-list"></div>
+    </div>
   </div>
 </div>
 
-<!-- ════ 재고 현황 ════ -->
-<div class="page" id="page-stock">
-  <div class="page-header"><div><div class="page-title">재고 현황</div></div></div>
+<!-- ════ 참가자 ════ -->
+<div class="page" id="page-members">
+  <div class="page-header"><div><div class="page-title">참가자</div></div></div>
   <div class="page-body">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-      <div class="tab-bar">
-        <button class="tab-btn active" onclick="setStockView('all',this)">전체</button>
-        <button class="tab-btn" onclick="setStockView('category',this)">카테고리별</button>
-        <button class="tab-btn" onclick="setStockView('program',this)">프로그램별</button>
-      </div>
-      <select class="form-select" style="width:180px" id="stock-sort" onchange="renderStock()">
-        <option value="name-asc">가나다순 ↑</option>
-        <option value="name-desc">가나다순 ↓</option>
-        <option value="qty-asc">재고량 ↑</option>
-        <option value="qty-desc">재고량 ↓</option>
-      </select>
-      <div id="stock-cat-selector" style="display:none"></div>
-      <div id="stock-prog-selector" style="display:none"></div>
+    <div class="card" style="text-align:center;padding:48px 24px">
+      <div style="font-size:40px;margin-bottom:12px">👥</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px">참가자 관리</div>
+      <div style="font-size:13px;color:var(--text3)">11단계에서 구현 예정 — 멤버 DB + 참여 로그</div>
     </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="sec-title">현재 재고</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-        <div class="pagination" id="stock-pagination-top" style="flex:1;min-width:0"></div>
-        <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
-          <span style="font-size:12px;color:var(--text3)">페이지당</span>
-          <select class="form-select" style="width:75px" id="stock-per-page" onchange="stockPage=1;renderStock()">
-            <option value="20">20개</option><option value="50">50개</option><option value="100">100개</option>
-          </select>
+  </div>
+</div>
+
+<!-- ════ 추가 옵션 ════ -->
+<div class="page" id="page-options">
+  <div class="page-header"><div><div class="page-title">추가 옵션</div></div></div>
+  <div class="page-body">
+    <div class="card" style="text-align:center;padding:48px 24px">
+      <div style="font-size:40px;margin-bottom:12px">➕</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px">추가 옵션 관리</div>
+      <div style="font-size:13px;color:var(--text3)">10단계에서 구현 예정 — 세션별 추가 옵션</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 혜택 관리 ════ -->
+<div class="page" id="page-benefits">
+  <div class="page-header"><div><div class="page-title">혜택 관리</div></div></div>
+  <div class="page-body">
+    <div class="card" style="text-align:center;padding:48px 24px">
+      <div style="font-size:40px;margin-bottom:12px">🎁</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px">혜택 관리</div>
+      <div style="font-size:13px;color:var(--text3)">12단계에서 구현 예정 — 혜택 DB + 증정품 관리</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 재고 관리 ════ -->
+<div class="page" id="page-stock">
+  <div class="page-header"><div><div class="page-title">재고 관리</div></div></div>
+  <div class="page-body">
+    <!-- 최상위 탭: 재고 현황 / 발주 관리 -->
+    <div class="tab-bar" style="margin-bottom:16px">
+      <button class="tab-btn active" id="stock-main-tab-stock" onclick="setStockMainTab('stock',this)">재고 현황</button>
+      <button class="tab-btn" id="stock-main-tab-order" onclick="setStockMainTab('order',this)">발주 관리</button>
+    </div>
+
+    <!-- 재고 현황 탭 -->
+    <div id="stock-panel-stock">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="setStockView('all',this)">전체</button>
+          <button class="tab-btn" onclick="setStockView('category',this)">카테고리별</button>
+          <button class="tab-btn" onclick="setStockView('program',this)">프로그램별</button>
+        </div>
+        <select class="form-select" style="width:180px" id="stock-sort" onchange="renderStock()">
+          <option value="name-asc">가나다순 ↑</option>
+          <option value="name-desc">가나다순 ↓</option>
+          <option value="qty-asc">재고량 ↑</option>
+          <option value="qty-desc">재고량 ↓</option>
+        </select>
+        <div id="stock-cat-selector" style="display:none"></div>
+        <div id="stock-prog-selector" style="display:none"></div>
+      </div>
+      <div class="card">
+        <div class="sec-title">현재 재고</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <div class="pagination" id="stock-pagination-top" style="flex:1;min-width:0"></div>
+          <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+            <span style="font-size:12px;color:var(--text3)">페이지당</span>
+            <select class="form-select" style="width:75px" id="stock-per-page" onchange="stockPage=1;renderStock()">
+              <option value="20">20개</option><option value="50">50개</option><option value="100">100개</option>
+            </select>
+          </div>
+        </div>
+        <div id="stock-content"></div>
+        <div class="pagination" id="stock-pagination-bot" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- 발주 관리 탭 -->
+    <div id="stock-panel-order" style="display:none">
+      <div class="card">
+        <div class="sec-title">발주 알림</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:12px">미래 모임의 재료 수요를 기반으로 발주가 필요한 항목을 자동 계산합니다.</div>
+        <div class="tbl-wrap">
+          <table><thead><tr><th>원가 항목</th><th>부족 발생 모임</th><th>부족량</th><th>발주 마감</th><th>배송 소요</th><th>상태</th></tr></thead>
+          <tbody id="order-tbody"></tbody></table>
         </div>
       </div>
-      <div id="stock-content"></div>
-      <div class="pagination" id="stock-pagination-bot" style="margin-top:10px"></div>
-    </div>
-    <div class="card">
-      <div class="sec-title">발주 알림</div>
-      <div class="tbl-wrap">
-        <table><thead><tr><th>재료명</th><th>부족 발생 모임</th><th>부족량</th><th>발주 마감</th><th>배송 소요</th><th>상태</th></tr></thead>
-        <tbody id="order-tbody"></tbody></table>
-      </div>
     </div>
   </div>
 </div>
 
-<!-- ════ 입고/사용 이력 ════ -->
+<!-- ════ 입출고 이력 ════ -->
 <div class="page" id="page-history">
-  <div class="page-header"><div><div class="page-title">입고/사용 이력</div></div>
+  <div class="page-header"><div><div class="page-title">입출고 이력</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-outline" onclick="openMultiLogModal()">+ 기록 추가</button>
       <button class="btn btn-outline btn-sm" onclick="downloadCsvTemplate()">📥 템플릿</button>
@@ -610,9 +672,9 @@ tbody td{padding:11px 11px;vertical-align:middle}
   </div><!-- /page-body -->
 </div><!-- /page-history -->
 
-<!-- ════ 재료 목록 ════ -->
+<!-- ════ 원가 항목 ════ -->
 <div class="page" id="page-ingredients">
-  <div class="page-header"><div><div class="page-title">재료 목록</div></div><button class="btn btn-primary" onclick="openIngModal()">+ 재료 추가</button></div>
+  <div class="page-header"><div><div class="page-title">원가 항목</div></div><button class="btn btn-primary" onclick="openIngModal()">+ 항목 추가</button></div>
   <div class="page-body">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
       <div class="tab-bar">
@@ -641,9 +703,9 @@ tbody td{padding:11px 11px;vertical-align:middle}
   </div>
 </div>
 
-<!-- ════ 수익 리포트 ════ -->
+<!-- ════ 리포트 ════ -->
 <div class="page" id="page-report">
-  <div class="page-header"><div><div class="page-title">수익 리포트</div></div></div>
+  <div class="page-header"><div><div class="page-title">리포트</div></div></div>
   <div class="page-body">
     <div class="g2" style="gap:14px;margin-bottom:14px">
       <div class="card">
@@ -685,10 +747,10 @@ tbody td{padding:11px 11px;vertical-align:middle}
 <!-- ════ 모달: 재료 추가/수정 ════ -->
 <div class="overlay" id="m-ing">
   <div class="modal">
-    <div class="modal-head"><div class="modal-title" id="m-ing-title">재료 추가</div><button class="modal-x" onclick="closeModal('m-ing')">×</button></div>
+    <div class="modal-head"><div class="modal-title" id="m-ing-title">원가 항목 추가</div><button class="modal-x" onclick="closeModal('m-ing')">×</button></div>
     <div class="modal-body">
       <input type="hidden" id="ing-id">
-      <div class="form-group"><label class="form-label">재료명</label><input type="text" class="form-input" id="ing-name" placeholder="예: 카다이프면"></div>
+      <div class="form-group"><label class="form-label">항목명</label><input type="text" class="form-input" id="ing-name" placeholder="예: 카다이프면"></div>
       <div class="g2">
         <div class="form-group"><label class="form-label">단위</label><select class="form-select" id="ing-unit"><option value="g">g (무게)</option><option value="개">개 (낱개)</option></select></div>
         <div class="form-group"><label class="form-label">구매 단위 용량</label><input type="number" class="form-input" id="ing-pqty" placeholder="예: 1000"></div>
@@ -703,10 +765,10 @@ tbody td{padding:11px 11px;vertical-align:middle}
   </div>
 </div>
 
-<!-- ════ 모달: 재료 상세 ════ -->
+<!-- ════ 모달: 원가 항목 상세 ════ -->
 <div class="overlay" id="m-ing-detail">
   <div class="modal">
-    <div class="modal-head"><div class="modal-title" id="ing-detail-name">재료 상세</div><button class="modal-x" onclick="closeModal('m-ing-detail')">×</button></div>
+    <div class="modal-head"><div class="modal-title" id="ing-detail-name">항목 상세</div><button class="modal-x" onclick="closeModal('m-ing-detail')">×</button></div>
     <div class="modal-body" id="ing-detail-body"></div>
     <div class="modal-foot">
       <button class="btn btn-danger btn-sm" id="ing-del-btn">삭제</button>
@@ -793,7 +855,10 @@ tbody td{padding:11px 11px;vertical-align:middle}
         </div>
       </div>
       <div class="form-group"><label class="form-label">프로그램명</label><input type="text" class="form-input" id="prog-name" placeholder="예: 두바이쫀득쿠키 만들기"></div>
-      <div class="form-group"><label class="form-label">설명</label><input type="text" class="form-input" id="prog-desc" placeholder="간단한 설명"></div>
+      <div class="g2">
+        <div class="form-group"><label class="form-label">프로그램 타입</label><select class="form-select" id="prog-type"></select></div>
+        <div class="form-group"><label class="form-label">설명</label><input type="text" class="form-input" id="prog-desc" placeholder="간단한 설명"></div>
+      </div>
       <div class="g2">
         <div class="form-group"><label class="form-label">1인당 판매가 (원)</label><input type="number" class="form-input" id="prog-price" placeholder="0" oninput="calcProfitPreview()"></div>
         <div class="form-group"><label class="form-label">최대 인원</label><input type="number" class="form-input" id="prog-max" placeholder="6" oninput="calcProfitPreview()"></div>
@@ -817,7 +882,21 @@ tbody td{padding:11px 11px;vertical-align:middle}
   </div>
 </div>
 
-<!-- ════ 모달: 모임 일정 ════ -->
+<!-- ════ 모달: 프로그램 타입 ════ -->
+<div class="overlay" id="m-prog-type">
+  <div class="modal">
+    <div class="modal-head"><div class="modal-title" id="m-prog-type-title">타입 추가</div><button class="modal-x" onclick="closeModal('m-prog-type')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="prog-type-id">
+      <div class="form-group"><label class="form-label">타입명</label><input type="text" class="form-input" id="prog-type-name" placeholder="예: 모임"></div>
+      <div class="form-group">
+        <label class="form-label">색상</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap" id="prog-type-color-swatches"></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('m-prog-type')">취소</button><button class="btn btn-primary" onclick="saveProgType()">저장</button></div>
+  </div>
+</div>
 <div class="overlay" id="m-ses">
   <div class="modal">
     <div class="modal-head"><div class="modal-title" id="m-ses-title">모임 추가</div><button class="modal-x" onclick="closeModal('m-ses')">×</button></div>
@@ -1076,18 +1155,13 @@ const GS={
   SHEETS:{
     ingredients:{name:'ingredients',cols:['id','name','unit','purchase_unit_qty','price_per_unit','lead_time_days','category_id','is_active','created_at']},
     ingredientsHistory:{name:'ingredients_history',cols:['id','ingredient_id','changed_field','old_value','new_value','changed_at']},
-    programs:{name:'programs',cols:['id','name','emoji','description','selling_price','max_participants','is_active','created_at']},
+    programs:{name:'programs',cols:['id','name','emoji','description','type_id','selling_price','max_participants','is_active','created_at']},
     programsHistory:{name:'programs_history',cols:['id','program_id','changed_field','old_value','new_value','changed_at']},
     programRecipes:{name:'program_recipes',cols:['id','program_id','ingredient_id','qty_per_person','valid_from','valid_until','created_at']},
     sessions:{name:'sessions',cols:['id','program_id','session_date','session_time','participants','selling_price_snapshot','recipe_snapshot','usage_recorded','usage_recorded_at','created_at','memo']},
     inventoryLog:{name:'inventory_log',cols:['id','log_date','ingredient_id','type','quantity','order_date','session_id','created_at','memo']},
     categories:{name:'categories',cols:['id','name','color']},
-    members:{name:'members',cols:['id','name','phone','instagram_id','role','memo','joined_at','is_active']},
-    participationLogs:{name:'participation_logs',cols:['id','member_id','session_id','applied_at','status','channel','payment_status','payment_amount','payment_confirmed_at','benefit_id','benefit_cost','benefit_cost_type','benefit_memo','memo']},
-    benefits:{name:'benefits',cols:['id','name','description','condition_type','condition_value','reward_type','reward_value','reward_gift_id','cost_calc_type','is_active']},
-    gifts:{name:'gifts',cols:['id','name','description','cost_per_unit','stock','is_active']},
-    addOptions:{name:'add_options',cols:['id','name','description','price','is_active']},
-    appMeta:{name:'app_meta',cols:['key','value','updated_at']}
+    programTypes:{name:'program_types',cols:['id','name','color']}
   },
 
   isConnected(){return !!this.accessToken && Date.now()<this.tokenExpiry;},
@@ -1124,7 +1198,6 @@ const GS={
       const client=google.accounts.oauth2.initTokenClient({
         client_id:this.clientId,
         scope:this.SCOPES,
-        hint:AUTH.userEmail||'',
         callback:(resp)=>{
           if(resp.error){reject(new Error(resp.error));return;}
           this.accessToken=resp.access_token;
@@ -1174,11 +1247,9 @@ const GS={
   },
 
   // 전체 로드 (Sheets → DB) — 시트별 개별 요청으로 range 매칭 오류 원천 차단
-  // 빈 시트(헤더만 or 아예 없음) 발견 시 현재 DB 데이터를 Sheets에 자동 push (초기 동기화)
   async loadAll(){
     this.updateUI('sync','동기화 중...');
     const keys=Object.keys(this.SHEETS);
-    const emptyKeys=[];
     for(const key of keys){
       const sheet=this.SHEETS[key];
       try{
@@ -1186,8 +1257,7 @@ const GS={
         const rows=(resp.values||[]);
         console.log('[loadAll]',sheet.name,'rows:',rows.length, rows.length>0?'header:'+JSON.stringify(rows[0]):'(empty)');
         if(rows.length<2){
-          console.log('[loadAll]',sheet.name,'→ 비어있음, emptyKeys 추가 (현재 DB:',DB[key]?.length,')');
-          emptyKeys.push(key);
+          console.log('[loadAll]',sheet.name,'→ 비어있음, DB 유지 (현재:',DB[key]?.length,')');
           continue;
         }
         const headers=rows[0];
@@ -1196,30 +1266,18 @@ const GS={
           headers.forEach((h,j)=>{
             let v=r[j]??'';
             if(h==='is_active'||h==='usage_recorded')v=v===true||v===1||String(v).toLowerCase()==='true'||v==='1';
-            else if(['purchase_unit_qty','price_per_unit','lead_time_days','selling_price','max_participants','participants','qty_per_person','quantity','selling_price_snapshot','payment_amount','benefit_cost','condition_value','reward_value','cost_per_unit','stock','price'].includes(h))v=v===''||v===null?null:Number(v);
+            else if(['purchase_unit_qty','price_per_unit','lead_time_days','selling_price','max_participants','participants','qty_per_person','quantity','selling_price_snapshot'].includes(h))v=v===''||v===null?null:Number(v);
             else if(h==='recipe_snapshot'){try{v=v?JSON.parse(v):{};}catch(e){v={};}}
-            else if(h==='valid_until'||h==='order_date'||h==='session_id'||h==='usage_recorded_at'||h==='payment_confirmed_at'||h==='benefit_id'||h==='reward_gift_id')v=v||null;
+            else if(h==='valid_until'||h==='order_date'||h==='session_id'||h==='usage_recorded_at')v=v||null;
             obj[h]=v;
           });
           return obj;
         });
-        console.log('[loadAll]',sheet.name,'→ parsed:',parsed.length,'건');
+        console.log('[loadAll]',sheet.name,'→ parsed:',parsed.length,'건, is_active 샘플:', parsed[0]?.is_active, '(type:'+typeof parsed[0]?.is_active+')');
         if(parsed.length>0){DB[key]=parsed;}
       }catch(e){
         console.warn('[loadAll] 시트 오류 ('+sheet.name+'):', e.message);
-        // 읽기 오류는 빈 시트가 아니므로 emptyKeys에 추가하지 않음 (데이터 덮어쓰기 방지)
       }
-    }
-    // 비어있었던 시트 중 DB에 데이터가 있는 것들을 Sheets에 push (초기 동기화)
-    const toWrite=emptyKeys.filter(k=>Array.isArray(DB[k])&&DB[k].length>0);
-    if(toWrite.length>0){
-      console.log('[loadAll] 빈 시트에 현재 DB 데이터 업로드:', toWrite);
-      this.updateUI('sync','초기 데이터 업로드 중...');
-      for(const k of toWrite){
-        try{await this.writeSheet(k);}
-        catch(e){console.warn('[loadAll] 초기 push 실패 ('+k+'):', e.message);}
-      }
-      toast('초기 데이터를 Sheets에 업로드했습니다 ✓');
     }
     console.log('[loadAll] 완료 — ingredients:',DB.ingredients?.length,'programs:',DB.programs?.length);
     this.lastSync=new Date().toISOString();
@@ -1290,33 +1348,13 @@ function gsDisconnect(){
   toast('연결 해제됨','warning');
 }
 
-// Sheets → DB 전체 불러오기 (새로고침 없이 최신 Sheets 데이터 반영)
 async function gsSyncAll(){
   if(!GS.isConnected()){toast('먼저 연결해주세요','error');return;}
   try{
     await GS.loadAll();
     afterLoad();
-    toast('Sheets에서 불러오기 완료 ✓');
-  }catch(e){toast('불러오기 실패: '+e.message,'error');}
-}
-
-// DB → Sheets 전체 업로드 (현재 앱 메모리 전체를 Sheets에 덮어씀)
-async function gsUploadAll(){
-  if(!GS.isConnected()){toast('먼저 연결해주세요','error');return;}
-  if(!confirm('현재 앱의 모든 데이터를 Google Sheets에 덮어쓸까요?\n(Sheets의 기존 데이터는 삭제됩니다)'))return;
-  try{
-    GS.updateUI('sync','전체 업로드 중...');
-    const keys=Object.keys(GS.SHEETS);
-    for(const k of keys){
-      await GS.writeSheet(k);
-    }
-    GS.lastSync=new Date().toISOString();
-    GS.updateUI('ok','연결됨 · '+GS.sheetId.slice(0,12)+'...');
-    toast('전체 업로드 완료 ✓');
-  }catch(e){
-    GS.updateUI('ok','연결됨 (업로드 오류)');
-    toast('업로드 실패: '+e.message,'error');
-  }
+    toast('전체 동기화 완료 ✓');
+  }catch(e){toast('동기화 실패: '+e.message,'error');}
 }
 
 function gsShowHelp(){openModal('m-gs-help');}
@@ -1340,7 +1378,7 @@ function buildPager(elId,total,page,perPage,onPageChange){
 
 function afterLoad(){
   console.log('[afterLoad] DB 상태 — ingredients:',DB.ingredients?.length,'programs:',DB.programs?.length,'sessions:',DB.sessions?.length);
-  syncIngSelects();syncProgSelects();syncCatSelect();
+  syncIngSelects();syncProgSelects();syncCatSelect();syncProgTypeSelect();
   const done=DB.sessions.filter(s=>s.usage_recorded).sort((a,b)=>a.session_date.localeCompare(b.session_date));
   document.getElementById('rep-from').value=done[0]?.session_date||today();
   document.getElementById('rep-to').value=today();
@@ -1393,7 +1431,7 @@ function requireSheets(){
 }
 
 
-const DB={ingredients:[],ingredientsHistory:[],programs:[],programsHistory:[],programRecipes:[],sessions:[],inventoryLog:[],categories:[],members:[],participationLogs:[],benefits:[],gifts:[],addOptions:[],appMeta:[]};
+const DB={ingredients:[],ingredientsHistory:[],programs:[],programsHistory:[],programRecipes:[],sessions:[],inventoryLog:[],categories:[],programTypes:[]};
 
 // ══════════════════════════════════════════════════════════
 // 유틸
@@ -1410,15 +1448,15 @@ const esc=s=>{const m={'<':'lt','>':'gt','&':'amp'};return String(s).replace(/[<
 // ══════════════════════════════════════════════════════════
 // 네비게이션
 // ══════════════════════════════════════════════════════════
-const PAGE_TITLES={dashboard:'대시보드',sessions:'모임 일정',programs:'프로그램 관리',stock:'재고 현황',history:'입고/사용 이력',ingredients:'재료 목록',report:'수익 리포트'};
+const PAGE_TITLES={dashboard:'대시보드',sessions:'일정 관리',programs:'프로그램',members:'참가자',options:'추가 옵션',benefits:'혜택 관리',ingredients:'원가 항목',stock:'재고 관리',history:'입출고 이력',report:'리포트'};
 function navigate(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  document.querySelector(`[data-page="${id}"]`).classList.add('active');
+  document.querySelector('[data-page="'+id+'"]')?.classList.add('active');
   document.getElementById('mobile-title').textContent=PAGE_TITLES[id]||'';
   closeSidebar();
-  ({dashboard:renderDashboard,sessions:renderSessions,programs:renderPrograms,stock:renderStock,history:renderHistory,ingredients:renderIngredients,report:renderReport})[id]?.();
+  ({dashboard:renderDashboard,sessions:renderSessions,programs:renderPrograms,members:()=>{},options:()=>{},benefits:()=>{},stock:renderStock,history:renderHistory,ingredients:renderIngredients,report:renderReport})[id]?.();
 }
 document.querySelectorAll('.nav-item').forEach(el=>el.addEventListener('click',()=>navigate(el.dataset.page)));
 const openSidebar=()=>{document.getElementById('sidebar').classList.add('open');document.getElementById('sidebar-overlay').classList.add('open');};
@@ -1733,10 +1771,19 @@ function renderSessions(){
 // ══════════════════════════════════════════════════════════
 // 재고 현황
 // ══════════════════════════════════════════════════════════
-let stockViewMode='all',selStockProgId=null;
+let stockViewMode='all',selStockProgId=null,stockMainTab='stock';
+function setStockMainTab(tab,btn){
+  stockMainTab=tab;
+  document.getElementById('stock-main-tab-stock').classList.remove('active');
+  document.getElementById('stock-main-tab-order').classList.remove('active');
+  btn.classList.add('active');
+  document.getElementById('stock-panel-stock').style.display=tab==='stock'?'':'none';
+  document.getElementById('stock-panel-order').style.display=tab==='order'?'':'none';
+  if(tab==='order')renderOrderAlerts();
+}
 function setStockView(mode,btn){
   stockViewMode=mode;
-  document.querySelectorAll('#page-stock .tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#stock-panel-stock .tab-bar:first-child .tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   const progSel=document.getElementById('stock-prog-selector');
   if(mode==='program'){
@@ -1753,6 +1800,12 @@ function renderStockProgSelector(){
   el.innerHTML='<div class="tab-bar">'
     +DB.programs.filter(p=>p.is_active).map(p=>'<button class="tab-btn'+(p.id===selStockProgId?' active':'')+'" onclick="selStockProgId=\''+p.id+'\';renderStockProgSelector();renderStock()">'+(p.emoji||'')+' '+esc(p.name)+'</button>').join('')
     +'</div>';
+}
+function renderOrderAlerts(){
+  const orders=calcOrderAlerts();
+  document.getElementById('order-tbody').innerHTML=orders.length
+    ?orders.map(o=>'<tr><td data-label="원가 항목"><b>'+esc(o.name)+'</b></td><td data-label="부족 발생" class="td-mono">'+fDate(o.sessionDate)+'</td><td data-label="부족량" class="n-r">'+fNum(o.shortage)+' '+o.unit+'</td><td data-label="발주 마감" class="td-mono">'+fDate(o.orderDeadline)+'</td><td data-label="배송 소요" class="td-mono">'+o.leadTime+'일</td><td data-label="상태"><span class="badge '+(o.status==='urgent'?'badge-danger':'badge-yellow')+'">'+(o.status==='urgent'?'긴급':'예정')+'</span></td></tr>').join('')
+    :'<tr><td colspan="6" class="nl"><div class="empty"><div class="empty-icon">✅</div><div style="font-size:13px">발주 필요 없음<br><span style="font-size:11px;color:var(--text3)">미래 모임 등록 시 자동 계산</span></div></div></td></tr>';
 }
 function renderStock(){
   const sort=document.getElementById('stock-sort').value;
@@ -1774,29 +1827,25 @@ function renderStock(){
     buildPager('stock-pagination-bot',totalSt,stockPage,perPageSt,'goStockPage');
     const pagedIngs=ings.slice((stockPage-1)*perPageSt,stockPage*perPageSt);
     cont.innerHTML=pagedIngs.length
-      ?'<div class="tbl-wrap"><table><thead><tr><th>재료명</th><th>현재 재고</th><th>입고 예정</th><th>단위</th></tr></thead><tbody>'
-        +pagedIngs.map(ing=>{const st=calcStock(ing.id),pend=calcPending(ing.id);return'<tr><td data-label="재료명"><b>'+esc(ing.name)+'</b></td><td data-label="현재 재고" class="td-mono '+(st<0?'n-r':'')+'">'+fNum(st)+' '+ing.unit+'</td><td data-label="입고 예정" class="td-mono '+(pend>0?'n-g':'')+'">'+( pend>0?'+'+fNum(pend)+' '+ing.unit:'—')+'</td><td data-label="단위" class="td-mono">'+ing.unit+'</td></tr>';}).join('')
+      ?'<div class="tbl-wrap"><table><thead><tr><th>항목명</th><th>현재 재고</th><th>입고 예정</th><th>단위</th></tr></thead><tbody>'
+        +pagedIngs.map(ing=>{const st=calcStock(ing.id),pend=calcPending(ing.id);return'<tr><td data-label="항목명"><b>'+esc(ing.name)+'</b></td><td data-label="현재 재고" class="td-mono '+(st<0?'n-r':'')+'">'+fNum(st)+' '+ing.unit+'</td><td data-label="입고 예정" class="td-mono '+(pend>0?'n-g':'')+'">'+( pend>0?'+'+fNum(pend)+' '+ing.unit:'—')+'</td><td data-label="단위" class="td-mono">'+ing.unit+'</td></tr>';}).join('')
         +'</tbody></table></div>'
-      :'<div class="empty"><div style="font-size:13px">재료 없음</div></div>';
+      :'<div class="empty"><div style="font-size:13px">항목 없음</div></div>';
   } else if(stockViewMode==='program'){
-    // 선택된 프로그램 하나만 표시
     const prog=DB.programs.find(p=>p.id===selStockProgId);
-    if(!prog){cont.innerHTML='<div class="empty"><div style="font-size:13px">프로그램을 선택해주세요</div></div>';} 
+    if(!prog){cont.innerHTML='<div class="empty"><div style="font-size:13px">프로그램을 선택해주세요</div></div>';}
     else {
       const recipe=DB.programRecipes.filter(r=>r.program_id===prog.id&&!r.valid_until);
       const progIngs=recipe.map(r=>ings.find(i=>i.id===r.ingredient_id)).filter(Boolean);
       cont.innerHTML=progIngs.length
-        ?'<div class="tbl-wrap"><table><thead><tr><th>재료명</th><th>1인 기준량</th><th>현재 재고</th><th>입고 예정</th></tr></thead><tbody>'
-          +progIngs.map(ing=>{const r=recipe.find(x=>x.ingredient_id===ing.id);const st=calcStock(ing.id),pend=calcPending(ing.id);return'<tr><td data-label="재료명"><b>'+esc(ing.name)+'</b></td><td data-label="1인 기준량" class="td-mono">'+(r?.qty_per_person||0)+' '+ing.unit+'</td><td data-label="현재 재고" class="td-mono '+(st<0?'n-r':'')+'">'+fNum(st)+' '+ing.unit+'</td><td data-label="입고 예정" class="td-mono '+(pend>0?'n-g':'')+'">'+( pend>0?'+'+fNum(pend)+' '+ing.unit:'—')+'</td></tr>';}).join('')
+        ?'<div class="tbl-wrap"><table><thead><tr><th>항목명</th><th>1인 기준량</th><th>현재 재고</th><th>입고 예정</th></tr></thead><tbody>'
+          +progIngs.map(ing=>{const r=recipe.find(x=>x.ingredient_id===ing.id);const st=calcStock(ing.id),pend=calcPending(ing.id);return'<tr><td data-label="항목명"><b>'+esc(ing.name)+'</b></td><td data-label="1인 기준량" class="td-mono">'+(r?.qty_per_person||0)+' '+ing.unit+'</td><td data-label="현재 재고" class="td-mono '+(st<0?'n-r':'')+'">'+fNum(st)+' '+ing.unit+'</td><td data-label="입고 예정" class="td-mono '+(pend>0?'n-g':'')+'">'+( pend>0?'+'+fNum(pend)+' '+ing.unit:'—')+'</td></tr>';}).join('')
           +'</tbody></table></div>'
-        :'<div class="empty"><div style="font-size:13px">등록된 재료 없음</div></div>';
+        :'<div class="empty"><div style="font-size:13px">등록된 항목 없음</div></div>';
     }
   }
-  // 발주 알림
-  const orders=calcOrderAlerts();
-  document.getElementById('order-tbody').innerHTML=orders.length
-    ?orders.map(o=>'<tr><td data-label="재료명"><b>'+esc(o.name)+'</b></td><td data-label="부족 발생" class="td-mono">'+fDate(o.sessionDate)+'</td><td data-label="부족량" class="n-r">'+fNum(o.shortage)+' '+o.unit+'</td><td data-label="발주 마감" class="td-mono">'+fDate(o.orderDeadline)+'</td><td data-label="배송 소요" class="td-mono">'+o.leadTime+'일</td><td data-label="상태"><span class="badge '+(o.status==='urgent'?'badge-danger':'badge-yellow')+'">'+(o.status==='urgent'?'긴급':'예정')+'</span></td></tr>').join('')
-    :'<tr><td colspan="6" class="nl"><div class="empty"><div class="empty-icon">✅</div><div style="font-size:13px">발주 필요 없음<br><span style="font-size:11px;color:var(--text3)">미래 모임 등록 시 자동 계산</span></div></div></td></tr>';
+  // 발주 탭이 열려있으면 함께 갱신
+  if(stockMainTab==='order')renderOrderAlerts();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -2133,7 +2182,7 @@ function openIngDetail(id){
   openModal('m-ing-detail');
 }
 function openIngModal(id=''){
-  document.getElementById('m-ing-title').textContent=id?'재료 수정':'재료 추가';
+  document.getElementById('m-ing-title').textContent=id?'원가 항목 수정':'원가 항목 추가';
   document.getElementById('ing-id').value=id;syncCatSelect();
   if(id){const ing=DB.ingredients.find(i=>i.id===id);document.getElementById('ing-name').value=ing.name;document.getElementById('ing-unit').value=ing.unit;document.getElementById('ing-pqty').value=ing.purchase_unit_qty;document.getElementById('ing-price').value=ing.price_per_unit;document.getElementById('ing-lead').value=ing.lead_time_days;document.getElementById('ing-cat').value=ing.category_id||'';}
   else{['ing-name','ing-pqty','ing-price','ing-lead'].forEach(x=>document.getElementById(x).value='');document.getElementById('ing-unit').value='g';document.getElementById('ing-cat').value='';}
@@ -2144,17 +2193,17 @@ function saveIng(){
   if(!name||isNaN(pqty)||isNaN(price)||isNaN(lead)){toast('모든 항목을 입력해주세요','error');return;}
   if(!requireSheets())return;
   const id=document.getElementById('ing-id').value,now=new Date().toISOString();
-  if(id){const ing=DB.ingredients.find(i=>i.id===id);[{f:'purchase_unit_qty',v:pqty},{f:'price_per_unit',v:price},{f:'lead_time_days',v:lead}].forEach(({f,v})=>{if(ing[f]!==v){DB.ingredientsHistory.push({id:genId('IH'),ingredient_id:id,changed_field:f,old_value:String(ing[f]),new_value:String(v),changed_at:now});}ing[f]=v;});ing.name=name;ing.unit=unit;ing.category_id=catId||null;toast('재료 수정 완료');}
-  else{DB.ingredients.push({id:genId('ING'),name,unit,purchase_unit_qty:pqty,price_per_unit:price,lead_time_days:lead,category_id:catId||null,created_at:now,is_active:true});toast('재료 추가 완료');}
+  if(id){const ing=DB.ingredients.find(i=>i.id===id);[{f:'purchase_unit_qty',v:pqty},{f:'price_per_unit',v:price},{f:'lead_time_days',v:lead}].forEach(({f,v})=>{if(ing[f]!==v){DB.ingredientsHistory.push({id:genId('IH'),ingredient_id:id,changed_field:f,old_value:String(ing[f]),new_value:String(v),changed_at:now});}ing[f]=v;});ing.name=name;ing.unit=unit;ing.category_id=catId||null;toast('항목 수정 완료');}
+  else{DB.ingredients.push({id:genId('ING'),name,unit,purchase_unit_qty:pqty,price_per_unit:price,lead_time_days:lead,category_id:catId||null,created_at:now,is_active:true});toast('항목 추가 완료');}
   closeModal('m-ing');renderIngredients();syncIngSelects();
   gsAfter('ingredients','ingredientsHistory');
 }
 function deleteIng(id){
   if(!requireSheets())return;
   const ing=DB.ingredients.find(i=>i.id===id);
-  if(!confirm(`"${ing?.name}"을 삭제할까요?`))return;
+  if(!confirm((ing?.name||'항목')+'을 삭제할까요?'))return;
   DB.ingredients=DB.ingredients.filter(i=>i.id!==id);DB.programRecipes=DB.programRecipes.filter(r=>r.ingredient_id!==id);
-  toast('재료 삭제 완료','warning');closeModal('m-ing-detail');renderIngredients();syncIngSelects();
+  toast('항목 삭제 완료','warning');closeModal('m-ing-detail');renderIngredients();syncIngSelects();
   gsAfter('ingredients','programRecipes');
 }
 // 카테고리
@@ -2374,36 +2423,174 @@ function calcProfitPreview(){
 // ══════════════════════════════════════════════════════════
 // 프로그램
 // ══════════════════════════════════════════════════════════
+// 타입 셀렉트 동기화 (모달용)
+function syncProgTypeSelect(){
+  const sel=document.getElementById('prog-type');
+  if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">타입 없음</option>'+DB.programTypes.map(t=>'<option value="'+t.id+'"'+( t.id===cur?' selected':'')+'>'+esc(t.name)+'</option>').join('');
+}
+
+// 타입 필터 바 렌더
+let progTypeFilter='';
+function renderProgTypeFilterBar(){
+  const bar=document.getElementById('prog-type-filter-bar');
+  if(!bar)return;
+  const btns=[{id:'',name:'전체'},...DB.programTypes].map(t=>{
+    const active=progTypeFilter===t.id;
+    const style=active&&t.id?(';background:'+t.color+';border-color:'+t.color):'';
+    return '<button class="btn btn-outline btn-sm'+(active?' active':'')+'" style="'+(active&&t.id?'background:'+t.color+';border-color:'+t.color+';color:#333':'')+'" onclick="progTypeFilter=\''+t.id+'\';renderPrograms()">'+esc(t.name)+'</button>';
+  });
+  bar.innerHTML=btns.join('');
+}
+
+// 타입 목록 렌더 (하단 관리 섹션)
+function renderProgTypeList(){
+  const el=document.getElementById('prog-type-list');
+  if(!el)return;
+  if(!DB.programTypes.length){el.innerHTML='<div style="font-size:13px;color:var(--text3);padding:12px 0">등록된 타입 없음</div>';return;}
+  el.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:8px">'+DB.programTypes.map(t=>{
+    return '<div style="display:flex;align-items:center;gap:6px;padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff">'
+      +'<span style="width:12px;height:12px;border-radius:50%;background:'+t.color+';display:inline-block;flex-shrink:0"></span>'
+      +'<span style="font-weight:600;font-size:13px">'+esc(t.name)+'</span>'
+      +'<button class="btn btn-outline btn-xs" onclick="openProgTypeModal(\''+t.id+'\')">수정</button>'
+      +'<button class="btn btn-danger btn-xs" onclick="deleteProgType(\''+t.id+'\')">삭제</button>'
+      +'</div>';
+  }).join('')+'</div>';
+}
+
+const PROG_TYPE_COLORS=['#fff8cc','#c1ff72','#ffaade','#b3e0ff','#ffd6a5','#d0bbff','#b5ead7','#f8b4b4','#e2e2e2','#aef6ff'];
+let selProgTypeColor='#fff8cc';
+function openProgTypeModal(id=''){
+  document.getElementById('m-prog-type-title').textContent=id?'타입 수정':'타입 추가';
+  document.getElementById('prog-type-id').value=id;
+  const t=id?DB.programTypes.find(x=>x.id===id):null;
+  document.getElementById('prog-type-name').value=t?t.name:'';
+  selProgTypeColor=t?t.color:PROG_TYPE_COLORS[0];
+  renderProgTypeColorSwatches();
+  openModal('m-prog-type');
+}
+function renderProgTypeColorSwatches(){
+  document.getElementById('prog-type-color-swatches').innerHTML=PROG_TYPE_COLORS.map(c=>{
+    return '<button type="button" onclick="selProgTypeColor=\''+c+'\';renderProgTypeColorSwatches()" '
+      +'style="width:28px;height:28px;border-radius:50%;background:'+c+';border:'+(c===selProgTypeColor?'3px solid #333':'1.5px solid #ccc')+';cursor:pointer;flex-shrink:0"></button>';
+  }).join('');
+}
+function saveProgType(){
+  const name=document.getElementById('prog-type-name').value.trim();
+  const id=document.getElementById('prog-type-id').value;
+  if(!name){toast('타입명을 입력해주세요','error');return;}
+  if(!requireSheets())return;
+  if(id){
+    const t=DB.programTypes.find(x=>x.id===id);
+    t.name=name;t.color=selProgTypeColor;
+    toast('타입 수정 완료');
+  } else {
+    DB.programTypes.push({id:genId('PT'),name,color:selProgTypeColor});
+    toast('타입 추가 완료');
+  }
+  closeModal('m-prog-type');
+  syncProgTypeSelect();
+  renderProgTypeList();
+  renderProgTypeFilterBar();
+  renderPrograms();
+  gsAfter('programTypes');
+}
+function deleteProgType(id){
+  if(!confirm('이 타입을 삭제할까요?\n해당 타입으로 지정된 프로그램은 타입 없음 상태가 됩니다.'))return;
+  if(!requireSheets())return;
+  DB.programTypes=DB.programTypes.filter(t=>t.id!==id);
+  DB.programs.filter(p=>p.type_id===id).forEach(p=>p.type_id=null);
+  toast('타입 삭제 완료');
+  syncProgTypeSelect();
+  renderProgTypeList();
+  renderProgTypeFilterBar();
+  renderPrograms();
+  gsAfter('programTypes','programs');
+}
+
 function openProgModal(id=''){
+  syncProgTypeSelect();
   document.getElementById('m-prog-title').textContent=id?'프로그램 수정':'프로그램 추가';
   document.getElementById('prog-id').value=id;document.getElementById('recipe-rows').innerHTML='';document.getElementById('emoji-picker-wrap').style.display='none';
-  if(id){const p=DB.programs.find(x=>x.id===id);document.getElementById('prog-emoji').value=p.emoji||'🍪';document.getElementById('prog-emoji-preview').textContent=p.emoji||'🍪';document.getElementById('prog-name').value=p.name;document.getElementById('prog-desc').value=p.description||'';document.getElementById('prog-price').value=p.selling_price;document.getElementById('prog-max').value=p.max_participants;DB.programRecipes.filter(r=>r.program_id===id&&!r.valid_until).forEach(r=>addRecipeRow(r.ingredient_id,r.qty_per_person));}
-  else{document.getElementById('prog-emoji').value='🍪';document.getElementById('prog-emoji-preview').textContent='🍪';['prog-name','prog-desc','prog-price','prog-max'].forEach(x=>document.getElementById(x).value='');['pv-cost','pv-profit','pv-full'].forEach(x=>document.getElementById(x).textContent='—');}
+  if(id){
+    const p=DB.programs.find(x=>x.id===id);
+    document.getElementById('prog-emoji').value=p.emoji||'🍪';
+    document.getElementById('prog-emoji-preview').textContent=p.emoji||'🍪';
+    document.getElementById('prog-name').value=p.name;
+    document.getElementById('prog-desc').value=p.description||'';
+    document.getElementById('prog-price').value=p.selling_price;
+    document.getElementById('prog-max').value=p.max_participants;
+    document.getElementById('prog-type').value=p.type_id||'';
+    DB.programRecipes.filter(r=>r.program_id===id&&!r.valid_until).forEach(r=>addRecipeRow(r.ingredient_id,r.qty_per_person));
+  } else {
+    document.getElementById('prog-emoji').value='🍪';
+    document.getElementById('prog-emoji-preview').textContent='🍪';
+    ['prog-name','prog-desc','prog-price','prog-max'].forEach(x=>document.getElementById(x).value='');
+    document.getElementById('prog-type').value='';
+    ['pv-cost','pv-profit','pv-full'].forEach(x=>document.getElementById(x).textContent='—');
+  }
   calcProfitPreview();openModal('m-prog');
 }
 function saveProg(){
-  const name=document.getElementById('prog-name').value.trim(),price=parseFloat(document.getElementById('prog-price').value),maxP=parseInt(document.getElementById('prog-max').value)||6,desc=document.getElementById('prog-desc').value.trim(),emoji=document.getElementById('prog-emoji').value||'🍪',id=document.getElementById('prog-id').value,recipe=getRecipe();
+  const name=document.getElementById('prog-name').value.trim(),price=parseFloat(document.getElementById('prog-price').value),maxP=parseInt(document.getElementById('prog-max').value)||6,desc=document.getElementById('prog-desc').value.trim(),emoji=document.getElementById('prog-emoji').value||'🍪',typeId=document.getElementById('prog-type').value||null,id=document.getElementById('prog-id').value,recipe=getRecipe();
   if(!name||isNaN(price)){toast('프로그램명과 판매가를 입력해주세요','error');return;}
   if(!requireSheets())return;
   const now=new Date().toISOString();
-  if(id){const p=DB.programs.find(x=>x.id===id);[{f:'selling_price',v:price},{f:'max_participants',v:maxP}].forEach(({f,v})=>{if(p[f]!==v){DB.programsHistory.push({id:genId('PH'),program_id:id,changed_field:f,old_value:String(p[f]),new_value:String(v),changed_at:now});}p[f]=v;});p.name=name;p.description=desc;p.emoji=emoji;DB.programRecipes.filter(r=>r.program_id===id&&!r.valid_until).forEach(r=>r.valid_until=now);recipe.forEach(r=>DB.programRecipes.push({id:genId('REC'),program_id:id,...r,valid_from:now,valid_until:null,created_at:now}));toast('프로그램 수정 완료');}
-  else{const pid=genId('PRG');DB.programs.push({id:pid,name,description:desc,emoji,selling_price:price,max_participants:maxP,created_at:now,is_active:true});recipe.forEach(r=>DB.programRecipes.push({id:genId('REC'),program_id:pid,...r,valid_from:now,valid_until:null,created_at:now}));toast('프로그램 추가 완료');}
+  if(id){
+    const p=DB.programs.find(x=>x.id===id);
+    [{f:'selling_price',v:price},{f:'max_participants',v:maxP}].forEach(({f,v})=>{
+      if(p[f]!==v){DB.programsHistory.push({id:genId('PH'),program_id:id,changed_field:f,old_value:String(p[f]),new_value:String(v),changed_at:now});}
+      p[f]=v;
+    });
+    p.name=name;p.description=desc;p.emoji=emoji;p.type_id=typeId;
+    DB.programRecipes.filter(r=>r.program_id===id&&!r.valid_until).forEach(r=>r.valid_until=now);
+    recipe.forEach(r=>DB.programRecipes.push({id:genId('REC'),program_id:id,...r,valid_from:now,valid_until:null,created_at:now}));
+    toast('프로그램 수정 완료');
+  } else {
+    const pid=genId('PRG');
+    DB.programs.push({id:pid,name,description:desc,emoji,type_id:typeId,selling_price:price,max_participants:maxP,created_at:now,is_active:true});
+    recipe.forEach(r=>DB.programRecipes.push({id:genId('REC'),program_id:pid,...r,valid_from:now,valid_until:null,created_at:now}));
+    toast('프로그램 추가 완료');
+  }
   closeModal('m-prog');renderPrograms();syncProgSelects();
   gsAfter('programs','programsHistory','programRecipes');
 }
 function renderPrograms(){
+  renderProgTypeFilterBar();
+  renderProgTypeList();
   const el=document.getElementById('prog-list');
   const perPage=parseInt(document.getElementById('prog-per-page')?.value||'10');
   let progs=DB.programs.filter(p=>p.is_active);
+  if(progTypeFilter)progs=progs.filter(p=>p.type_id===progTypeFilter);
   const total=progs.length,pages=Math.max(1,Math.ceil(total/perPage));
   if(progPage>pages)progPage=1;
   buildPager('prog-pagination-top',total,progPage,perPage,'goProgPage');
   buildPager('prog-pagination-bot',total,progPage,perPage,'goProgPage');
   progs=progs.slice((progPage-1)*perPage,progPage*perPage);
-  if(!progs.length){el.innerHTML=`<div class="empty card"><div class="empty-icon">📋</div><div style="font-size:13px">등록된 프로그램 없음</div></div>`;return;}
+  if(!progs.length){el.innerHTML='<div class="empty card"><div class="empty-icon">📋</div><div style="font-size:13px">'+(progTypeFilter?'해당 타입의 프로그램 없음':'등록된 프로그램 없음')+'</div></div>';return;}
   el.innerHTML=progs.map(prog=>{
-    const recipe=DB.programRecipes.filter(r=>r.program_id===prog.id&&!r.valid_until);const costPer=calcCostPer(recipe);const profitPer=prog.selling_price-costPer;
-    return`<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px"><div style="display:flex;align-items:center;gap:12px"><div style="font-size:36px;line-height:1">${prog.emoji||'🍪'}</div><div><div style="font-size:17px;font-weight:800">${esc(prog.name)}</div><div style="font-size:12px;color:var(--text3)">${esc(prog.description||'')}</div></div></div><button class="btn btn-outline btn-sm" onclick="openProgModal('${prog.id}')">수정</button></div><div class="hr"></div><div class="g3" style="gap:10px;margin-bottom:14px"><div><div class="card-label">판매가 (1인)</div><div class="n-y" style="font-size:17px;font-weight:800">${fMoney(prog.selling_price)}</div></div><div><div class="card-label">재료비 (1인)</div><div class="n-p" style="font-size:17px;font-weight:700">${fMoney(costPer)}</div></div><div><div class="card-label">수익 (1인)</div><div class="${profitPer>=0?'n-g':'n-r'}" style="font-size:17px;font-weight:700">${fMoney(profitPer)}</div></div></div><div class="card-label">1인 기준량</div><div style="display:flex;flex-wrap:wrap;gap:6px">${recipe.map(r=>{const ing=DB.ingredients.find(i=>i.id===r.ingredient_id);if(!ing)return'';const c=r.qty_per_person*(ing.price_per_unit/ing.purchase_unit_qty);return`<span class="badge badge-muted">${esc(ing.name)} ${r.qty_per_person}${ing.unit} <span style="color:#c0006a">${fMoney(c)}</span></span>`;}).join('')}</div></div>`;
+    const recipe=DB.programRecipes.filter(r=>r.program_id===prog.id&&!r.valid_until);
+    const costPer=calcCostPer(recipe);const profitPer=prog.selling_price-costPer;
+    const typeInfo=DB.programTypes.find(t=>t.id===prog.type_id);
+    const typeBadge=typeInfo?'<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:'+typeInfo.color+';color:#333;margin-left:6px">'+esc(typeInfo.name)+'</span>':'';
+    return '<div class="card" style="margin-bottom:14px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">'
+      +'<div style="display:flex;align-items:center;gap:12px">'
+      +'<div style="font-size:36px;line-height:1">'+( prog.emoji||'🍪')+'</div>'
+      +'<div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px"><div style="font-size:17px;font-weight:800">'+esc(prog.name)+'</div>'+typeBadge+'</div>'
+      +'<div style="font-size:12px;color:var(--text3)">'+esc(prog.description||'')+'</div></div>'
+      +'</div><button class="btn btn-outline btn-sm" onclick="openProgModal(\''+prog.id+'\')">수정</button></div>'
+      +'<div class="hr"></div>'
+      +'<div class="g3" style="gap:10px;margin-bottom:14px">'
+      +'<div><div class="card-label">판매가 (1인)</div><div class="n-y" style="font-size:17px;font-weight:800">'+fMoney(prog.selling_price)+'</div></div>'
+      +'<div><div class="card-label">원가 (1인)</div><div class="n-p" style="font-size:17px;font-weight:700">'+fMoney(costPer)+'</div></div>'
+      +'<div><div class="card-label">수익 (1인)</div><div class="'+(profitPer>=0?'n-g':'n-r')+'" style="font-size:17px;font-weight:700">'+fMoney(profitPer)+'</div></div>'
+      +'</div>'
+      +'<div class="card-label">1인 기준량</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px">'
+      +recipe.map(r=>{const ing=DB.ingredients.find(i=>i.id===r.ingredient_id);if(!ing)return'';const c=r.qty_per_person*(ing.price_per_unit/ing.purchase_unit_qty);return'<span class="badge badge-muted">'+esc(ing.name)+' '+r.qty_per_person+ing.unit+' <span style="color:#c0006a">'+fMoney(c)+'</span></span>';}).join('')
+      +'</div></div>';
   }).join('');
 }
 
@@ -2460,6 +2647,7 @@ function syncProgSelects(){
 // ══════════════════════════════════════════════════════════
 function seedData(){
   DB.categories=[{id:'CAT001',name:'재료',color:'#fff8cc'},{id:'CAT002',name:'포장재',color:'#f0fff0'}];
+  DB.programTypes=[{id:'PT001',name:'모임',color:'#c1ff72'},{id:'PT002',name:'대관',color:'#ffaade'},{id:'PT003',name:'로컬 체험',color:'#b3e0ff'}];
   DB.ingredients=[
     {id:'ING001',name:'카다이프면',unit:'g',purchase_unit_qty:500,price_per_unit:8900,lead_time_days:2,category_id:'CAT001',created_at:'2026-01-06T00:00:00Z',is_active:true},
     {id:'ING002',name:'화이트초콜렛',unit:'g',purchase_unit_qty:500,price_per_unit:7000,lead_time_days:3,category_id:'CAT001',created_at:'2026-01-06T00:00:00Z',is_active:true},
@@ -2473,7 +2661,7 @@ function seedData(){
     {id:'ING010',name:'종이 박스',unit:'개',purchase_unit_qty:50,price_per_unit:32800,lead_time_days:3,category_id:'CAT002',created_at:'2026-01-06T00:00:00Z',is_active:true},
   ];
   const now='2026-01-06T00:00:00Z';
-  DB.programs=[{id:'PRG001',name:'두바이쫀득쿠키 만들기',description:'두쫀쿠 — 카다이프면과 피스타치오스프레드로 만드는 두바이 스타일 쿠키',emoji:'🍪',selling_price:39000,max_participants:6,created_at:now,is_active:true}];
+  DB.programs=[{id:'PRG001',name:'두바이쫀득쿠키 만들기',description:'두쫀쿠 — 카다이프면과 피스타치오스프레드로 만드는 두바이 스타일 쿠키',emoji:'🍪',type_id:'PT001',selling_price:39000,max_participants:6,created_at:now,is_active:true}];
   DB.programRecipes=[
     {id:'REC001',program_id:'PRG001',ingredient_id:'ING001',qty_per_person:136,valid_from:now,valid_until:null,created_at:now},
     {id:'REC002',program_id:'PRG001',ingredient_id:'ING002',qty_per_person:35,valid_from:now,valid_until:null,created_at:now},
