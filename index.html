@@ -257,7 +257,9 @@ tbody td{padding:11px 11px;vertical-align:middle}
 
 /* ── 반응형 ── */
 @media(max-width:768px){
-  .sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}
+  .sidebar{transform:translateX(-100%);overflow-y:auto}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-nav{flex:none;overflow-y:visible}
   .sidebar-overlay.open{display:block}
   .mobile-header{display:flex}
   .main{margin-left:0;padding-top:var(--hdr)}
@@ -267,7 +269,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
   .tbl-wrap table tbody tr{display:block;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;padding:10px 12px}
   .tbl-wrap table tbody tr:hover{background:#fff}
   .tbl-wrap table tbody td{display:flex;align-items:flex-start;padding:3px 0;border:none;font-size:13px;gap:8px}
-  .tbl-wrap table tbody td::before{content:attr(data-label);font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;font-family:var(--mono);min-width:64px;flex-shrink:0;padding-top:2px;letter-spacing:.04em}
+  .tbl-wrap table tbody td::before{content:attr(data-label);font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;font-family:var(--mono);min-width:56px;flex-shrink:0;padding-top:2px;letter-spacing:.04em}
   .tbl-wrap table tbody td.nl::before{display:none}
   .tbl-wrap table tbody td:empty{display:none}
   #toasts{bottom:72px;right:10px;left:10px}.toast{max-width:100%}
@@ -511,7 +513,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
         </div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>날짜</th><th>프로그램</th><th>인원</th><th>재료비</th><th>예상수익</th><th>메모</th><th>참가자</th><th>사용기록</th><th>관리</th></tr></thead>
+            <thead><tr><th>날짜</th><th>프로그램</th><th>인원</th><th>재료비</th><th>예상수익</th><th>메모</th><th></th></tr></thead>
             <tbody id="ses-tbody"></tbody>
           </table>
         </div>
@@ -574,7 +576,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
     </div>
     <div class="card">
       <div class="tbl-wrap"><table>
-        <thead><tr><th>이름</th><th>전화번호</th><th>인스타</th><th>역할</th><th style="text-align:center">참여</th><th>마지막 참여</th><th>가입일</th><th>상태</th><th></th></tr></thead>
+        <thead><tr><th>참가자</th><th>참여</th><th>가입·상태</th><th></th></tr></thead>
         <tbody id="member-tbody"></tbody>
       </table></div>
       <div id="member-empty" class="empty" style="display:none">
@@ -1280,7 +1282,7 @@ async function authLogin(){
           reject(new Error(err?.message||'OAuth 오류'));
         }
       });
-      client.requestAccessToken({prompt:'select_account'});
+      client.requestAccessToken({hint:AUTH.userEmail||''});
     });
 
     // 이메일 확인 — access_token으로 userinfo 호출 (실패시 token payload 파싱 시도)
@@ -1448,6 +1450,7 @@ const GS={
   requestToken(){
     return new Promise((resolve,reject)=>{
       if(!window.google?.accounts?.oauth2){reject(new Error('GIS 라이브러리 미로드'));return;}
+      if(!AUTH.userEmail){reject(new Error('Not logged in'));return;}
       const client=google.accounts.oauth2.initTokenClient({
         client_id:this.clientId,
         scope:this.SCOPES,
@@ -1456,9 +1459,10 @@ const GS={
           this.accessToken=resp.access_token;
           this.tokenExpiry=Date.now()+(resp.expires_in-60)*1000;
           resolve(resp.access_token);
-        }
+        },
+        error_callback:(err)=>reject(new Error(err?.type||'token_error'))
       });
-      client.requestAccessToken();
+      client.requestAccessToken({prompt:'none'});
     });
   },
 
@@ -2027,7 +2031,7 @@ function renderSessions(){
   buildPager('ses-pagination-bot',total,sesPage,perPage,'goSesPage');
   sessions=sessions.slice((sesPage-1)*perPage,sesPage*perPage);
   const tbody=document.getElementById('ses-tbody');
-  if(!sessions.length){tbody.innerHTML=`<tr><td colspan="9" class="nl"><div class="empty"><div class="empty-icon">📅</div><div style="font-size:13px">등록된 모임 없음</div></div></td></tr>`;return;}
+  if(!sessions.length){tbody.innerHTML=`<tr><td colspan="7" class="nl"><div class="empty"><div class="empty-icon">📅</div><div style="font-size:13px">등록된 모임 없음</div></div></td></tr>`;return;}
   tbody.innerHTML=sessions.map(s=>{
     const prog=DB.programs.find(p=>p.id===s.program_id);
     const cost=calcSesCost(s),rev=(s.selling_price_snapshot||0)*s.participants,profit=rev-cost;
@@ -2039,13 +2043,11 @@ function renderSessions(){
       <td data-label="재료비" class="td-mono n-p">${fMoney(cost)}</td>
       <td data-label="예상수익" class="td-mono ${profit>=0?'n-g':'n-r'}">${fMoney(profit)}</td>
       <td data-label="메모" style="font-size:12px;color:var(--text2)">${esc(s.memo||'')}</td>
-      <td data-label="참가자" class="nl">${sesPlogBadge(s.id,s.participants)}</td>
-      <td data-label="사용기록" class="nl">
-        ${locked?`<div><span class="badge badge-green" style="display:inline-block;margin-bottom:5px">기록됨</span><br><button class="btn btn-danger btn-xs" onclick="cancelUsage('${s.id}')">기록취소</button></div>`:`<button class="btn btn-green btn-sm" onclick="recordUsage('${s.id}')">기록하기</button>`}
-      </td>
-      <td class="nl" style="display:flex;gap:4px;flex-wrap:wrap">
-        <button class="btn btn-outline btn-xs" onclick="openSesModal('${s.id}')" ${locked?'disabled title="기록취소 후 수정 가능"':''}>수정</button>
-        <button class="btn btn-danger btn-xs" onclick="deleteSession('${s.id}')" ${locked?'disabled title="기록취소 후 삭제 가능"':''}>삭제</button>
+      <td class="nl" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+        ${sesPlogBadge(s.id,s.participants)}
+        ${locked?`<span class="badge badge-green">기록됨</span> <button class="btn btn-danger btn-xs" onclick="cancelUsage('${s.id}')">기록취소</button>`:`<button class="btn btn-green btn-sm" onclick="recordUsage('${s.id}')">기록하기</button>`}
+        <button class="btn btn-outline btn-xs" onclick="openSesModal('${s.id}')" ${locked?'disabled':''}>수정</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteSession('${s.id}')" ${locked?'disabled':''}>삭제</button>
       </td>
     </tr>`;
   }).join('');
@@ -3018,16 +3020,19 @@ function renderMembers(){
     var plogs=DB.participationLogs.filter(function(l){return l.member_id===m.id&&l.status==='참여확정';});
     var lastDate=plogs.reduce(function(b,l){var s=DB.sessions.find(function(x){return x.id===l.session_id;});if(!s)return b;return(!b||s.session_date>b)?s.session_date:b;},null);
     var insta=m.instagram_id?('<a href="https://instagram.com/'+esc(m.instagram_id.replace(/^@/,''))+'" target="_blank" style="color:var(--accent-dark);text-decoration:none">'+esc(m.instagram_id)+'</a>'):'<span style="color:var(--text3)">—</span>';
+    var subInfo='';
+    if(m.phone||m.instagram_id){
+      subInfo='<div style="font-size:11px;color:var(--text3);margin-top:2px">'
+        +(m.phone?esc(m.phone):'')
+        +(m.phone&&m.instagram_id?' · ':'')
+        +(m.instagram_id?('<a href="https://instagram.com/'+esc(m.instagram_id.replace(/^@/,''))+'" target="_blank" style="color:var(--accent-dark);text-decoration:none">'+esc(m.instagram_id)+'</a>'):'')
+        +'</div>';
+    }
     return'<tr style="cursor:pointer" onclick="openMemberDetail(\''+m.id+'\')">'
-      +'<td><strong>'+esc(m.name)+'</strong></td>'
-      +'<td class="td-mono">'+(m.phone?esc(m.phone):'<span style="color:var(--text3)">—</span>')+'</td>'
-      +'<td>'+insta+'</td>'
-      +'<td>'+memberRoleBadge(m.role)+'</td>'
-      +'<td class="td-mono" style="text-align:center">'+(plogs.length>0?plogs.length+'회':'—')+'</td>'
-      +'<td class="td-mono">'+(lastDate?fDate(lastDate):'—')+'</td>'
-      +'<td class="td-mono">'+(m.joined_at?fDate(m.joined_at.slice(0,10)):'—')+'</td>'
-      +'<td>'+(m.is_active?'<span class="badge badge-green" style="font-size:10px">활성</span>':'<span class="badge badge-muted" style="font-size:10px">비활성</span>')+'</td>'
-      +'<td><button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openMemberModal(\''+m.id+'\')">수정</button></td>'
+      +'<td data-label="참가자"><div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><strong>'+esc(m.name)+'</strong>'+memberRoleBadge(m.role)+'</div>'+subInfo+'</td>'
+      +'<td data-label="참여" class="td-mono"><div>'+(plogs.length>0?plogs.length+'회':'—')+'</div><div style="font-size:11px;color:var(--text3)">'+(lastDate?fDate(lastDate):'')+'</div></td>'
+      +'<td data-label="가입·상태"><div class="td-mono" style="font-size:11px">'+(m.joined_at?fDate(m.joined_at.slice(0,10)):'—')+'</div><div style="margin-top:3px">'+(m.is_active?'<span class="badge badge-green" style="font-size:10px">활성</span>':'<span class="badge badge-muted" style="font-size:10px">비활성</span>')+'</div></td>'
+      +'<td class="nl"><button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openMemberModal(\''+m.id+'\')">수정</button></td>'
       +'</tr>';
   }).join('');
 }
