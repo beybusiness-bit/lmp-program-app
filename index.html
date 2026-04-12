@@ -1291,9 +1291,11 @@ const GS={
         return String(v);
       }));
     });
+    console.log('[writeSheet]',key,'cols:',sheet.cols,'rows:',rows.length,'first data row sample:',rows[1]);
     await this.apiRequest('POST',`/${this.sheetId}/values/${encodeURIComponent(sheet.name+'!A:Z')}:clear`,{});
     // USER_ENTERED: 이모지·특수문자 포함 데이터 안전하게 저장
     await this.apiRequest('PUT',`/${this.sheetId}/values/${encodeURIComponent(sheet.name+'!A1')}?valueInputOption=USER_ENTERED`,{values:rows});
+    console.log('[writeSheet]',key,'완료');
   },
 
   // 변경 후 시트 동기화 (키 배열)
@@ -1938,6 +1940,7 @@ function saveMultiLog(){
   if(!entries.length){toast('재료와 수량을 입력해주세요','error');return;}
   if(!requireSheets())return;
   const now=new Date().toISOString();
+  console.log('[saveMultiLog] AUTH.userEmail:', AUTH.userEmail, '| GS.isConnected:', GS.isConnected());
   entries.forEach(({ingId,type,qty,od,memo})=>{
     let fq=qty;
     if(type==='조정'){fq=qty-calcStock(ingId,date);}
