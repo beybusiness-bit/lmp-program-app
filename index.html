@@ -820,13 +820,13 @@ tbody td{padding:11px 11px;vertical-align:middle}
 const AUTH={
   // ★ 접근 허용할 Google 이메일 목록 — 여기에 추가/제거하세요
   ALLOWED_EMAILS:[
-    'itsbeybusiness@gmail.com',   // 본인 이메일로 교체
-    'baekeun0@gmail.com',        // 동료 이메일 추가 예시
+    'beybusiness.bit@gmail.com',   // 본인 이메일로 교체
+    // 'partner@gmail.com',        // 동료 이메일 추가 예시
   ],
   // ★ Google OAuth Client ID — 연결 후 여기 붙여넣어 두면 자동 로그인 가능
-  CLIENT_ID:'27055656717-pgddfisd182i8jqlg574v7vrbkff2b2b.apps.googleusercontent.com',   // 예: '123456789-abc.apps.googleusercontent.com'
+  CLIENT_ID:'',   // 예: '123456789-abc.apps.googleusercontent.com'
   // ★ Google Spreadsheet ID
-  SHEET_ID:'1QHzz73LzPSGWCwl6SN7TPaxxdyqnkIxzlq9TQpGopag',    // 예: '1abc2def3ghi...'
+  SHEET_ID:'',    // 예: '1abc2def3ghi...'
 
   userEmail:null,
   userName:null,
@@ -980,7 +980,7 @@ async function authLogin(){
     const allDone=DB.sessions.filter(s=>s.usage_recorded).sort((a,b)=>a.session_date.localeCompare(b.session_date));
     document.getElementById('rep-from').value=allDone[0]?.session_date||today();
     document.getElementById('rep-to').value=today();
-    renderDashboard();
+    renderDashboard();renderPrograms();renderIngredients();
     updateUserInfo();
     GS.updateUI('ok','연결됨 · '+sid.slice(0,14)+'...');
     toast('환영합니다, '+(AUTH.userName||AUTH.userEmail)+' ✓');
@@ -1122,14 +1122,21 @@ const GS={
   // 전체 로드 (Sheets → DB)
   async loadAll(){
     this.updateUI('sync','동기화 중...');
-    const ranges=Object.values(this.SHEETS).map(s=>s.name+'!A:Z');
+    const keys=Object.keys(this.SHEETS);
+    const ranges=keys.map(k=>this.SHEETS[k].name+'!A:Z');
     const resp=await this.apiRequest('GET',`/${this.sheetId}/values:batchGet?ranges=${ranges.map(encodeURIComponent).join('&ranges=')}`);
     const vrs=resp.valueRanges||[];
-    const keys=Object.keys(this.SHEETS);
     keys.forEach((key,i)=>{
       const sheet=this.SHEETS[key];
-      const rows=(vrs[i]?.values||[]);
-      if(rows.length<2){DB[key]=[];return;}
+      // range 이름으로 매칭 (인덱스 의존 제거)
+      const vr=vrs.find(v=>(v.range||'').toLowerCase().startsWith("'"+sheet.name.toLowerCase()+"'!")||
+                             (v.range||'').toLowerCase().startsWith(sheet.name.toLowerCase()+'!'))||vrs[i];
+      const rows=(vr?.values||[]);
+      if(rows.length<2){
+        // 데이터 없는 시트는 DB를 비우지 않고 유지 (기존 seedData 보호)
+        if(DB[key]&&DB[key].length>0)return;
+        DB[key]=[];return;
+      }
       const headers=rows[0];
       DB[key]=rows.slice(1).filter(r=>r[0]).map(r=>{
         const obj={};
@@ -1148,7 +1155,7 @@ const GS={
     this.updateUI('ok','연결됨 · '+this.sheetId.slice(0,12)+'...');
   },
 
-  // 단일 시트 전체 덮어쓰기 (upsert 방식)
+  // 단일 시트 전체 덮어쓰기
   async writeSheet(key){
     const sheet=this.SHEETS[key];
     const rows=[sheet.cols];
@@ -1160,9 +1167,9 @@ const GS={
         return String(v);
       }));
     });
-    // 먼저 클리어 후 쓰기
     await this.apiRequest('POST',`/${this.sheetId}/values/${encodeURIComponent(sheet.name+'!A:Z')}:clear`,{});
-    await this.apiRequest('PUT',`/${this.sheetId}/values/${encodeURIComponent(sheet.name+'!A1')}?valueInputOption=RAW`,{values:rows});
+    // USER_ENTERED: 이모지·특수문자 포함 데이터 안전하게 저장
+    await this.apiRequest('PUT',`/${this.sheetId}/values/${encodeURIComponent(sheet.name+'!A1')}?valueInputOption=USER_ENTERED`,{values:rows});
   },
 
   // 변경 후 시트 동기화 (키 배열)
@@ -1221,7 +1228,10 @@ async function gsSyncAll(){
   try{
     await GS.loadAll();
     syncIngSelects();syncProgSelects();syncCatSelect();
-    renderDashboard();
+    const allDone=DB.sessions.filter(s=>s.usage_recorded).sort((a,b)=>a.session_date.localeCompare(b.session_date));
+    document.getElementById('rep-from').value=allDone[0]?.session_date||today();
+    document.getElementById('rep-to').value=today();
+    renderDashboard();renderPrograms();renderIngredients();renderSessions();renderStock();
     toast('전체 동기화 완료 ✓');
   }catch(e){toast('동기화 실패: '+e.message,'error');}
 }
