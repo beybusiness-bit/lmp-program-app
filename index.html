@@ -282,8 +282,10 @@ tbody td{padding:11px 11px;vertical-align:middle}
   /* stat-card: 3열 유지, 글자 축소 */
   .stat-value{font-size:20px}
   .stat-label{font-size:10px}
-  /* 대시보드 g2(upcoming/alerts): 모바일에서 1열 */
+  /* 대시보드 g2: 모바일 1열 */
   #page-dashboard .g2{grid-template-columns:1fr}
+  /* 리포트 상위 g2 섹션: 모바일 1열 */
+  #page-report>.page-body>.g2{grid-template-columns:1fr}
   /* 대시보드 차트 높이 축소 */
   .chart-wrap{height:80px}
   .chart-lbl{font-size:9px}
@@ -543,14 +545,6 @@ tbody td{padding:11px 11px;vertical-align:middle}
     <div class="pagination" id="prog-pagination-top" style="margin-bottom:8px"></div>
     <div id="prog-list"></div>
     <div class="pagination" id="prog-pagination-bot" style="margin-top:10px"></div>
-    <!-- 프로그램 타입 관리 -->
-    <div style="margin-top:28px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div class="sec-title" style="margin-bottom:0">프로그램 타입 관리</div>
-        <button class="btn btn-outline btn-sm" onclick="openProgTypeModal()">+ 타입 추가</button>
-      </div>
-      <div id="prog-type-list"></div>
-    </div>
   </div>
 </div>
 
@@ -662,11 +656,11 @@ tbody td{padding:11px 11px;vertical-align:middle}
 
 <!-- ════ 입출고 이력 ════ -->
 <div class="page" id="page-history">
-  <div class="page-header"><div><div class="page-title">입출고 이력</div></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-outline" onclick="openMultiLogModal()">+ 기록 추가</button>
-      <button class="btn btn-outline btn-sm" onclick="downloadCsvTemplate()">📥 템플릿</button>
-      <label class="btn btn-outline btn-sm" style="cursor:pointer">📤 CSV 업로드<input type="file" accept=".csv" style="display:none" onchange="importCsv(event)"></label>
+  <div class="page-header" style="flex-wrap:nowrap;align-items:center"><div style="min-width:0"><div class="page-title" style="white-space:nowrap">입출고 이력</div></div>
+    <div style="display:flex;gap:5px;flex-shrink:0">
+      <button class="btn btn-outline btn-sm" onclick="openMultiLogModal()">+ 기록 추가</button>
+      <button class="btn btn-outline btn-xs" onclick="downloadCsvTemplate()" title="템플릿">📥</button>
+      <label class="btn btn-outline btn-xs" style="cursor:pointer" title="CSV 업로드">📤<input type="file" accept=".csv" style="display:none" onchange="importCsv(event)"></label>
     </div>
   </div>
   <div class="page-body">
@@ -727,13 +721,6 @@ tbody td{padding:11px 11px;vertical-align:middle}
       <div id="ing-prog-selector" style="display:none"></div>
     </div>
     <div id="ing-content"></div>
-    <div style="margin-top:28px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div class="sec-title" style="margin-bottom:0">카테고리 관리</div>
-        <button class="btn btn-outline btn-sm" onclick="openCatModal()">+ 카테고리 추가</button>
-      </div>
-      <div id="cat-list"></div>
-    </div>
   </div>
 </div>
 
@@ -770,7 +757,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
           </select>
         </div>
       </div>
-      <div class="tbl-wrap"><table><thead><tr><th>날짜</th><th>프로그램</th><th>인원</th><th>매출</th><th>원가</th><th>수익</th><th>수익률</th></tr></thead><tbody id="rep-tbody"></tbody></table></div>
+      <div class="tbl-wrap"><table><thead id="rep-thead"><tr><th>날짜</th><th>프로그램</th><th>인원</th><th>매출</th><th>원가</th><th>수익</th><th>수익률</th></tr></thead><tbody id="rep-tbody"></tbody></table></div>
       <div class="pagination" id="rep-pagination-bot" style="margin-top:10px"></div>
     </div>
   </div>
@@ -1116,7 +1103,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
         <button class="tab-btn active" id="settings-tab-ch" onclick="openSettingsTab('ch')">📡 신청 채널</button>
         <button class="tab-btn" id="settings-tab-role" onclick="openSettingsTab('role')">👤 참가자 역할</button>
         <button class="tab-btn" id="settings-tab-type" onclick="openSettingsTab('type')">🏷 프로그램 타입</button>
-        <button class="tab-btn" id="settings-tab-cat" onclick="openSettingsTab('cat')">🗂 카테고리</button>
+        <button class="tab-btn" id="settings-tab-cat" onclick="openSettingsTab('cat')">🗂 원가항목 카테고리</button>
         <button class="tab-btn" id="settings-tab-pstat" onclick="openSettingsTab('pstat')">📋 참여 상태</button>
         <button class="tab-btn" id="settings-tab-paystat" onclick="openSettingsTab('paystat')">💳 결제 상태</button>
         <button class="tab-btn" id="settings-tab-sheets" onclick="openSettingsTab('sheets')">☁ Sheets</button>
@@ -1625,7 +1612,7 @@ function gsShowHelp(){openModal('m-gs-help');}
 function buildPager(elId,total,page,perPage,onPageChange){
   const pg=document.getElementById(elId);if(!pg)return;
   const pages=Math.max(1,Math.ceil(total/perPage));
-  const mob=window.innerWidth<=1024;
+  const mob=window.matchMedia&&window.matchMedia("(max-width:1024px)").matches;
   const prev=onPageChange+'(Math.max(1,'+page+'-1))';
   const next=onPageChange+'(Math.min('+pages+','+page+'+1))';
   let html='<span style="font-size:12px;color:var(--text3);font-family:var(--mono)">전체 '+total+'개</span>';
@@ -1737,9 +1724,9 @@ document.querySelectorAll('.nav-item[data-page]').forEach(el=>el.addEventListene
 const openSidebar=()=>{document.getElementById('sidebar').classList.add('open');document.getElementById('sidebar-overlay').classList.add('open');};
 const closeSidebar=()=>{document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open');};
 document.getElementById('hamburger').addEventListener('click',()=>{document.getElementById('sidebar').classList.contains('open')?closeSidebar():openSidebar();});
-let _prevMob=window.innerWidth<=1024;
+let _prevMob=!!(window.matchMedia&&window.matchMedia('(max-width:1024px)').matches);
 window.addEventListener('resize',()=>{
-  const m=window.innerWidth<=1024;
+  const m=!!(window.matchMedia&&window.matchMedia('(max-width:1024px)').matches);
   if(m!==_prevMob){
     _prevMob=m;
     if(document.getElementById('page-sessions').classList.contains('active'))renderSessions();
@@ -2044,7 +2031,7 @@ function renderSessions(){
   buildPager('ses-pagination-bot',total,sesPage,perPage,'goSesPage');
   sessions=sessions.slice((sesPage-1)*perPage,sesPage*perPage);
   const tbody=document.getElementById('ses-tbody');
-  const isMob=window.innerWidth<=1024;
+  const isMob=!!(window.matchMedia&&window.matchMedia('(max-width:1024px)').matches);
   const theadRow=document.getElementById('ses-thead-row');
   if(theadRow){
     theadRow.innerHTML=isMob?'<th>일정</th>'
@@ -2365,8 +2352,22 @@ function renderHistory(){
   const pageLogs=logs.slice((histPage-1)*perPage,histPage*perPage);
   document.getElementById('hist-check-all').checked=false;
   document.getElementById('hist-del-btn').style.display='none';
+  const histMob=!!(window.matchMedia&&window.matchMedia('(max-width:1024px)').matches);
   document.getElementById('hist-tbody').innerHTML=pageLogs.length?pageLogs.map(log=>{
     const ing=DB.ingredients.find(i=>i.id===log.ingredient_id);
+    if(histMob){return'<tr><td class="nl" style="padding:8px 10px;display:block">'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+      +'<input type="checkbox" class="hist-check" data-id="'+log.id+'" onchange="onHistCheckChange()">'
+      +'<span class="td-mono" style="font-size:12px;font-weight:600">'+fDate(log.log_date)+'</span>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap">'
+      +'<span style="font-weight:600">'+esc(ing?ing.name:'—')+'</span>'
+      +'<span class="badge '+(log.type==='입고'?'badge-green':log.type==='조정'?'badge-yellow':'badge-muted')+'">'+log.type+'</span>'
+      +'<span class="td-mono '+(log.quantity>0?'n-g':'n-r')+'">'+(log.quantity>0?'+':'')+fNum(log.quantity)+' '+(ing?ing.unit:'')+'</span>'
+      +'</div>'
+      +(log.order_date?'<div style="font-size:11px;color:var(--text3);margin-top:3px">주문일 · '+fDate(log.order_date)+'</div>':'')
+      +(log.memo?'<div style="font-size:11px;color:var(--text3);margin-top:1px">'+esc(log.memo)+'</div>':'')
+      +'</td></tr>';}
     return '<tr>'
       +'<td class="nl" style="width:36px"><input type="checkbox" class="hist-check" data-id="'+log.id+'" onchange="onHistCheckChange()"></td>'
       +'<td data-label="날짜" class="td-mono">'+fDate(log.log_date)+'</td>'
@@ -2377,21 +2378,8 @@ function renderHistory(){
       +'<td data-label="메모" style="font-size:12px;color:var(--text2)">'+esc(log.memo||'')+'</td>'
       +'</tr>';
   }).join(''):'<tr><td colspan="7" class="nl"><div class="empty"><div style="font-size:13px">기록 없음</div></div></td></tr>';
-  function buildPager(elId){
-    const pg=document.getElementById(elId);
-    if(!pg)return;
-    pg.innerHTML='<span style="font-size:12px;color:var(--text3);font-family:var(--mono)">전체 '+total+'개</span>';
-    if(pages>1){
-      pg.innerHTML+='<button class="pg-btn" onclick="histPage=Math.max(1,histPage-1);renderHistory()" '+(histPage===1?'disabled':'')+'>‹</button>';
-      for(let i=1;i<=pages;i++){
-        if(i===1||i===pages||Math.abs(i-histPage)<=2)pg.innerHTML+='<button class="pg-btn'+(i===histPage?' active':'')+'" onclick="histPage='+i+';renderHistory()">'+i+'</button>';
-        else if(Math.abs(i-histPage)===3)pg.innerHTML+='<span style="color:var(--text3);padding:0 4px">…</span>';
-      }
-      pg.innerHTML+='<button class="pg-btn" onclick="histPage=Math.min('+pages+',histPage+1);renderHistory()" '+(histPage===pages?'disabled':'')+'>›</button>';
-    }
-  }
-  buildPager('hist-pagination-top');
-  buildPager('hist-pagination');
+  buildPager('hist-pagination-top',total,histPage,perPage,'goHistPage');
+  buildPager('hist-pagination',total,histPage,perPage,'goHistPage');
   // 하단 페이지당 셀렉트 동기화
   const botSel=document.getElementById('hist-per-page-bot');
   if(botSel)botSel.value=String(perPage);
@@ -2916,10 +2904,14 @@ function renderPrograms(){
       +'<div><div class="card-label">원가 (1인)</div><div class="n-p" style="font-size:17px;font-weight:700">'+fMoney(costPer)+'</div></div>'
       +'<div><div class="card-label">수익 (1인)</div><div class="'+(profitPer>=0?'n-g':'n-r')+'" style="font-size:17px;font-weight:700">'+fMoney(profitPer)+'</div></div>'
       +'</div>'
-      +'<div class="card-label">1인 기준량</div>'
-      +'<div style="display:flex;flex-wrap:wrap;gap:6px">'
-      +recipe.map(r=>{const ing=DB.ingredients.find(i=>i.id===r.ingredient_id);if(!ing)return'';const c=r.qty_per_person*(ing.price_per_unit/ing.purchase_unit_qty);return'<span class="badge badge-muted">'+esc(ing.name)+' '+r.qty_per_person+ing.unit+' <span style="color:#c0006a">'+fMoney(c)+'</span></span>';}).join('')
-      +'</div></div>';
+      +(recipe.length?(
+        '<div style="margin-top:8px">'
+        +'<button class="btn btn-outline btn-xs" style="margin-bottom:6px" onclick="event.stopPropagation();var nx=this.nextElementSibling;nx.style.display=nx.style.display===\'none\'?\'flex\':\'none\';this.textContent=nx.style.display===\'none\'?\'▼ 1인 기준량\':\'▲ 1인 기준량\';">▼ 1인 기준량</button>'
+        +'<div style="display:none;flex-wrap:wrap;gap:6px">'
+        +recipe.map(r=>{const ing=DB.ingredients.find(i=>i.id===r.ingredient_id);if(!ing)return'';const c=r.qty_per_person*(ing.price_per_unit/ing.purchase_unit_qty);return'<span class="badge badge-muted">'+esc(ing.name)+' '+fNum(r.qty_per_person)+ing.unit+'&nbsp;&nbsp;<span style="color:#c0006a;font-size:10px">'+fMoney(c)+'</span></span>';}).join('')
+        +'</div></div>'
+      ):'')
+      +'</div>';
   }).join('');
 }
 
@@ -3751,24 +3743,20 @@ function renderReport(){
   buildPager('rep-pagination-top',repTotal,repPage,repPerPage,'goRepPage');
   buildPager('rep-pagination-bot',repTotal,repPage,repPerPage,'goRepPage');
   const repPaged=repSorted.slice((repPage-1)*repPerPage,repPage*repPerPage);
-  const repMob=window.innerWidth<=1024;
+  const repMob=!!(window.matchMedia&&window.matchMedia('(max-width:1024px)').matches);
   document.getElementById('rep-tbody').innerHTML=repPaged.map(s=>{
     const prog=DB.programs.find(p=>p.id===s.program_id);
     const rev=(s.selling_price_snapshot||0)*s.participants;
     const cost=calcSesCost(s);const profit=rev-cost;
+    const margin=rev?Math.round(profit/rev*100):0;
     if(repMob){
-      return`<tr><td class="nl" style="padding:8px 12px;display:block">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-          <div style="flex:1;min-width:0">
-            <div class="td-mono" style="font-size:11px;color:var(--text3)">${fDate(s.session_date)}</div>
-            <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${prog?(prog.emoji||'')+' '+esc(prog.name):'—'}</div>
-            <div class="td-mono" style="font-size:11px;color:var(--text3)">${s.participants}명</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0">
-            <div class="td-mono n-g" style="font-size:13px">${fMoney(rev)}</div>
-            <div class="td-mono n-p" style="font-size:11px">${fMoney(cost)}</div>
-            <div class="td-mono ${profit>=0?'n-g':'n-r'}" style="font-weight:700">${fMoney(profit)}</div>
-          </div>
+      return`<tr><td class="nl" style="padding:9px 12px;display:block">
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
+          <span class="td-mono" style="font-size:11px;color:var(--text2)">${fDate(s.session_date)}</span>
+          <span style="font-weight:700;font-size:14px">${prog?(prog.emoji?prog.emoji+' ':'')+esc(prog.name):'—'}</span>
+        </div>
+        <div style="display:flex;gap:0;border-top:1px solid var(--border);padding-top:6px">
+          ${[['매출',fMoney(rev),'n-g'],['원가',fMoney(cost),'n-p'],['수익',fMoney(profit),profit>=0?'n-g':'n-r'],['수익률',(rev?margin+'%':'—'),'']].map(([lbl,val,cls])=>`<div style="flex:1;text-align:center"><div style="font-size:9px;color:var(--text3);margin-bottom:2px">${lbl}</div><div class="td-mono ${cls}" style="font-size:12px;font-weight:600">${val}</div></div>`).join('')}
         </div>
       </td></tr>`;
     }
