@@ -669,14 +669,11 @@ tbody td{padding:11px 11px;vertical-align:middle}
     <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:nowrap">
       <button class="btn btn-outline btn-sm" onclick="openMultiLogModal()">+ 기록 추가</button>
       <label class="btn btn-outline btn-sm" style="cursor:pointer">csv 업로드<input type="file" accept=".csv" style="display:none" onchange="importCsv(event)"></label>
-      <button class="btn btn-outline btn-sm" onclick="downloadCsvTemplate()">csv 템플릿</button>
+      <button class="btn btn-outline btn-sm" onclick="downloadCsvTemplate()">csv 템플릿 다운</button>
     </div>
   </div>
   <div class="page-body">
     <div class="card">
-      <div class="mob-only" style="display:flex;align-items:center;gap:8px;padding:6px 0 2px;font-size:12px;color:var(--text2)">
-        <input type="checkbox" id="hist-check-all-mob" onchange="document.getElementById('hist-check-all').checked=this.checked;toggleAllHistChecks(this)"> 전체 선택
-      </div>
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
         <select class="form-select" style="width:150px" id="hist-fi" onchange="histPage=1;renderHistory()"><option value="">전체 재료</option></select>
         <select class="form-select" style="width:120px" id="hist-ft" onchange="histPage=1;renderHistory()"><option value="">전체 구분</option><option value="입고">입고</option><option value="사용">사용</option><option value="조정">조정</option></select>
@@ -691,6 +688,9 @@ tbody td{padding:11px 11px;vertical-align:middle}
             <option value="20">20개</option><option value="50">50개</option><option value="100">100개</option><option value="200">200개</option><option value="500">500개</option>
           </select>
         </div>
+      </div>
+      <div class="mob-only" style="display:flex;align-items:center;gap:8px;padding:6px 0 8px;font-size:12px;color:var(--text2);border-top:1px solid var(--border);margin-top:4px">
+        <input type="checkbox" id="hist-check-all-mob" onchange="document.getElementById('hist-check-all').checked=this.checked;toggleAllHistChecks(this)"> 전체 선택
       </div>
       <div class="tbl-wrap">
         <table>
@@ -1122,14 +1122,14 @@ tbody td{padding:11px 11px;vertical-align:middle}
     <div class="modal-head"><div class="modal-title">⚙ 설정</div><button class="modal-x" onclick="closeModal('m-settings')">×</button></div>
     <div class="modal-body" style="padding:0">
       <div class="tab-bar" style="padding:10px 18px 0;border-bottom:1px solid var(--border)">
-        <button class="tab-btn active" id="settings-tab-ch" onclick="openSettingsTab('ch')">📡 신청 채널</button>
-        <button class="tab-btn" id="settings-tab-role" onclick="openSettingsTab('role')">👤 참가자 역할</button>
+        <button class="tab-btn active" id="settings-tab-nav" onclick="openSettingsTab('nav')">🗂 메뉴명</button>
         <button class="tab-btn" id="settings-tab-type" onclick="openSettingsTab('type')">🏷 프로그램 타입</button>
-        <button class="tab-btn" id="settings-tab-cat" onclick="openSettingsTab('cat')">🗂 원가항목 카테고리</button>
+        <button class="tab-btn" id="settings-tab-role" onclick="openSettingsTab('role')">👤 참가자 역할</button>
+        <button class="tab-btn" id="settings-tab-ch" onclick="openSettingsTab('ch')">📡 신청 채널</button>
         <button class="tab-btn" id="settings-tab-pstat" onclick="openSettingsTab('pstat')">📋 참여 상태</button>
         <button class="tab-btn" id="settings-tab-paystat" onclick="openSettingsTab('paystat')">💳 결제 상태</button>
+        <button class="tab-btn" id="settings-tab-cat" onclick="openSettingsTab('cat')">🗂 원가항목 카테고리</button>
         <button class="tab-btn" id="settings-tab-sheets" onclick="openSettingsTab('sheets')">☁ Sheets</button>
-        <button class="tab-btn" id="settings-tab-nav" onclick="openSettingsTab('nav')">🗂 메뉴명</button>
         <button class="tab-btn" id="settings-tab-info" onclick="openSettingsTab('info')">ℹ 앱 정보</button>
       </div>
       <div style="padding:20px">
@@ -1714,7 +1714,7 @@ function requireSheets(){
 }
 
 
-const DB={ingredients:[],ingredientsHistory:[],programs:[],programsHistory:[],programRecipes:[],sessions:[],inventoryLog:[],categories:[],programTypes:[],members:[],participationLogs:[],memberChannels:['당근모임','인스타그램','네이버 예약','Tally form'],memberRoles:['손님','포크','운영'],plogStatuses:['대기','참여확정','취소','불참'],payStatuses:['미납','확인','환불'],navLabels:{}};
+const DB={ingredients:[],ingredientsHistory:[],programs:[],programsHistory:[],programRecipes:[],sessions:[],inventoryLog:[],categories:[],programTypes:[],members:[],participationLogs:[],memberChannels:['당근모임','인스타그램','네이버 예약','Tally form'],memberRoles:['손님','포크','운영'],navOrder:[],plogStatuses:['대기','참여확정','취소','불참'],payStatuses:['미납','확인','환불'],navLabels:{}};
 
 // ══════════════════════════════════════════════════════════
 // 유틸
@@ -2966,7 +2966,7 @@ function setRepPeriod(type){
 // 앱 설정 저장/불러오기 (localStorage — Sheets 불필요)
 // ══════════════════════════════════════════════════════════
 function saveAppSettings(){
-  try{localStorage.setItem('mkng_settings',JSON.stringify({memberChannels:DB.memberChannels,memberRoles:DB.memberRoles,plogStatuses:DB.plogStatuses,payStatuses:DB.payStatuses,navLabels:DB.navLabels}));}catch(e){}
+  try{localStorage.setItem('mkng_settings',JSON.stringify({memberChannels:DB.memberChannels,memberRoles:DB.memberRoles,navOrder:DB.navOrder,plogStatuses:DB.plogStatuses,payStatuses:DB.payStatuses,navLabels:DB.navLabels}));}catch(e){}
 }
 function loadAppSettings(){
   try{
@@ -2976,7 +2976,9 @@ function loadAppSettings(){
     if(d.plogStatuses&&d.plogStatuses.length)DB.plogStatuses=d.plogStatuses;
     if(d.payStatuses&&d.payStatuses.length)DB.payStatuses=d.payStatuses;
     if(d.navLabels)DB.navLabels=d.navLabels;
+    if(d.navOrder&&d.navOrder.length)DB.navOrder=d.navOrder;
     applyNavLabels();
+    applyNavOrder();
   }catch(e){}
 }
 
@@ -3511,7 +3513,7 @@ function openSesModalFromMember(){
 // 설정 모달
 // ══════════════════════════════════════════════════════════
 function openSettings(){
-  openSettingsTab('ch');
+  openSettingsTab('nav');
   openModal('m-settings');
 }
 
@@ -3685,6 +3687,14 @@ function settingsAddPaystat(){
 
 // ── 메뉴명 관리 ──────────────────────────────────────────
 const _DEFAULT_NAV={dashboard:'대시보드',sessions:'일정 관리',programs:'프로그램',members:'참가자',options:'추가 옵션',benefits:'혜택 관리',ingredients:'원가 항목',stock:'재고 관리',history:'입출고 이력',report:'리포트'};
+function applyNavOrder(){
+  var keys=DB.navOrder&&DB.navOrder.length?DB.navOrder:Object.keys(_DEFAULT_NAV);
+  var nav=document.querySelector('.sidebar-nav');if(!nav)return;
+  keys.forEach(function(key){
+    var el=document.querySelector('.nav-item[data-page="'+key+'"]');
+    if(el)nav.appendChild(el);
+  });
+}
 function applyNavLabels(){
   Object.entries(DB.navLabels).forEach(function(e){
     var key=e[0],label=e[1];
