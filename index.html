@@ -331,6 +331,18 @@ tbody td{padding:11px 11px;vertical-align:middle}
 .auth-google-btn svg{flex-shrink:0}
 .auth-error{margin-top:14px;padding:10px 14px;background:#fff0f0;border:1px solid #ffb0b0;border-radius:var(--radius-sm);font-size:12px;color:var(--danger);display:none}
 .auth-spinner{display:none;margin-top:14px;font-size:12px;color:var(--text3);font-family:var(--mono)}
+/* ── 리포트 분석 바 ── */
+.rep-bar-wrap{display:flex;flex-direction:column;gap:7px;margin-top:10px}
+.rep-bar-row{display:flex;align-items:center;gap:8px;font-size:12px}
+.rep-bar-label{min-width:80px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)}
+.rep-bar-track{flex:1;height:10px;background:var(--bg-hover);border-radius:5px;overflow:hidden}
+.rep-bar-fill{height:100%;background:var(--yellow);border-radius:5px}
+.rep-bar-val{min-width:40px;text-align:right;font-family:var(--mono);font-size:11px;color:var(--text2)}
+.rep-mini-chart{display:flex;align-items:flex-end;gap:4px;height:80px;padding:0 2px;margin-top:8px}
+.rep-mini-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.rep-mini-bar{width:100%;background:var(--green);border-radius:2px 2px 0 0;min-height:3px;border:1px solid #a0e050}
+.rep-mini-lbl{font-size:9px;font-family:var(--mono);color:var(--text3);white-space:nowrap}
+.rep-mini-val{font-size:9px;font-family:var(--mono);color:var(--text3)}
 </style>
 </head>
 <body>
@@ -807,37 +819,77 @@ tbody td{padding:11px 11px;vertical-align:middle}
 <div class="page" id="page-report">
   <div class="page-header"><div><div class="page-title">리포트</div></div></div>
   <div class="page-body">
-    <div class="g2" style="gap:14px;margin-bottom:14px">
-      <div class="card">
-        <div class="sec-title">기간 선택</div>
-        <div class="g2" style="gap:8px">
-          <div class="form-group" style="margin:0"><label class="form-label">시작일</label><input type="date" class="form-input" id="rep-from" onchange="renderReport()"></div>
-          <div class="form-group" style="margin:0"><label class="form-label">종료일</label><input type="date" class="form-input" id="rep-to" onchange="renderReport()"></div>
+    <!-- 리포트 탭 바 -->
+    <div class="tab-bar" style="margin-bottom:16px">
+      <button class="tab-btn active" id="rep-tab-profit" onclick="setRepTab('profit',this)">&#128200; 수익 분석</button>
+      <button class="tab-btn" id="rep-tab-members" onclick="setRepTab('members',this)">&#128101; 참가자 분석</button>
+      <button class="tab-btn" id="rep-tab-benefits" onclick="setRepTab('benefits',this)">&#127873; 혜택 분석</button>
+    </div>
+    <!-- ── 수익 분석 패널 ── -->
+    <div id="rep-panel-profit">
+      <div class="g2" style="gap:14px;margin-bottom:14px">
+        <div class="card">
+          <div class="sec-title">기간 선택</div>
+          <div class="g2" style="gap:8px">
+            <div class="form-group" style="margin:0"><label class="form-label">시작일</label><input type="date" class="form-input" id="rep-from" onchange="renderReport()"></div>
+            <div class="form-group" style="margin:0"><label class="form-label">종료일</label><input type="date" class="form-input" id="rep-to" onchange="renderReport()"></div>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-outline btn-sm" onclick="setRepPeriod('month')">이번 달</button>
+            <button class="btn btn-outline btn-sm" onclick="setRepPeriod('3month')">최근 3개월</button>
+            <button class="btn btn-outline btn-sm" onclick="setRepPeriod('all')">전체</button>
+          </div>
         </div>
-        <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn btn-outline btn-sm" onclick="setRepPeriod('month')">이번 달</button>
-          <button class="btn btn-outline btn-sm" onclick="setRepPeriod('3month')">최근 3개월</button>
-          <button class="btn btn-outline btn-sm" onclick="setRepPeriod('all')">전체</button>
-        </div>
+        <div class="card"><div class="sec-title">기간 합계</div><div id="rep-summary"></div></div>
       </div>
-      <div class="card"><div class="sec-title">기간 합계</div><div id="rep-summary"></div></div>
+      <div class="g2" style="gap:14px;margin-bottom:14px">
+        <div class="card"><div class="sec-title">월별 수익 추이</div><div id="rep-chart"></div></div>
+        <div class="card"><div class="sec-title">프로그램별 수익</div><div id="rep-by-prog"></div></div>
+      </div>
+      <div class="card"><div class="sec-title">모임별 내역</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <div class="pagination" id="rep-pagination-top" style="flex:1;min-width:0"></div>
+          <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+            <span style="font-size:12px;color:var(--text3)">페이지당</span>
+            <select class="form-select" style="width:75px" id="rep-per-page" onchange="repPage=1;renderReport()">
+              <option value="20">20개</option><option value="50">50개</option><option value="100">100개</option>
+            </select>
+          </div>
+        </div>
+        <div class="tbl-wrap"><table><thead id="rep-thead"><tr><th>날짜</th><th>프로그램</th><th>인원</th><th>매출</th><th>원가</th><th>수익</th><th>수익률</th></tr></thead><tbody id="rep-tbody"></tbody></table></div>
+        <div class="pagination" id="rep-pagination-bot" style="margin-top:10px"></div>
+      </div>
     </div>
-    <div class="g2" style="gap:14px;margin-bottom:14px">
-      <div class="card"><div class="sec-title">월별 수익 추이</div><div id="rep-chart"></div></div>
-      <div class="card"><div class="sec-title">프로그램별 수익</div><div id="rep-by-prog"></div></div>
-    </div>
-    <div class="card"><div class="sec-title">모임별 내역</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-        <div class="pagination" id="rep-pagination-top" style="flex:1;min-width:0"></div>
-        <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
-          <span style="font-size:12px;color:var(--text3)">페이지당</span>
-          <select class="form-select" style="width:75px" id="rep-per-page" onchange="repPage=1;renderReport()">
-            <option value="20">20개</option><option value="50">50개</option><option value="100">100개</option>
+    <!-- ── 참가자 분석 패널 ── -->
+    <div id="rep-panel-members" style="display:none">
+      <div class="g3" style="margin-bottom:14px" id="rep-mem-stats"></div>
+      <div class="g2" style="gap:14px;margin-bottom:14px">
+        <div class="card"><div class="sec-title">신청 채널별 유입</div><div id="rep-mem-channel"></div></div>
+        <div class="card"><div class="sec-title">월별 재방문율 추이</div><div id="rep-mem-return"></div></div>
+      </div>
+      <div class="card">
+        <div class="sec-title">참가자별 내역</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+          <input class="form-input" id="rep-mem-search" placeholder="이름&#183;전화&#183;인스타 검색&#8230;" style="flex:1;min-width:140px" oninput="renderReportMembers()">
+          <select class="form-select" style="width:150px" id="rep-mem-sort" onchange="renderReportMembers()">
+            <option value="count-desc">참여횟수 많은순</option>
+            <option value="amount-desc">결제액 많은순</option>
+            <option value="name-asc">이름 가나다순</option>
+            <option value="recent-desc">최근 참여순</option>
           </select>
         </div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>참가자</th><th>총 참여</th><th>총 결제액</th><th>수혜 혜택</th><th>다음 혜택까지</th></tr></thead>
+          <tbody id="rep-mem-tbody"></tbody>
+        </table></div>
       </div>
-      <div class="tbl-wrap"><table><thead id="rep-thead"><tr><th>날짜</th><th>프로그램</th><th>인원</th><th>매출</th><th>원가</th><th>수익</th><th>수익률</th></tr></thead><tbody id="rep-tbody"></tbody></table></div>
-      <div class="pagination" id="rep-pagination-bot" style="margin-top:10px"></div>
+    </div>
+    <!-- ── 혜택 분석 패널 ── -->
+    <div id="rep-panel-benefits" style="display:none">
+      <div class="g2" style="gap:14px;margin-bottom:14px">
+        <div class="card"><div class="sec-title">혜택별 부여 현황</div><div id="rep-ben-list"></div></div>
+        <div class="card"><div class="sec-title">증정품 소진 현황</div><div id="rep-gift-list"></div></div>
+      </div>
     </div>
   </div>
 </div>
@@ -977,6 +1029,14 @@ tbody td{padding:11px 11px;vertical-align:middle}
         <button class="btn btn-outline btn-sm" type="button" onclick="addRecipeRow()">+ 재료 추가</button>
       </div>
       <div id="recipe-rows"></div>
+      <div class="hr"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="card-label" style="margin:0">기본 옵션 연결</div>
+        <span style="font-size:11px;color:var(--text3)">참여 로그 추가 시 자동 선택</span>
+      </div>
+      <div id="prog-default-opts" style="padding:8px 10px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:var(--radius-sm);min-height:36px">
+        <span style="font-size:12px;color:var(--text3)">활성 옵션 없음</span>
+      </div>
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('m-prog')">취소</button><button class="btn btn-primary" onclick="saveProg()">저장</button></div>
   </div>
@@ -1015,6 +1075,14 @@ tbody td{padding:11px 11px;vertical-align:middle}
         <div class="hr"></div>
         <div class="card-label">소요 재료 예상량</div>
         <div id="ses-preview-body" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
+      </div>
+      <div id="ses-opts-section" style="display:none">
+        <div class="hr"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div class="card-label" style="margin:0">옵션 오버라이드</div>
+          <span style="font-size:11px;color:var(--text3)">미설정 시 프로그램 기본 옵션 적용</span>
+        </div>
+        <div id="ses-opts-body" style="padding:8px 10px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:var(--radius-sm);min-height:36px"></div>
       </div>
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('m-ses')">취소</button><button class="btn btn-primary" onclick="saveSes()">저장</button></div>
@@ -1610,7 +1678,7 @@ const GS={
   SHEETS:{
     ingredients:{name:'ingredients',cols:['id','name','unit','purchase_unit_qty','price_per_unit','lead_time_days','category_id','is_active','created_at']},
     ingredientsHistory:{name:'ingredients_history',cols:['id','ingredient_id','changed_field','old_value','new_value','changed_at','changed_by']},
-    programs:{name:'programs',cols:['id','name','emoji','description','type_id','selling_price','max_participants','is_active','created_at']},
+    programs:{name:'programs',cols:['id','name','emoji','description','type_id','selling_price','max_participants','is_active','created_at','default_option_ids']},
     programsHistory:{name:'programs_history',cols:['id','program_id','changed_field','old_value','new_value','changed_at','changed_by']},
     programRecipes:{name:'program_recipes',cols:['id','program_id','ingredient_id','qty_per_person','valid_from','valid_until','created_at']},
     sessions:{name:'sessions',cols:['id','program_id','session_date','session_time','participants','selling_price_snapshot','recipe_snapshot','usage_recorded','usage_recorded_at','created_at','memo','created_by']},
@@ -1733,7 +1801,8 @@ const GS={
             let v=r[j]??'';
             if(h==='is_active'||h==='usage_recorded'||h==='is_inherited')v=v===true||v===1||String(v).toLowerCase()==='true'||v==='1';
             else if(['purchase_unit_qty','price_per_unit','lead_time_days','selling_price','max_participants','participants','qty_per_person','quantity','selling_price_snapshot','cost_per_unit','stock','price','condition_value','reward_value','benefit_cost','payment_amount','price_snapshot'].includes(h))v=v===''||v===null?null:Number(v);
-            else if(h==='recipe_snapshot'){try{v=v?JSON.parse(v):{};}catch(e){v={};}}
+            else if(h==='recipe_snapshot'){try{v=v?JSON.parse(v):{};}catch(e){v={}}}
+            else if(h==='default_option_ids'){try{v=v?JSON.parse(v):[];}catch(e){v=[];}}
             else if(h==='valid_until'||h==='order_date'||h==='session_id'||h==='usage_recorded_at'||h==='type_id'||h==='category_id'||h==='benefit_id'||h==='reward_gift_id'||h==='log_id'||h==='option_id'||h==='benefit_cost_type'||h==='benefit_memo'||h==='source')v=v||null;
             obj[h]=v;
           });
@@ -2169,6 +2238,8 @@ function openSesModal(id=''){
     document.getElementById('ses-prog').value='';
     document.getElementById('ses-preview').style.display='none';
   }
+  var _sesProgId=document.getElementById('ses-prog').value;
+  renderSesOpts(id,_sesProgId);
   calcSesPreview();openModal('m-ses');
 }
 function calcSesPreview(){
@@ -2177,6 +2248,7 @@ function calcSesPreview(){
   const recipe=DB.programRecipes.filter(r=>r.program_id===progId&&!r.valid_until);
   if(!recipe.length){prev.style.display='none';return;}
   prev.style.display='';
+  renderSesOpts(document.getElementById('ses-id').value,progId);
   document.getElementById('ses-preview-body').innerHTML=recipe.map(r=>{const ing=DB.ingredients.find(i=>i.id===r.ingredient_id);return ing?`<span class="badge badge-muted">${esc(ing.name)} ${r.qty_per_person*pax}${ing.unit}</span>`:''}).join('');
 }
 function saveSes(){
@@ -2202,9 +2274,17 @@ function saveSes(){
       usage_recorded:false,usage_recorded_at:null,created_at:new Date().toISOString(),memo,created_by:AUTH.userEmail||''});
     toast('일정 추가 완료');
   }
-  const _newSesId=id||DB.sessions[DB.sessions.length-1]?.id;
+  var _newSesId=id||DB.sessions[DB.sessions.length-1]?.id;
+  var _sesOptsEl=document.getElementById('ses-opts-section');
+  if(_sesOptsEl&&_sesOptsEl.style.display!=='none'&&_newSesId){
+    DB.sessionOptions=DB.sessionOptions.filter(function(x){return x.session_id!==_newSesId;});
+    var _checkedSesOpts=Array.from(document.querySelectorAll('#ses-opts-body input[type=checkbox]:checked')).map(function(cb){return cb.dataset.sesOpt;});
+    _checkedSesOpts.forEach(function(oid){DB.sessionOptions.push({session_id:_newSesId,option_id:oid,is_inherited:false});});
+    gsAfter('sessions','sessionOptions');
+  } else {
+    gsAfter('sessions');
+  }
   closeModal('m-ses');document.getElementById('m-ses').style.zIndex='';renderSessions();if(sesViewMode==='calendar')renderCalendar();
-  gsAfter('sessions');
   if(_afterSesSave){const _cb=_afterSesSave;_afterSesSave=null;_cb(_newSesId);}
 }
 function recordUsage(sesId){
@@ -3082,10 +3162,11 @@ function openProgModal(id=''){
     document.getElementById('prog-type').value='';
     ['pv-cost','pv-profit','pv-full'].forEach(x=>document.getElementById(x).textContent='—');
   }
-  calcProfitPreview();openModal('m-prog');
+  renderProgDefaultOpts(id);calcProfitPreview();openModal('m-prog');
 }
 function saveProg(){
   const name=document.getElementById('prog-name').value.trim(),price=parseFloat(document.getElementById('prog-price').value),maxP=parseInt(document.getElementById('prog-max').value)||6,desc=document.getElementById('prog-desc').value.trim(),emoji=document.getElementById('prog-emoji').value||'🍪',typeId=document.getElementById('prog-type').value||null,id=document.getElementById('prog-id').value,recipe=getRecipe();
+  var defaultOptIds=Array.from(document.querySelectorAll('#prog-default-opts input[type=checkbox]:checked')).map(function(cb){return cb.dataset.defOpt;});
   if(!name||isNaN(price)){toast('프로그램명과 판매가를 입력해주세요','error');return;}
   if(!requireSheets())return;
   const now=new Date().toISOString();
@@ -3095,13 +3176,13 @@ function saveProg(){
       if(p[f]!==v){DB.programsHistory.push({id:genId('PH'),program_id:id,changed_field:f,old_value:String(p[f]),new_value:String(v),changed_at:now,changed_by:AUTH.userEmail||''});}
       p[f]=v;
     });
-    p.name=name;p.description=desc;p.emoji=emoji;p.type_id=typeId;
+    p.name=name;p.description=desc;p.emoji=emoji;p.type_id=typeId;p.default_option_ids=defaultOptIds;
     DB.programRecipes.filter(r=>r.program_id===id&&!r.valid_until).forEach(r=>r.valid_until=now);
     recipe.forEach(r=>DB.programRecipes.push({id:genId('REC'),program_id:id,...r,valid_from:now,valid_until:null,created_at:now}));
     toast('프로그램 수정 완료');
   } else {
     const pid=genId('PRG');
-    DB.programs.push({id:pid,name,description:desc,emoji,type_id:typeId,selling_price:price,max_participants:maxP,created_at:now,is_active:true});
+    DB.programs.push({id:pid,name,description:desc,emoji,type_id:typeId,selling_price:price,max_participants:maxP,created_at:now,is_active:true,default_option_ids:defaultOptIds});
     recipe.forEach(r=>DB.programRecipes.push({id:genId('REC'),program_id:pid,...r,valid_from:now,valid_until:null,created_at:now}));
     toast('프로그램 추가 완료');
   }
@@ -3157,6 +3238,327 @@ function goProgPage(p){progPage=p;renderPrograms();}
 // ══════════════════════════════════════════════════════════
 let repPage=1;
 function goRepPage(p){repPage=p;renderReport();}
+
+// ══════════════════════════════════════════════════════════
+// 리포트 탭 전환
+// ══════════════════════════════════════════════════════════
+var _repTab='profit';
+function setRepTab(tab,btn){
+  _repTab=tab;
+  ['profit','members','benefits'].forEach(function(t){
+    var pEl=document.getElementById('rep-panel-'+t);
+    var bEl=document.getElementById('rep-tab-'+t);
+    if(pEl)pEl.style.display=(t===tab)?'':'none';
+    if(bEl)bEl.classList.toggle('active',t===tab);
+  });
+  if(tab==='profit')renderReportProfit();
+  else if(tab==='members')renderReportMembers();
+  else if(tab==='benefits')renderReportBenefits();
+}
+function renderReport(){
+  if(_repTab==='profit')renderReportProfit();
+  else if(_repTab==='members')renderReportMembers();
+  else if(_repTab==='benefits')renderReportBenefits();
+}
+
+// ══════════════════════════════════════════════════════════
+// 참가자 분석 탭
+// ══════════════════════════════════════════════════════════
+function renderReportMembers(){
+  var memStEl=document.getElementById('rep-mem-stats');
+  var chEl=document.getElementById('rep-mem-channel');
+  var retEl=document.getElementById('rep-mem-return');
+  var tbEl=document.getElementById('rep-mem-tbody');
+  if(!memStEl)return;
+
+  // 전체 참여확정 로그
+  var confLogs=DB.participationLogs.filter(function(l){return l.status==='참여확정';});
+  var totalMembers=DB.members.filter(function(m){return m.is_active;}).length;
+
+  // 참가자별 확정 횟수
+  var memCountMap={};
+  confLogs.forEach(function(l){
+    memCountMap[l.member_id]=(memCountMap[l.member_id]||0)+1;
+  });
+  var newCount=0,retCount=0;
+  Object.values(memCountMap).forEach(function(c){if(c===1)newCount++;else retCount++;});
+  var retRate=totalMembers?Math.round(retCount/Object.keys(memCountMap).length*100):0;
+
+  // stat cards
+  memStEl.innerHTML=[
+    ['전체 참가자',totalMembers+'명'],
+    ['신규 (1회)',newCount+'명'],
+    ['재방문 (2회+)',retCount+'명'],
+    ['재방문율',Object.keys(memCountMap).length?retRate+'%':'—'],
+    ['총 참여 건',confLogs.length+'건'],
+    ['총 결제액',fMoney(confLogs.reduce(function(s,l){return s+(l.payment_amount||0);},0))]
+  ].map(function(d){
+    return '<div class="card" style="padding:12px 14px">'
+      +'<div class="card-label">'+d[0]+'</div>'
+      +'<div class="n-y" style="font-size:20px;font-weight:800;margin-top:4px">'+d[1]+'</div>'
+      +'</div>';
+  }).join('');
+
+  // 채널별 유입
+  var chMap={};
+  confLogs.forEach(function(l){
+    var ch=l.channel||'미입력';
+    chMap[ch]=(chMap[ch]||0)+1;
+  });
+  var chTotal=confLogs.length||1;
+  var chSorted=Object.entries(chMap).sort(function(a,b){return b[1]-a[1];});
+  if(chEl){
+    if(!chSorted.length){chEl.innerHTML='<div class="empty"><div style="font-size:13px">데이터 없음</div></div>';}
+    else{
+      chEl.innerHTML='<div class="rep-bar-wrap">'
+        +chSorted.map(function(e){
+          var pct=Math.round(e[1]/chTotal*100);
+          return'<div class="rep-bar-row">'
+            +'<div class="rep-bar-label">'+esc(e[0])+'</div>'
+            +'<div class="rep-bar-track"><div class="rep-bar-fill" style="width:'+pct+'%"></div></div>'
+            +'<div class="rep-bar-val">'+e[1]+'건 ('+pct+'%)</div>'
+            +'</div>';
+        }).join('')
+        +'</div>';
+    }
+  }
+
+  // 월별 재방문율 추이 (최근 6개월)
+  if(retEl){
+    var months=[];
+    for(var mi=5;mi>=0;mi--){
+      var md=new Date();md.setDate(1);md.setMonth(md.getMonth()-mi);
+      var ym=md.getFullYear()+'-'+String(md.getMonth()+1).padStart(2,'0');
+      months.push(ym);
+    }
+    var retData=months.map(function(ym){
+      var mLogs=confLogs.filter(function(l){
+        var s=DB.sessions.find(function(x){return x.id===l.session_id;});
+        return s&&s.session_date.startsWith(ym);
+      });
+      // 이 달 참가자 중 이전 달 이전에 참여한 적 있는 비율
+      var uniqueMs=[];
+      mLogs.forEach(function(l){if(!uniqueMs.includes(l.member_id))uniqueMs.push(l.member_id);});
+      var retMs=uniqueMs.filter(function(mid){
+        return confLogs.some(function(l){
+          var s=DB.sessions.find(function(x){return x.id===l.session_id;});
+          return l.member_id===mid&&s&&s.session_date<ym+'-01';
+        });
+      });
+      return{ym:ym,total:uniqueMs.length,ret:retMs.length,pct:uniqueMs.length?Math.round(retMs.length/uniqueMs.length*100):0};
+    });
+    var maxPct=Math.max.apply(null,retData.map(function(d){return d.pct;}));
+    if(!maxPct)maxPct=1;
+    retEl.innerHTML='<div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-align:right;font-family:var(--mono)">재방문율 (%)</div>'
+      +'<div class="rep-mini-chart">'
+      +retData.map(function(d){
+        var h=Math.max(d.pct/maxPct*70,d.pct?4:2);
+        return'<div class="rep-mini-col">'
+          +'<div class="rep-mini-val">'+( d.pct?d.pct+'%':'')+'</div>'
+          +'<div class="rep-mini-bar" style="height:'+h+'px;opacity:'+(d.total?1:0.25)+'"></div>'
+          +'<div class="rep-mini-lbl">'+d.ym.slice(5)+'&#xC6D4;'+'</div>'
+          +'</div>';
+      }).join('')
+      +'</div>'
+      +'<div style="font-size:11px;color:var(--text3);margin-top:6px">전월 이전 참여 이력 있는 비율</div>';
+  }
+
+  // 참가자별 테이블
+  if(!tbEl)return;
+  var q=(document.getElementById('rep-mem-search')?.value||'').trim().toLowerCase();
+  var sort2=document.getElementById('rep-mem-sort')?.value||'count-desc';
+
+  // 각 참가자 데이터 집계
+  var memRows=DB.members.filter(function(m){return m.is_active;}).map(function(m){
+    var logs=confLogs.filter(function(l){return l.member_id===m.id;});
+    var totalAmt=logs.reduce(function(s,l){return s+(l.payment_amount||0);},0);
+    var benIds=logs.map(function(l){return l.benefit_id;}).filter(function(b){return !!b;});
+    var lastDate=logs.reduce(function(acc,l){
+      var s=DB.sessions.find(function(x){return x.id===l.session_id;});
+      var d=s?s.session_date:'';
+      return d>acc?d:acc;
+    },'');
+
+    // 수혜 혜택 목록 (고유)
+    var benNames=[];
+    benIds.forEach(function(bid){
+      var b=DB.benefits.find(function(x){return x.id===bid;});
+      var nm=b?b.name:'';
+      if(nm&&!benNames.includes(nm))benNames.push(nm);
+    });
+
+    // 다음 혜택까지 남은 횟수 (count 타입만 계산)
+    var nextBen=null,nextLeft=null;
+    DB.benefits.filter(function(b){return b.is_active&&b.condition_type==='count';}).forEach(function(b){
+      var needed=b.condition_value||1;
+      var cur=logs.length;
+      var left=needed-cur;
+      if(left>0&&(nextLeft===null||left<nextLeft)){nextLeft=left;nextBen=b.name;}
+    });
+
+    return{m:m,cnt:logs.length,amt:totalAmt,benNames:benNames,nextBen:nextBen,nextLeft:nextLeft,lastDate:lastDate};
+  });
+
+  // 검색 필터
+  if(q){memRows=memRows.filter(function(r){var m=r.m;return(m.name||'').toLowerCase().includes(q)||(m.phone||'').includes(q)||(m.instagram_id||'').toLowerCase().includes(q);});}
+
+  // 정렬
+  if(sort2==='count-desc')memRows.sort(function(a,b){return b.cnt-a.cnt;});
+  else if(sort2==='amount-desc')memRows.sort(function(a,b){return b.amt-a.amt;});
+  else if(sort2==='name-asc')memRows.sort(function(a,b){return (a.m.name||'').localeCompare(b.m.name||'','ko');});
+  else if(sort2==='recent-desc')memRows.sort(function(a,b){return b.lastDate.localeCompare(a.lastDate);});
+
+  var isMob=!!(window.matchMedia&&window.matchMedia('(max-width:1024px)').matches);
+  if(!memRows.length){
+    tbEl.innerHTML='<tr><td colspan="5" class="nl"><div class="empty"><div style="font-size:13px">참가자 없음</div></div></td></tr>';
+    return;
+  }
+  tbEl.innerHTML=memRows.map(function(r){
+    var m=r.m;
+    var benHtml=r.benNames.length
+      ?r.benNames.map(function(n){return'<span class="badge badge-pink" style="font-size:10px">'+esc(n)+'</span>';}).join(' ')
+      :'<span style="font-size:11px;color:var(--text3)">없음</span>';
+    var nextHtml=r.nextBen
+      ?'<span class="badge badge-yellow" style="font-size:10px">'+esc(r.nextBen)+'</span><span style="font-size:11px;color:var(--text3);margin-left:4px">까지 '+r.nextLeft+'회</span>'
+      :'<span style="font-size:11px;color:var(--text3)">—</span>';
+    if(isMob){
+      return'<tr><td class="nl" style="padding:10px 12px;display:block">'
+        +'<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+esc(m.name||'—')+'</div>'
+        +'<div style="display:flex;gap:12px;font-size:12px;margin-bottom:4px">'
+        +'<span>참여 <span class="n-y td-mono">'+r.cnt+'회</span></span>'
+        +'<span>결제 <span class="n-g td-mono">'+fMoney(r.amt)+'</span></span>'
+        +'</div>'
+        +'<div style="margin-bottom:3px">'+benHtml+'</div>'
+        +'<div>'+nextHtml+'</div>'
+        +'</td></tr>';
+    }
+    return'<tr>'
+      +'<td><strong>'+esc(m.name||'—')+'</strong>'+(m.instagram_id?'<div style="font-size:11px;color:var(--text3)">@'+esc(m.instagram_id)+'</div>':'')+'</td>'
+      +'<td class="td-mono n-y" style="font-weight:700">'+r.cnt+'회</td>'
+      +'<td class="td-mono n-g">'+fMoney(r.amt)+'</td>'
+      +'<td>'+benHtml+'</td>'
+      +'<td>'+nextHtml+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+// 혜택 분석 탭
+// ══════════════════════════════════════════════════════════
+function renderReportBenefits(){
+  var benEl=document.getElementById('rep-ben-list');
+  var giftEl=document.getElementById('rep-gift-list');
+  if(!benEl&&!giftEl)return;
+
+  var confLogs=DB.participationLogs.filter(function(l){return l.status==='참여확정';});
+
+  // 혜택별 집계
+  if(benEl){
+    if(!DB.benefits.length){benEl.innerHTML='<div class="empty"><div style="font-size:13px">등록된 혜택 없음</div></div>';}
+    else{
+      var benRows=DB.benefits.map(function(b){
+        var used=confLogs.filter(function(l){return l.benefit_id===b.id;});
+        var totalCost=used.reduce(function(s,l){return s+(l.benefit_cost||0);},0);
+        return{b:b,cnt:used.length,cost:totalCost};
+      }).sort(function(a,b){return b.cnt-a.cnt;});
+      var maxCnt=Math.max.apply(null,benRows.map(function(r){return r.cnt;}))||1;
+      benEl.innerHTML='<div class="rep-bar-wrap">'
+        +benRows.map(function(r){
+          var pct=Math.round(r.cnt/maxCnt*100);
+          var activeBadge=r.b.is_active
+            ?'<span class="badge badge-green" style="font-size:9px;margin-left:4px">활성</span>'
+            :'<span class="badge badge-muted" style="font-size:9px;margin-left:4px">비활성</span>';
+          return'<div style="padding:8px 0;border-bottom:1px solid var(--border)">'
+            +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">'
+            +'<div style="font-size:13px;font-weight:600">'+esc(r.b.name)+activeBadge+'</div>'
+            +'<div class="td-mono" style="font-size:12px;color:var(--accent-dark)">비용 '+fMoney(r.cost)+'</div>'
+            +'</div>'
+            +'<div class="rep-bar-row">'
+            +'<div class="rep-bar-track"><div class="rep-bar-fill" style="width:'+pct+'%"></div></div>'
+            +'<div class="rep-bar-val">'+r.cnt+'건</div>'
+            +'</div>'
+            +'</div>';
+        }).join('')
+        +'</div>';
+    }
+  }
+
+  // 증정품 소진 현황
+  if(giftEl){
+    if(!DB.gifts.length){giftEl.innerHTML='<div class="empty"><div style="font-size:13px">등록된 증정품 없음</div></div>';}
+    else{
+      giftEl.innerHTML='<div class="tbl-wrap"><table>'
+        +'<thead><tr><th>증정품명</th><th>부여 건수</th><th>현재 재고</th><th>총 비용</th></tr></thead>'
+        +'<tbody>'
+        +DB.gifts.map(function(g){
+          // 이 증정품을 reward로 하는 혜택 목록
+          var benIds=DB.benefits.filter(function(b){return b.reward_gift_id===g.id;}).map(function(b){return b.id;});
+          var usedLogs=confLogs.filter(function(l){return benIds.includes(l.benefit_id);});
+          var totalCost=usedLogs.reduce(function(s,l){return s+(l.benefit_cost||0);},0);
+          var stockCls=g.stock<=0?'n-r':(g.stock<5?'n-y':'n-g');
+          return'<tr>'
+            +'<td><strong>'+esc(g.name)+'</strong>'+(g.is_active?'':' <span class="badge badge-muted" style="font-size:9px">비활성</span>')+'</td>'
+            +'<td class="td-mono">'+usedLogs.length+'건</td>'
+            +'<td class="td-mono '+stockCls+'">'+g.stock+'개</td>'
+            +'<td class="td-mono n-p">'+fMoney(totalCost)+'</td>'
+            +'</tr>';
+        }).join('')
+        +'</tbody></table></div>';
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// 프로그램 기본 옵션 체크박스 렌더
+// ══════════════════════════════════════════════════════════
+function renderProgDefaultOpts(progId){
+  var el=document.getElementById('prog-default-opts');if(!el)return;
+  var active=DB.addOptions.filter(function(o){return o.is_active;});
+  if(!active.length){el.innerHTML='<span style="font-size:12px;color:var(--text3)">활성 옵션 없음</span>';return;}
+  var prog=progId?DB.programs.find(function(p){return p.id===progId;}):null;
+  var defaults=(prog&&prog.default_option_ids)||[];
+  el.innerHTML=active.map(function(o){
+    var chk=defaults.includes(o.id)?'checked':'';
+    return'<label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px">'
+      +'<input type="checkbox" data-def-opt="'+o.id+'" '+chk+'>'
+      +'<span>'+esc(o.name)+'</span>'
+      +'<span class="td-mono" style="font-size:11px;color:var(--accent-dark)">+'+fMoney(o.price||0)+'</span>'
+      +'</label>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+// 세션 옵션 오버라이드 렌더
+// ══════════════════════════════════════════════════════════
+function renderSesOpts(sesId,progId){
+  var secEl=document.getElementById('ses-opts-section');
+  var bodyEl=document.getElementById('ses-opts-body');
+  if(!secEl||!bodyEl)return;
+  var active=DB.addOptions.filter(function(o){return o.is_active;});
+  var prog=progId?DB.programs.find(function(p){return p.id===progId;}):null;
+  var progDefaults=(prog&&prog.default_option_ids)||[];
+  if(!active.length&&!progDefaults.length){secEl.style.display='none';return;}
+  if(!active.length){secEl.style.display='none';return;}
+  secEl.style.display='';
+  // 기존 세션 오버라이드 확인
+  var sesOverrides=sesId?DB.sessionOptions.filter(function(x){return x.session_id===sesId;}):[];
+  var checkedSet=new Set();
+  if(sesOverrides.length>0){
+    sesOverrides.forEach(function(x){checkedSet.add(x.option_id);});
+  } else {
+    progDefaults.forEach(function(id){checkedSet.add(id);});
+  }
+  bodyEl.innerHTML=active.map(function(o){
+    var isDefault=progDefaults.includes(o.id);
+    var chk=checkedSet.has(o.id)?'checked':'';
+    return'<label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px">'
+      +'<input type="checkbox" data-ses-opt="'+o.id+'" '+chk+'>'
+      +'<span>'+esc(o.name)+'</span>'
+      +'<span class="td-mono" style="font-size:11px;color:var(--accent-dark)">+'+fMoney(o.price||0)+'</span>'
+      +(isDefault?'<span class="badge badge-yellow" style="font-size:9px">기본</span>':'')
+      +'</label>';
+  }).join('');
+}
 function setRepPeriod(type){
   const t=today();let from;
   if(type==='month'){const n=new Date();from=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-01';}
@@ -4093,7 +4495,7 @@ function renderSettingsSheets(){
     +'</div>';
 }
 
-function renderReport(){
+function renderReportProfit(){
   const from=document.getElementById('rep-from').value,to=document.getElementById('rep-to').value;
   const ss=DB.sessions.filter(s=>s.usage_recorded&&(!from||s.session_date>=from)&&(!to||s.session_date<=to));
   const totalRev=ss.reduce((a,x)=>a+calcSesRevenue(x),0);
@@ -4655,7 +5057,20 @@ function renderPlogOptions(sesId, logId){
   if(!active.length){el.innerHTML='<span style="font-size:12px;color:var(--text3)">활성 옵션 없음</span>';if(totEl)totEl.textContent='';return;}
   // 기존 선택 상태 복원
   var existing=new Set();
-  if(logId)DB.logOptions.filter(function(o){return o.log_id===logId;}).forEach(function(o){existing.add(o.option_id);});
+  if(logId){
+    DB.logOptions.filter(function(o){return o.log_id===logId;}).forEach(function(o){existing.add(o.option_id);});
+  } else if(sesId){
+    // 새 로그: 세션 오버라이드 → 프로그램 기본값 순으로 자동 적용
+    var _sesOpts=DB.sessionOptions.filter(function(x){return x.session_id===sesId;});
+    if(_sesOpts.length>0){
+      _sesOpts.forEach(function(x){existing.add(x.option_id);});
+    } else {
+      var _sesTmp=DB.sessions.find(function(s){return s.id===sesId;});
+      var _progTmp=_sesTmp?DB.programs.find(function(p){return p.id===_sesTmp.program_id;}):null;
+      var _defs=(_progTmp&&_progTmp.default_option_ids)||[];
+      _defs.forEach(function(oid){existing.add(oid);});
+    }
+  }
   el.innerHTML=active.map(function(o){
     var chk=existing.has(o.id)?'checked':'';
     return'<label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px">'
