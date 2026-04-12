@@ -276,10 +276,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
   .cal-cell{min-height:60px;padding:4px}
   .cal-event{font-size:10px;padding:2px 4px}
 }
-.pager-mob{display:none}
 @media(max-width:1024px){
-  .pager-desk{display:none!important}
-  .pager-mob{display:flex;gap:4px;align-items:center}
   .g2,.g3{gap:8px}
   .g2>*,.g3>*{min-width:0}
   /* stat-card: 3열 유지, 글자 축소 */
@@ -484,9 +481,9 @@ tbody td{padding:11px 11px;vertical-align:middle}
         <select class="form-select" style="width:150px" id="ses-filter-prog" onchange="renderSessions()">
           <option value="">전체 프로그램</option>
         </select>
-        <select class="form-select" style="width:130px" id="ses-filter-type" onchange="renderSessions()">
-          <option value="">전체 타입</option>
-        </select>
+      <div id="ses-type-tabs" class="tab-bar" style="flex-wrap:wrap;margin-top:4px">
+        <button class="tab-btn active" onclick="setSesTypeFilter('',this)">전체</button>
+      </div>
       </div>
       <div id="ses-cal-controls" style="display:none;align-items:center;gap:8px;flex-wrap:wrap">
         <button class="btn btn-outline btn-sm" onclick="calMove(-1)">◀</button>
@@ -513,7 +510,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
         </div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>프로그램 / 날짜</th><th>인원 / 원가</th><th>수익 / 참여자</th><th>기록</th><th>관리</th></tr></thead>
+            <thead><tr id="ses-thead-row"></tr></thead>
             <tbody id="ses-tbody"></tbody>
           </table>
         </div>
@@ -1628,23 +1625,23 @@ function gsShowHelp(){openModal('m-gs-help');}
 function buildPager(elId,total,page,perPage,onPageChange){
   const pg=document.getElementById(elId);if(!pg)return;
   const pages=Math.max(1,Math.ceil(total/perPage));
+  const mob=window.innerWidth<=1024;
   const prev=onPageChange+'(Math.max(1,'+page+'-1))';
   const next=onPageChange+'(Math.min('+pages+','+page+'+1))';
   let html='<span style="font-size:12px;color:var(--text3);font-family:var(--mono)">전체 '+total+'개</span>';
   if(pages>1){
-    html+='<span class="pager-desk">';
-    html+='<button class="pg-btn" onclick="'+prev+'" '+(page===1?'disabled':'')+'>‹</button>';
-    for(let i=1;i<=pages;i++){
-      if(i===1||i===pages||Math.abs(i-page)<=2)html+='<button class="pg-btn'+(i===page?' active':'')+'" onclick="'+onPageChange+'('+i+')">'+i+'</button>';
-      else if(Math.abs(i-page)===3)html+='<span style="color:var(--text3);padding:0 4px">…</span>';
+    if(mob){
+      html+='<button class="pg-btn" onclick="'+prev+'" '+(page===1?'disabled':'')+'>‹</button>';
+      html+='<span class="pg-btn active" style="pointer-events:none;min-width:48px;text-align:center">'+page+' / '+pages+'</span>';
+      html+='<button class="pg-btn" onclick="'+next+'" '+(page===pages?'disabled':'')+'>›</button>';
+    }else{
+      html+='<button class="pg-btn" onclick="'+prev+'" '+(page===1?'disabled':'')+'>‹</button>';
+      for(let i=1;i<=pages;i++){
+        if(i===1||i===pages||Math.abs(i-page)<=2)html+='<button class="pg-btn'+(i===page?' active':'')+'" onclick="'+onPageChange+'('+i+')">'+i+'</button>';
+        else if(Math.abs(i-page)===3)html+='<span style="color:var(--text3);padding:0 4px">…</span>';
+      }
+      html+='<button class="pg-btn" onclick="'+next+'" '+(page===pages?'disabled':'')+'>›</button>';
     }
-    html+='<button class="pg-btn" onclick="'+next+'" '+(page===pages?'disabled':'')+'>›</button>';
-    html+='</span>';
-    html+='<span class="pager-mob">';
-    html+='<button class="pg-btn" onclick="'+prev+'" '+(page===1?'disabled':'')+'>‹</button>';
-    html+='<span class="pg-btn active" style="pointer-events:none;min-width:44px;text-align:center">'+page+'/'+pages+'</span>';
-    html+='<button class="pg-btn" onclick="'+next+'" '+(page===pages?'disabled':'')+'>›</button>';
-    html+='</span>';
   }
   pg.innerHTML=html;
 }
@@ -1740,6 +1737,15 @@ document.querySelectorAll('.nav-item[data-page]').forEach(el=>el.addEventListene
 const openSidebar=()=>{document.getElementById('sidebar').classList.add('open');document.getElementById('sidebar-overlay').classList.add('open');};
 const closeSidebar=()=>{document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open');};
 document.getElementById('hamburger').addEventListener('click',()=>{document.getElementById('sidebar').classList.contains('open')?closeSidebar():openSidebar();});
+let _prevMob=window.innerWidth<=1024;
+window.addEventListener('resize',()=>{
+  const m=window.innerWidth<=1024;
+  if(m!==_prevMob){
+    _prevMob=m;
+    if(document.getElementById('page-sessions').classList.contains('active'))renderSessions();
+    if(document.getElementById('page-report').classList.contains('active'))renderReport();
+  }
+});
 document.getElementById('sidebar-overlay').addEventListener('click',closeSidebar);
 
 // ══════════════════════════════════════════════════════════
@@ -1807,7 +1813,7 @@ function renderMiniChart(elId,months){
 // ══════════════════════════════════════════════════════════
 // 모임 일정
 // ══════════════════════════════════════════════════════════
-let sesPage=1;
+let sesPage=1;let sesTypeFilter='';
 let sesViewMode='list',calMode='month',calYear=new Date().getFullYear(),calMonth=new Date().getMonth(),calWeekStart=null;
 // 월요일 기준 주 시작일 계산 (0=일,1=월,...,6=토 → 월요일 기준으로)
 function getMondayOf(dateStr){
@@ -2026,7 +2032,7 @@ function renderSessions(){
   if(sesViewMode==='calendar'){renderCalendar();return;}
   const sort=document.getElementById('ses-sort').value;
   const filterProg=document.getElementById('ses-filter-prog').value;
-  const filterType=document.getElementById('ses-filter-type')?.value||'';
+  const filterType=sesTypeFilter;
   const perPage=parseInt(document.getElementById('ses-per-page')?.value||'20');
   let sessions=[...DB.sessions];
   if(filterProg)sessions=sessions.filter(s=>s.program_id===filterProg);
@@ -2038,17 +2044,50 @@ function renderSessions(){
   buildPager('ses-pagination-bot',total,sesPage,perPage,'goSesPage');
   sessions=sessions.slice((sesPage-1)*perPage,sesPage*perPage);
   const tbody=document.getElementById('ses-tbody');
-  if(!sessions.length){tbody.innerHTML=`<tr><td colspan="5" class="nl"><div class="empty"><div class="empty-icon">📅</div><div style="font-size:13px">등록된 일정 없음</div></div></td></tr>`;return;}
+  const isMob=window.innerWidth<=1024;
+  const theadRow=document.getElementById('ses-thead-row');
+  if(theadRow){
+    theadRow.innerHTML=isMob?'<th>일정</th>'
+      :'<th>날짜</th><th>프로그램</th><th>인원</th><th>원가</th><th>예상수익</th><th>메모</th><th>참가자</th><th>기록</th><th>관리</th>';
+  }
+  if(!sessions.length){tbody.innerHTML=`<tr><td colspan="${isMob?1:9}" class="nl"><div class="empty"><div class="empty-icon">📅</div><div style="font-size:13px">등록된 일정 없음</div></div></td></tr>`;return;}
   tbody.innerHTML=sessions.map(s=>{
     const prog=DB.programs.find(p=>p.id===s.program_id);
     const cost=calcSesCost(s),rev=(s.selling_price_snapshot||0)*s.participants,profit=rev-cost;
     const locked=s.usage_recorded;
+    if(isMob){
+      return`<tr><td class="nl" style="padding:10px 12px;display:block">
+        <div style="font-size:14px;font-weight:700;margin-bottom:5px">${prog?(prog.emoji?prog.emoji+' ':'')+esc(prog.name):'—'}</div>
+        <div style="display:flex;gap:14px;margin-bottom:4px;font-size:12px">
+          <span class="td-mono">${fDate(s.session_date)}${s.session_time?' '+s.session_time:''}</span>
+          <span class="td-mono">${s.participants}명</span>
+        </div>
+        <div style="display:flex;gap:14px;margin-bottom:7px;font-size:12px">
+          <span class="td-mono n-p">원가 ${fMoney(cost)}</span>
+          <span class="td-mono ${profit>=0?'n-g':'n-r'}">수익 ${fMoney(profit)}</span>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+          ${sesPlogBadge(s.id,s.participants)}
+          ${locked?`<span class="badge badge-green">기록됨</span><button class="btn btn-danger btn-xs" onclick="cancelUsage('${s.id}')">취소</button>`:`<button class="btn btn-green btn-sm" onclick="recordUsage('${s.id}')">기록하기</button>`}
+          <button class="btn btn-outline btn-xs" onclick="openSesModal('${s.id}')" ${locked?'disabled':''}>수정</button>
+          <button class="btn btn-danger btn-xs" onclick="deleteSession('${s.id}')" ${locked?'disabled':''}>삭제</button>
+        </div>
+        ${s.memo?`<div style="font-size:11px;color:var(--text3);margin-top:4px">${esc(s.memo)}</div>`:''}
+      </td></tr>`;
+    }
     return`<tr>
-      <td data-label="프로그램/날짜"><div>${prog?`${prog.emoji||''} <strong>${esc(prog.name)}</strong>`:'—'}${s.memo?` <span style="font-size:11px;color:var(--text3)">· ${esc(s.memo)}</span>`:''}</div><div class="td-mono" style="font-size:11px;color:var(--text3);margin-top:2px">${fDate(s.session_date)}${s.session_time?' '+s.session_time:''}</div></td>
-      <td data-label="인원/원가"><div class="td-mono">${s.participants}명</div><div class="td-mono n-p" style="font-size:11px;margin-top:2px">${fMoney(cost)}</div></td>
-      <td data-label="수익/참여자"><div class="td-mono ${profit>=0?'n-g':'n-r'}">${fMoney(profit)}</div><div style="margin-top:2px">${sesPlogBadge(s.id,s.participants)}</div></td>
+      <td data-label="날짜" class="td-mono">${fDate(s.session_date)}${s.session_time?'<br><span style="font-size:11px;color:var(--text3)">'+s.session_time+'</span>':''}</td>
+      <td data-label="프로그램">${prog?`${prog.emoji||''} ${esc(prog.name)}`:'—'}</td>
+      <td data-label="인원" class="td-mono">${s.participants}명</td>
+      <td data-label="원가" class="td-mono n-p">${fMoney(cost)}</td>
+      <td data-label="예상수익" class="td-mono ${profit>=0?'n-g':'n-r'}">${fMoney(profit)}</td>
+      <td data-label="메모" style="font-size:12px;color:var(--text2)">${esc(s.memo||'')}</td>
+      <td class="nl">${sesPlogBadge(s.id,s.participants)}</td>
       <td class="nl">${locked?`<div style="display:flex;gap:4px;align-items:center"><span class="badge badge-green">기록됨</span><button class="btn btn-danger btn-xs" onclick="cancelUsage('${s.id}')">취소</button></div>`:`<button class="btn btn-green btn-sm" onclick="recordUsage('${s.id}')">기록하기</button>`}</td>
-      <td class="nl" style="display:flex;gap:4px"><button class="btn btn-outline btn-xs" onclick="openSesModal('${s.id}')" ${locked?'disabled':''}>수정</button><button class="btn btn-danger btn-xs" onclick="deleteSession('${s.id}')" ${locked?'disabled':''}>삭제</button></td>
+      <td class="nl" style="display:flex;gap:4px">
+        <button class="btn btn-outline btn-xs" onclick="openSesModal('${s.id}')" ${locked?'disabled':''}>수정</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteSession('${s.id}')" ${locked?'disabled':''}>삭제</button>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -2944,6 +2983,17 @@ function channelBadge(ch){
   if(!ch)return'<span style="color:var(--text3);font-size:11px">—</span>';
   return'<span class="badge" style="background:#f5f5ff;color:#555;border:1px solid #ddd;font-size:10px">'+esc(ch)+'</span>';
 }
+function setSesTypeFilter(typeId,btn){
+  sesTypeFilter=typeId;
+  document.querySelectorAll('#ses-type-tabs .tab-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  sesPage=1;renderSessions();
+}
+function syncSesTypeTabs(){
+  const el=document.getElementById('ses-type-tabs');if(!el)return;
+  el.innerHTML='<button class="tab-btn'+(sesTypeFilter===''?' active':'')+'" onclick="setSesTypeFilter(\'\',this)">전체</button>'
+    +DB.programTypes.map(t=>'<button class="tab-btn'+(sesTypeFilter===t.id?' active':'')+'" onclick="setSesTypeFilter(\''+t.id+'\',this)" style="'+(t.color?'border-left:3px solid '+t.color+';padding-left:8px;':'')+'">'+(t.name)+'</button>').join('');
+}
 function sesPlogBadge(sesId,pax){
   var conf=DB.participationLogs.filter(function(l){return l.session_id===sesId&&l.status==='참여확정';}).length;
   var wait=DB.participationLogs.filter(function(l){return l.session_id===sesId&&l.status==='대기';}).length;
@@ -3451,6 +3501,13 @@ function openSettingsTab(tab){
 }
 
 // 설정 항목 수정/삭제 전역 액션 핸들러
+function settingsItemMove(key,i,dir){
+  var arr=key==='ch'?DB.memberChannels:key==='role'?DB.memberRoles:key==='pstat'?DB.plogStatuses:DB.payStatuses;
+  var j=i+dir;if(j<0||j>=arr.length)return;
+  var tmp=arr[i];arr[i]=arr[j];arr[j]=tmp;
+  saveAppSettings();
+  openSettingsTab(key==='role'?'role':key==='pstat'?'pstat':key==='paystat'?'paystat':'ch');
+}
 function settingsItemRename(key,i){
   var arr=key==='ch'?DB.memberChannels:key==='role'?DB.memberRoles:key==='pstat'?DB.plogStatuses:DB.payStatuses;
   var old=arr[i];
@@ -3488,7 +3545,12 @@ function _settingsEditableList(items,key,listId){
   var el=document.getElementById(listId);if(!el)return;
   if(!items.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">항목 없음</div>';return;}
   el.innerHTML=items.map(function(item,i){
-    return'<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">'
+    var isFirst=i===0,isLast=i===items.length-1;
+    return'<div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--border)">'
+      +'<div style="display:flex;flex-direction:column;gap:1px;margin-right:2px">'
+      +'<button class="btn btn-outline btn-xs" style="padding:1px 5px;font-size:10px" '+(isFirst?'disabled':'')+' onclick="settingsItemMove(\''+key+'\','+i+',-1)">▲</button>'
+      +'<button class="btn btn-outline btn-xs" style="padding:1px 5px;font-size:10px" '+(isLast?'disabled':'')+' onclick="settingsItemMove(\''+key+'\','+i+',1)">▼</button>'
+      +'</div>'
       +'<span style="flex:1;font-size:13px">'+esc(item)+'</span>'
       +'<button class="btn btn-outline btn-xs" onclick="settingsItemRename(\''+key+'\','+i+')">수정</button>'
       +'<button class="btn btn-danger btn-xs" onclick="settingsItemDelete(\''+key+'\','+i+')">삭제</button>'
@@ -3667,7 +3729,7 @@ function renderReport(){
   const ss=DB.sessions.filter(s=>s.usage_recorded&&(!from||s.session_date>=from)&&(!to||s.session_date<=to));
   const totalRev=ss.reduce((a,x)=>a+(x.selling_price_snapshot||0)*x.participants,0);
   const totalCost=ss.reduce((a,x)=>a+calcSesCost(x),0);const totalProfit=totalRev-totalCost;
-  document.getElementById('rep-summary').innerHTML=`<div class="g2" style="gap:10px">${[['총 모임',ss.length+'회','n-y'],['총 참여자',ss.reduce((a,x)=>a+x.participants,0)+'명','n-y'],['총 매출',fMoney(totalRev),'n-g'],['총 수익',fMoney(totalProfit),totalProfit>=0?'n-g':'n-r'],['총 재료비',fMoney(totalCost),'n-p'],['수익률',totalRev?Math.round(totalProfit/totalRev*100)+'%':'—','n-y']].map(([l,v,c])=>`<div><div class="card-label">${l}</div><div class="${c}" style="font-size:20px;font-weight:800">${v}</div></div>`).join('')}</div>`;
+  document.getElementById('rep-summary').innerHTML=`<div class="g2" style="gap:10px">${[['총 모임',ss.length+'회','n-y'],['총 참여자',ss.reduce((a,x)=>a+x.participants,0)+'명','n-y'],['총 매출',fMoney(totalRev),'n-g'],['총 수익',fMoney(totalProfit),totalProfit>=0?'n-g':'n-r'],['총 원가',fMoney(totalCost),'n-p'],['수익률',totalRev?Math.round(totalProfit/totalRev*100)+'%':'—','n-y']].map(([l,v,c])=>`<div><div class="card-label">${l}</div><div class="${c}" style="font-size:20px;font-weight:800">${v}</div></div>`).join('')}</div>`;
   const mMap={};ss.forEach(s=>{const ym=s.session_date.slice(0,7);if(!mMap[ym]){mMap[ym]={rev:0,cost:0};}mMap[ym].rev+=(s.selling_price_snapshot||0)*s.participants;mMap[ym].cost+=calcSesCost(s);});
   const mons=Object.keys(mMap).sort(),mx=Math.max(...mons.map(m=>mMap[m].rev),1);
   if(mons.length){
@@ -3689,7 +3751,29 @@ function renderReport(){
   buildPager('rep-pagination-top',repTotal,repPage,repPerPage,'goRepPage');
   buildPager('rep-pagination-bot',repTotal,repPage,repPerPage,'goRepPage');
   const repPaged=repSorted.slice((repPage-1)*repPerPage,repPage*repPerPage);
-  document.getElementById('rep-tbody').innerHTML=repPaged.map(s=>{const prog=DB.programs.find(p=>p.id===s.program_id);const rev=(s.selling_price_snapshot||0)*s.participants;const cost=calcSesCost(s);const profit=rev-cost;return`<tr><td data-label="날짜" class="td-mono">${fDate(s.session_date)}</td><td data-label="프로그램">${prog?`${prog.emoji||''} ${esc(prog.name)}`:'—'}</td><td data-label="인원" class="td-mono">${s.participants}명</td><td data-label="매출" class="td-mono n-g">${fMoney(rev)}</td><td data-label="원가" class="td-mono n-p">${fMoney(cost)}</td><td data-label="수익" class="td-mono ${profit>=0?'n-g':'n-r'}">${fMoney(profit)}</td><td data-label="수익률" class="td-mono">${rev?Math.round(profit/rev*100)+'%':'—'}</td></tr>`;}).join('')||`<tr><td colspan="7" class="nl"><div class="empty"><div style="font-size:13px">해당 기간 내역 없음</div></div></td></tr>`;
+  const repMob=window.innerWidth<=1024;
+  document.getElementById('rep-tbody').innerHTML=repPaged.map(s=>{
+    const prog=DB.programs.find(p=>p.id===s.program_id);
+    const rev=(s.selling_price_snapshot||0)*s.participants;
+    const cost=calcSesCost(s);const profit=rev-cost;
+    if(repMob){
+      return`<tr><td class="nl" style="padding:8px 12px;display:block">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div style="flex:1;min-width:0">
+            <div class="td-mono" style="font-size:11px;color:var(--text3)">${fDate(s.session_date)}</div>
+            <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${prog?(prog.emoji||'')+' '+esc(prog.name):'—'}</div>
+            <div class="td-mono" style="font-size:11px;color:var(--text3)">${s.participants}명</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div class="td-mono n-g" style="font-size:13px">${fMoney(rev)}</div>
+            <div class="td-mono n-p" style="font-size:11px">${fMoney(cost)}</div>
+            <div class="td-mono ${profit>=0?'n-g':'n-r'}" style="font-weight:700">${fMoney(profit)}</div>
+          </div>
+        </div>
+      </td></tr>`;
+    }
+    return`<tr><td data-label="날짜" class="td-mono">${fDate(s.session_date)}</td><td data-label="프로그램">${prog?`${prog.emoji||''} ${esc(prog.name)}`:'—'}</td><td data-label="인원" class="td-mono">${s.participants}명</td><td data-label="매출" class="td-mono n-g">${fMoney(rev)}</td><td data-label="원가" class="td-mono n-p">${fMoney(cost)}</td><td data-label="수익" class="td-mono ${profit>=0?'n-g':'n-r'}">${fMoney(profit)}</td><td data-label="수익률" class="td-mono">${rev?Math.round(profit/rev*100)+'%':'—'}</td></tr>`;
+  }).join('')||`<tr><td colspan="${repMob?1:7}" class="nl"><div class="empty"><div style="font-size:13px">해당 기간 내역 없음</div></div></td></tr>`;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -3703,7 +3787,7 @@ function syncProgSelects(){
   const opts=DB.programs.filter(p=>p.is_active).map(p=>`<option value="${p.id}">${p.emoji||''} ${esc(p.name)}</option>`).join('');
   const el=document.getElementById('ses-prog');const v=el.value;el.innerHTML='<option value="">프로그램 선택</option>'+opts;el.value=v;
   const fp=document.getElementById('ses-filter-prog');const fv=fp.value;fp.innerHTML='<option value="">전체 프로그램</option>'+opts;fp.value=fv;
-  const ft=document.getElementById('ses-filter-type');if(ft){const ftv=ft.value;ft.innerHTML='<option value="">전체 타입</option>'+DB.programTypes.map(t=>'<option value="'+t.id+'">'+esc(t.name)+'</option>').join('');ft.value=ftv;}
+  syncSesTypeTabs();
 }
 
 // ══════════════════════════════════════════════════════════
