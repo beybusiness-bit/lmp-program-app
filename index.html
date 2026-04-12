@@ -1149,12 +1149,12 @@ const GS={
   LS_KEY:'mkng_gs_cfg',
   SHEETS:{
     ingredients:{name:'ingredients',cols:['id','name','unit','purchase_unit_qty','price_per_unit','lead_time_days','category_id','is_active','created_at']},
-    ingredientsHistory:{name:'ingredients_history',cols:['id','ingredient_id','changed_field','old_value','new_value','changed_at']},
+    ingredientsHistory:{name:'ingredients_history',cols:['id','ingredient_id','changed_field','old_value','new_value','changed_at','changed_by']},
     programs:{name:'programs',cols:['id','name','emoji','description','type_id','selling_price','max_participants','is_active','created_at']},
-    programsHistory:{name:'programs_history',cols:['id','program_id','changed_field','old_value','new_value','changed_at']},
+    programsHistory:{name:'programs_history',cols:['id','program_id','changed_field','old_value','new_value','changed_at','changed_by']},
     programRecipes:{name:'program_recipes',cols:['id','program_id','ingredient_id','qty_per_person','valid_from','valid_until','created_at']},
-    sessions:{name:'sessions',cols:['id','program_id','session_date','session_time','participants','selling_price_snapshot','recipe_snapshot','usage_recorded','usage_recorded_at','created_at','memo']},
-    inventoryLog:{name:'inventory_log',cols:['id','log_date','ingredient_id','type','quantity','order_date','session_id','created_at','memo']},
+    sessions:{name:'sessions',cols:['id','program_id','session_date','session_time','participants','selling_price_snapshot','recipe_snapshot','usage_recorded','usage_recorded_at','created_at','memo','created_by']},
+    inventoryLog:{name:'inventory_log',cols:['id','log_date','ingredient_id','type','quantity','order_date','session_id','created_at','memo','created_by']},
     categories:{name:'categories',cols:['id','name','color']},
     programTypes:{name:'program_types',cols:['id','name','color']}
   },
@@ -1263,7 +1263,7 @@ const GS={
             if(h==='is_active'||h==='usage_recorded')v=v===true||v===1||String(v).toLowerCase()==='true'||v==='1';
             else if(['purchase_unit_qty','price_per_unit','lead_time_days','selling_price','max_participants','participants','qty_per_person','quantity','selling_price_snapshot'].includes(h))v=v===''||v===null?null:Number(v);
             else if(h==='recipe_snapshot'){try{v=v?JSON.parse(v):{};}catch(e){v={};}}
-            else if(h==='valid_until'||h==='order_date'||h==='session_id'||h==='usage_recorded_at')v=v||null;
+            else if(h==='valid_until'||h==='order_date'||h==='session_id'||h==='usage_recorded_at'||h==='type_id'||h==='category_id'||h==='benefit_id'||h==='reward_gift_id')v=v||null;
             obj[h]=v;
           });
           return obj;
@@ -1398,10 +1398,11 @@ function openChangeHistory(){
   body.innerHTML='<div class="hist-timeline">'+all.slice(0,100).map(h=>{
     const f=fieldMap[h.changed_field]||h.changed_field;
     const t=new Date(h.changed_at).toLocaleString('ko-KR');
+    const byLabel=h.changed_by?(' · <span style="color:var(--text3);font-size:10px">'+esc(h.changed_by)+'</span>'):'';
     return '<div class="hist-tl-item"><div class="hist-tl-dot"></div><div class="hist-tl-body">'
       +'<div class="hist-tl-field"><span class="badge badge-muted">'+esc(h.entity)+'</span> <b>'+esc(h.name)+'</b> · '+f+'</div>'
       +'<div class="hist-tl-chg"><span style="color:var(--danger);text-decoration:line-through">'+esc(h.old_value)+'</span> → <span style="color:#2a7a00;font-weight:600">'+esc(h.new_value)+'</span></div>'
-      +'<div class="hist-tl-time">'+t+'</div>'
+      +'<div class="hist-tl-time">'+t+byLabel+'</div>'
       +'</div></div>';
   }).join('')+'</div>';
   document.getElementById('m-ch-title').textContent='변경 이력 (최근 '+Math.min(all.length,100)+'건)';
@@ -1690,7 +1691,7 @@ function saveSes(){
   } else {
     DB.sessions.push({id:genId('SES'),program_id:progId,session_date:date,session_time:time||null,participants:pax,
       selling_price_snapshot:prog.selling_price,recipe_snapshot:snap,
-      usage_recorded:false,usage_recorded_at:null,created_at:new Date().toISOString(),memo});
+      usage_recorded:false,usage_recorded_at:null,created_at:new Date().toISOString(),memo,created_by:AUTH.userEmail||''});
     toast('모임 추가 완료');
   }
   closeModal('m-ses');renderSessions();if(sesViewMode==='calendar')renderCalendar();
@@ -1701,7 +1702,7 @@ function recordUsage(sesId){
   const s=DB.sessions.find(x=>x.id===sesId);
   if(!s||s.usage_recorded)return;
   const now=new Date().toISOString();
-  Object.entries(s.recipe_snapshot||{}).forEach(([ingId,qty])=>{DB.inventoryLog.push({id:genId('LOG'),log_date:s.session_date,ingredient_id:ingId,type:'사용',quantity:-(qty*s.participants),order_date:null,session_id:sesId,created_at:now,memo:`모임 사용 (${s.participants}명)`});});
+  Object.entries(s.recipe_snapshot||{}).forEach(([ingId,qty])=>{DB.inventoryLog.push({id:genId('LOG'),log_date:s.session_date,ingredient_id:ingId,type:'사용',quantity:-(qty*s.participants),order_date:null,session_id:sesId,created_at:now,memo:'모임 사용 ('+s.participants+'명)',created_by:AUTH.userEmail||''});});
   s.usage_recorded=true;s.usage_recorded_at=now;
   toast('사용 기록 완료');renderSessions();renderStock();
   gsAfter('sessions','inventoryLog');
@@ -1941,7 +1942,7 @@ function saveMultiLog(){
     let fq=qty;
     if(type==='조정'){fq=qty-calcStock(ingId,date);}
     else if(type==='사용'){fq=-qty;}
-    DB.inventoryLog.push({id:genId('LOG'),log_date:date,ingredient_id:ingId,type,quantity:fq,order_date:od||null,session_id:null,created_at:now,memo});
+    DB.inventoryLog.push({id:genId('LOG'),log_date:date,ingredient_id:ingId,type,quantity:fq,order_date:od||null,session_id:null,created_at:now,memo,created_by:AUTH.userEmail||''});
   });
   toast(entries.length+'개 항목 저장');closeModal('m-log');renderStock();renderHistory();
   gsAfter('inventoryLog');
@@ -2010,7 +2011,7 @@ function importCsv(event){
           let fq=qty;
           if(type==='조정'){fq=qty-calcStock(ingId,date);}
           else if(type==='사용'){fq=-qty;}
-          DB.inventoryLog.push({id:genId('LOG'),log_date:date,ingredient_id:ingId,type,quantity:fq,order_date:od||null,session_id:null,created_at:now,memo});
+          DB.inventoryLog.push({id:genId('LOG'),log_date:date,ingredient_id:ingId,type,quantity:fq,order_date:od||null,session_id:null,created_at:now,memo,created_by:AUTH.userEmail||''});
         });
         toast(valid.length+'개 항목 기록 완료');closeModal('m-csv-preview');renderStock();renderHistory();
           gsAfter('inventoryLog');
@@ -2193,7 +2194,7 @@ function saveIng(){
   if(!name||isNaN(pqty)||isNaN(price)||isNaN(lead)){toast('모든 항목을 입력해주세요','error');return;}
   if(!requireSheets())return;
   const id=document.getElementById('ing-id').value,now=new Date().toISOString();
-  if(id){const ing=DB.ingredients.find(i=>i.id===id);[{f:'purchase_unit_qty',v:pqty},{f:'price_per_unit',v:price},{f:'lead_time_days',v:lead}].forEach(({f,v})=>{if(ing[f]!==v){DB.ingredientsHistory.push({id:genId('IH'),ingredient_id:id,changed_field:f,old_value:String(ing[f]),new_value:String(v),changed_at:now});}ing[f]=v;});ing.name=name;ing.unit=unit;ing.category_id=catId||null;toast('항목 수정 완료');}
+  if(id){const ing=DB.ingredients.find(i=>i.id===id);[{f:'purchase_unit_qty',v:pqty},{f:'price_per_unit',v:price},{f:'lead_time_days',v:lead}].forEach(({f,v})=>{if(ing[f]!==v){DB.ingredientsHistory.push({id:genId('IH'),ingredient_id:id,changed_field:f,old_value:String(ing[f]),new_value:String(v),changed_at:now,changed_by:AUTH.userEmail||''});}ing[f]=v;});ing.name=name;ing.unit=unit;ing.category_id=catId||null;toast('항목 수정 완료');}
   else{DB.ingredients.push({id:genId('ING'),name,unit,purchase_unit_qty:pqty,price_per_unit:price,lead_time_days:lead,category_id:catId||null,created_at:now,is_active:true});toast('항목 추가 완료');}
   closeModal('m-ing');renderIngredients();syncIngSelects();
   gsAfter('ingredients','ingredientsHistory');
@@ -2540,7 +2541,7 @@ function saveProg(){
   if(id){
     const p=DB.programs.find(x=>x.id===id);
     [{f:'selling_price',v:price},{f:'max_participants',v:maxP}].forEach(({f,v})=>{
-      if(p[f]!==v){DB.programsHistory.push({id:genId('PH'),program_id:id,changed_field:f,old_value:String(p[f]),new_value:String(v),changed_at:now});}
+      if(p[f]!==v){DB.programsHistory.push({id:genId('PH'),program_id:id,changed_field:f,old_value:String(p[f]),new_value:String(v),changed_at:now,changed_by:AUTH.userEmail||''});}
       p[f]=v;
     });
     p.name=name;p.description=desc;p.emoji=emoji;p.type_id=typeId;
