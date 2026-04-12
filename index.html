@@ -368,6 +368,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
     <div class="nav-item" data-page="report"><span class="nav-icon">📊</span>리포트</div>
     <div class="nav-item" onclick="openChangeHistory()" style="margin-top:4px;border-top:1px solid var(--border);padding-top:10px"><span class="nav-icon">🕐</span>변경 이력</div>
     <div class="nav-item" onclick="openSettings()" style="margin-top:4px;border-top:1px solid var(--border);padding-top:10px"><span class="nav-icon">🔧</span>설정</div>
+    <a class="nav-item" href="https://www.notion.so/beybeybey/3403ec29c9dd800d9797df21f54252c4" target="_blank" style="text-decoration:none;margin-top:2px"><span class="nav-icon">📖</span>사용 가이드</a>
   </div>
   <div class="sidebar-footer" id="footer-status" style="font-size:10px;color:var(--text3);padding:8px 12px;border-top:1px solid var(--border)">로딩 중...</div>
   <!-- Google Sheets 연동 패널 -->
@@ -591,14 +592,19 @@ tbody td{padding:11px 11px;vertical-align:middle}
 <div class="page" id="page-options">
   <div class="page-header"><div><div class="page-title">추가 옵션</div></div><button class="btn btn-primary" onclick="openOptionModal()">+ 옵션 추가</button></div>
   <div class="page-body">
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">참여 로그에서 추가할 수 있는 선택 옵션을 관리합니다. 가격은 세션별 결제액에 포함됩니다.</div>
     <div class="card">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:12px">참여 로그에서 추가할 수 있는 선택 옵션을 관리합니다. 가격은 세션별 결제액에 포함됩니다.</div>
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr><th>옵션명</th><th>설명</th><th>가격</th><th>상태</th><th></th></tr></thead>
-          <tbody id="opt-tbody"></tbody>
-        </table>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <div class="pagination" id="opt-pagination-top" style="flex:1;min-width:0"></div>
+        <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+          <span style="font-size:12px;color:var(--text3)">페이지당</span>
+          <select class="form-select" style="width:75px" id="opt-per-page" onchange="optPage=1;renderOptions()">
+            <option value="20">20개</option><option value="50">50개</option>
+          </select>
+        </div>
       </div>
+      <div id="opt-content"></div>
+      <div class="pagination" id="opt-pagination-bot" style="margin-top:10px"></div>
       <div id="opt-empty" class="empty" style="display:none">
         <div class="empty-icon">➕</div><div style="font-size:13px">등록된 추가 옵션 없음</div>
         <button class="btn btn-primary" style="margin-top:12px" onclick="openOptionModal()">첫 옵션 추가</button>
@@ -606,48 +612,54 @@ tbody td{padding:11px 11px;vertical-align:middle}
     </div>
   </div>
 </div>
-
 <!-- ════ 혜택 관리 ════ -->
 <div class="page" id="page-benefits">
-  <div class="page-header"><div><div class="page-title">혜택 관리</div></div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-outline btn-sm" id="ben-tab-benefits" onclick="setBenTab('benefits',this)">혜택 DB</button>
-      <button class="btn btn-primary btn-sm" id="ben-tab-gifts" onclick="setBenTab('gifts',this)">증정품</button>
-    </div>
-  </div>
+  <div class="page-header"><div><div class="page-title">혜택 관리</div></div></div>
   <div class="page-body">
-    <!-- 혜택 패널 -->
-    <div id="ben-panel-benefits" style="display:none">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-        <button class="btn btn-primary" onclick="openBenefitModal()">+ 혜택 추가</button>
+    <!-- ── 혜택 섹션 ── -->
+    <div id="ben-panel-benefits" style="margin-bottom:28px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div class="sec-title" style="margin-bottom:0;padding-bottom:4px">🎁 혜택 목록</div>
+        <button class="btn btn-primary btn-sm" onclick="openBenefitModal()">+ 혜택 추가</button>
       </div>
       <div class="card">
         <div style="font-size:12px;color:var(--text3);margin-bottom:12px">참여 횟수·금액 조건에 따라 자동 부여되는 혜택을 관리합니다.</div>
-        <div class="tbl-wrap">
-          <table>
-            <thead><tr><th>혜택명</th><th>조건</th><th>보상</th><th>원가 계산</th><th>상태</th><th></th></tr></thead>
-            <tbody id="ben-tbody"></tbody>
-          </table>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <div class="pagination" id="ben-pagination-top" style="flex:1;min-width:0"></div>
+          <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+            <span style="font-size:12px;color:var(--text3)">페이지당</span>
+            <select class="form-select" style="width:75px" id="ben-per-page" onchange="benPage=1;renderBenefitList()">
+              <option value="20">20개</option><option value="50">50개</option>
+            </select>
+          </div>
         </div>
+        <div id="ben-content"></div>
+        <div class="pagination" id="ben-pagination-bot" style="margin-top:10px"></div>
         <div id="ben-empty" class="empty" style="display:none">
           <div class="empty-icon">🎁</div><div style="font-size:13px">등록된 혜택 없음</div>
           <button class="btn btn-primary" style="margin-top:12px" onclick="openBenefitModal()">첫 혜택 추가</button>
         </div>
       </div>
     </div>
-    <!-- 증정품 패널 -->
+    <!-- ── 증정품 섹션 ── -->
     <div id="ben-panel-gifts">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-        <button class="btn btn-primary" onclick="openGiftModal()">+ 증정품 추가</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div class="sec-title" style="margin-bottom:0;padding-bottom:4px">🎀 증정품</div>
+        <button class="btn btn-primary btn-sm" onclick="openGiftModal()">+ 증정품 추가</button>
       </div>
       <div class="card">
         <div style="font-size:12px;color:var(--text3);margin-bottom:12px">혜택의 gift 보상으로 연결할 증정품 재고를 관리합니다.</div>
-        <div class="tbl-wrap">
-          <table>
-            <thead><tr><th>증정품명</th><th>설명</th><th>단위 원가</th><th>재고</th><th>상태</th><th></th></tr></thead>
-            <tbody id="gift-tbody"></tbody>
-          </table>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <div class="pagination" id="gift-pagination-top" style="flex:1;min-width:0"></div>
+          <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+            <span style="font-size:12px;color:var(--text3)">페이지당</span>
+            <select class="form-select" style="width:75px" id="gift-per-page" onchange="giftPage=1;renderGiftList()">
+              <option value="20">20개</option><option value="50">50개</option>
+            </select>
+          </div>
         </div>
+        <div id="gift-content"></div>
+        <div class="pagination" id="gift-pagination-bot" style="margin-top:10px"></div>
         <div id="gift-empty" class="empty" style="display:none">
           <div class="empty-icon">🎀</div><div style="font-size:13px">등록된 증정품 없음</div>
           <button class="btn btn-primary" style="margin-top:12px" onclick="openGiftModal()">첫 증정품 추가</button>
@@ -656,7 +668,6 @@ tbody td{padding:11px 11px;vertical-align:middle}
     </div>
   </div>
 </div>
-
 <!-- ════ 재고 관리 ════ -->
 <div class="page" id="page-stock">
   <div class="page-header"><div><div class="page-title">재고 관리</div></div></div>
@@ -1650,6 +1661,8 @@ const GS={
       const client=google.accounts.oauth2.initTokenClient({
         client_id:this.clientId,
         scope:this.SCOPES,
+        hint:AUTH.userEmail||'',
+        prompt:'',
         callback:(resp)=>{
           if(resp.error){reject(new Error(resp.error));return;}
           this.accessToken=resp.access_token;
@@ -1658,7 +1671,7 @@ const GS={
         },
         error_callback:(err)=>reject(new Error(err?.type||'token_error'))
       });
-      client.requestAccessToken({hint:AUTH.userEmail||''});
+      client.requestAccessToken({hint:AUTH.userEmail||'',prompt:''});
     });
   },
 
@@ -4234,22 +4247,53 @@ function calcBenefitCostAuto(ben,payAmount){
 // ══════════════════════════════════════════════════════════
 // 추가 옵션 CRUD
 // ══════════════════════════════════════════════════════════
+var optPage=1;
+function goOptPage(p){optPage=p;renderOptions();}
 function renderOptions(){
-  var tbody=document.getElementById('opt-tbody');
+  var content=document.getElementById('opt-content');
   var empty=document.getElementById('opt-empty');
-  if(!tbody)return;
+  if(!content)return;
   var list=DB.addOptions;
-  if(!list.length){if(tbody)tbody.innerHTML='';if(empty)empty.style.display='';return;}
+  if(!list.length){content.innerHTML='';if(empty)empty.style.display='';return;}
   if(empty)empty.style.display='none';
-  tbody.innerHTML=list.map(function(o){
-    return'<tr>'
-      +'<td><strong>'+esc(o.name)+'</strong></td>'
-      +'<td style="color:var(--text2);font-size:12px">'+esc(o.description||'')+'</td>'
-      +'<td class="td-mono">'+fMoney(o.price||0)+'</td>'
-      +'<td>'+(o.is_active?'<span class="badge badge-green">활성</span>':'<span class="badge badge-muted">비활성</span>')+'</td>'
-      +'<td style="display:flex;gap:4px"><button class="btn btn-outline btn-xs" onclick="openOptionModal(\''+o.id+'\')">수정</button></td>'
-      +'</tr>';
-  }).join('');
+  var perPage=parseInt(document.getElementById('opt-per-page')?.value||'20');
+  var total=list.length,pages=Math.max(1,Math.ceil(total/perPage));
+  if(optPage>pages)optPage=1;
+  buildPager('opt-pagination-top',total,optPage,perPage,'goOptPage');
+  buildPager('opt-pagination-bot',total,optPage,perPage,'goOptPage');
+  var paged=list.slice((optPage-1)*perPage,optPage*perPage);
+  var isMob=!!(window.matchMedia&&window.matchMedia('(max-width:1024px)').matches);
+  if(isMob){
+    content.innerHTML=paged.map(function(o){
+      var editBtn='<button class="btn btn-outline btn-xs" data-opt-edit="'+o.id+'">수정</button>';
+      return'<div style="padding:11px 4px;border-bottom:1px solid var(--border)">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
+        +'<div style="font-size:14px;font-weight:700;flex:1;min-width:0">'+esc(o.name)+'</div>'
+        +'<div class="td-mono" style="font-size:13px;font-weight:700;color:var(--accent-dark);flex-shrink:0">'+fMoney(o.price||0)+'</div>'
+        +'</div>'
+        +(o.description?'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+esc(o.description)+'</div>':'')
+        +'<div style="display:flex;align-items:center;gap:6px;margin-top:7px">'
+        +(o.is_active?'<span class="badge badge-green">활성</span>':'<span class="badge badge-muted">비활성</span>')
+        +editBtn+'</div>'
+        +'</div>';
+    }).join('');
+  } else {
+    content.innerHTML='<div class="tbl-wrap"><table>'
+      +'<thead><tr><th>옵션명</th><th>설명</th><th>가격</th><th>상태</th><th></th></tr></thead>'
+      +'<tbody>'+paged.map(function(o){
+        var editBtn='<button class="btn btn-outline btn-xs" data-opt-edit="'+o.id+'">수정</button>';
+        return'<tr>'
+          +'<td><strong>'+esc(o.name)+'</strong></td>'
+          +'<td style="color:var(--text2);font-size:12px">'+esc(o.description||'')+'</td>'
+          +'<td class="td-mono">'+fMoney(o.price||0)+'</td>'
+          +'<td>'+(o.is_active?'<span class="badge badge-green">활성</span>':'<span class="badge badge-muted">비활성</span>')+'</td>'
+          +'<td>'+editBtn+'</td>'
+          +'</tr>';
+      }).join('')+'</tbody></table></div>';
+  }
+  content.querySelectorAll('[data-opt-edit]').forEach(function(btn){
+    btn.onclick=function(){openOptionModal(this.dataset.optEdit);};
+  });
 }
 function openOptionModal(id){
   var o=id?DB.addOptions.find(function(x){return x.id===id;}):null;
@@ -4301,44 +4345,71 @@ function deleteOption(){
 // ══════════════════════════════════════════════════════════
 // 혜택 CRUD
 // ══════════════════════════════════════════════════════════
-var _benTab='gifts';
-function setBenTab(tab,btn){
-  _benTab=tab;
-  document.getElementById('ben-panel-benefits').style.display=tab==='benefits'?'':'none';
-  document.getElementById('ben-panel-gifts').style.display=tab==='gifts'?'':'none';
-  var tb=document.getElementById('ben-tab-benefits');var tg=document.getElementById('ben-tab-gifts');
-  if(tb){tb.className=tab==='benefits'?'btn btn-primary btn-sm':'btn btn-outline btn-sm';}
-  if(tg){tg.className=tab==='gifts'?'btn btn-primary btn-sm':'btn btn-outline btn-sm';}
-  if(tab==='benefits')renderBenefitList();
-  else renderGiftList();
-}
+var benPage=1;
+function goBenPage(p){benPage=p;renderBenefitList();}
 function renderBenefits(){
-  setBenTab(_benTab);
+  renderBenefitList();
+  renderGiftList();
 }
 function renderBenefitList(){
-  var tbody=document.getElementById('ben-tbody');
+  var content=document.getElementById('ben-content');
   var empty=document.getElementById('ben-empty');
-  if(!tbody)return;
-  if(!DB.benefits.length){if(tbody)tbody.innerHTML='';if(empty)empty.style.display='';return;}
-  if(empty)empty.style.display='none';
+  if(!content)return;
   var condLbl={'count':'누적 참여','streak':'연속 참여','amount':'누적 결제'};
-  var rewLbl={'discount_percent':'할인율','discount_amount':'할인액','gift':'증정품','free':'무료참여'};
-  tbody.innerHTML=DB.benefits.map(function(b){
-    var condStr=(condLbl[b.condition_type]||b.condition_type)+' '+b.condition_value+(b.condition_type==='amount'?'원':'회');
-    var rewStr=rewLbl[b.reward_type]||b.reward_type;
-    if(b.reward_type==='discount_percent')rewStr=b.reward_value+'% 할인';
-    else if(b.reward_type==='discount_amount')rewStr=fMoney(b.reward_value)+' 할인';
-    else if(b.reward_type==='gift'){var g=DB.gifts.find(function(x){return x.id===b.reward_gift_id;});rewStr='증정품 '+(g?esc(g.name):'미지정');}
-    else if(b.reward_type==='free')rewStr='무료 참여';
-    return'<tr>'
-      +'<td><strong>'+esc(b.name)+'</strong>'+(b.description?'<div style="font-size:11px;color:var(--text3)">'+esc(b.description)+'</div>':'')+'</td>'
-      +'<td class="td-mono" style="font-size:12px">'+esc(condStr)+'</td>'
-      +'<td style="font-size:12px">'+rewStr+'</td>'
-      +'<td><span class="badge badge-muted" style="font-size:10px">'+(b.cost_calc_type==='auto'?'자동':'수동')+'</span></td>'
-      +'<td>'+(b.is_active?'<span class="badge badge-green">활성</span>':'<span class="badge badge-muted">비활성</span>')+'</td>'
-      +'<td style="display:flex;gap:4px"><button class="btn btn-outline btn-xs" onclick="openBenefitModal(\''+b.id+'\')">수정</button></td>'
-      +'</tr>';
-  }).join('');
+  if(!DB.benefits.length){content.innerHTML='';if(empty)empty.style.display='';return;}
+  if(empty)empty.style.display='none';
+  var perPage=parseInt(document.getElementById('ben-per-page')?.value||'20');
+  var total=DB.benefits.length,pages=Math.max(1,Math.ceil(total/perPage));
+  if(benPage>pages)benPage=1;
+  buildPager('ben-pagination-top',total,benPage,perPage,'goBenPage');
+  buildPager('ben-pagination-bot',total,benPage,perPage,'goBenPage');
+  var paged=DB.benefits.slice((benPage-1)*perPage,benPage*perPage);
+  var isMob=!!(window.matchMedia&&window.matchMedia('(max-width:1024px)').matches);
+  function benRewStr(b){
+    var g;
+    if(b.reward_type==='discount_percent')return b.reward_value+'% 할인';
+    if(b.reward_type==='discount_amount')return fMoney(b.reward_value)+' 할인';
+    if(b.reward_type==='gift'){g=DB.gifts.find(function(x){return x.id===b.reward_gift_id;});return '증정품 '+(g?esc(g.name):'미지정');}
+    if(b.reward_type==='free')return '무료 참여';
+    return b.reward_type;
+  }
+  function benCondStr(b){return(condLbl[b.condition_type]||b.condition_type)+' '+b.condition_value+(b.condition_type==='amount'?'원':'회');}
+  if(isMob){
+    content.innerHTML=paged.map(function(b){
+      var editBtn='<button class="btn btn-outline btn-xs" data-ben-edit="'+b.id+'">수정</button>';
+      return'<div style="padding:11px 4px;border-bottom:1px solid var(--border)">'
+        +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">'
+        +'<div style="font-size:14px;font-weight:700;flex:1">'+esc(b.name)+'</div>'
+        +(b.is_active?'<span class="badge badge-green" style="flex-shrink:0">활성</span>':'<span class="badge badge-muted" style="flex-shrink:0">비활성</span>')
+        +'</div>'
+        +(b.description?'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+esc(b.description)+'</div>':'')
+        +'<div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">'
+        +'<span style="font-size:12px;color:var(--text2)">&#128203; <span class="td-mono">'+benCondStr(b)+'</span></span>'
+        +'<span style="font-size:12px;color:var(--text2)">&#127873; '+benRewStr(b)+'</span>'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:6px;margin-top:7px">'
+        +'<span class="badge badge-muted" style="font-size:10px">'+(b.cost_calc_type==='auto'?'원가 자동':'원가 수동')+'</span>'
+        +editBtn+'</div>'
+        +'</div>';
+    }).join('');
+  } else {
+    content.innerHTML='<div class="tbl-wrap"><table>'
+      +'<thead><tr><th>혜택명</th><th>조건</th><th>보상</th><th>원가</th><th>상태</th><th></th></tr></thead>'
+      +'<tbody>'+paged.map(function(b){
+        var editBtn='<button class="btn btn-outline btn-xs" data-ben-edit="'+b.id+'">수정</button>';
+        return'<tr>'
+          +'<td><strong>'+esc(b.name)+'</strong>'+(b.description?'<div style="font-size:11px;color:var(--text3)">'+esc(b.description)+'</div>':'')+'</td>'
+          +'<td class="td-mono" style="font-size:12px">'+benCondStr(b)+'</td>'
+          +'<td style="font-size:12px">'+benRewStr(b)+'</td>'
+          +'<td><span class="badge badge-muted" style="font-size:10px">'+(b.cost_calc_type==='auto'?'자동':'수동')+'</span></td>'
+          +'<td>'+(b.is_active?'<span class="badge badge-green">활성</span>':'<span class="badge badge-muted">비활성</span>')+'</td>'
+          +'<td>'+editBtn+'</td>'
+          +'</tr>';
+      }).join('')+'</tbody></table></div>';
+  }
+  content.querySelectorAll('[data-ben-edit]').forEach(function(btn){
+    btn.onclick=function(){openBenefitModal(this.dataset.benEdit);};
+  });
 }
 function syncBenefitSelect(){
   var sel=document.getElementById('plog-benefit-id');if(!sel)return;
@@ -4475,22 +4546,54 @@ function deleteBenefit(){
 // ══════════════════════════════════════════════════════════
 // 증정품 CRUD
 // ══════════════════════════════════════════════════════════
+var giftPage=1;
+function goGiftPage(p){giftPage=p;renderGiftList();}
 function renderGiftList(){
-  var tbody=document.getElementById('gift-tbody');
+  var content=document.getElementById('gift-content');
   var empty=document.getElementById('gift-empty');
-  if(!tbody)return;
-  if(!DB.gifts.length){if(tbody)tbody.innerHTML='';if(empty)empty.style.display='';return;}
+  if(!content)return;
+  if(!DB.gifts.length){content.innerHTML='';if(empty)empty.style.display='';return;}
   if(empty)empty.style.display='none';
-  tbody.innerHTML=DB.gifts.map(function(g){
-    return'<tr>'
-      +'<td><strong>'+esc(g.name)+'</strong></td>'
-      +'<td style="color:var(--text2);font-size:12px">'+esc(g.description||'')+'</td>'
-      +'<td class="td-mono">'+fMoney(g.cost_per_unit||0)+'</td>'
-      +'<td class="td-mono">'+(g.stock||0)+'개</td>'
-      +'<td>'+(g.is_active?'<span class="badge badge-green">활성</span>':'<span class="badge badge-muted">비활성</span>')+'</td>'
-      +'<td style="display:flex;gap:4px"><button class="btn btn-outline btn-xs" onclick="openGiftModal(\''+g.id+'\')">수정</button></td>'
-      +'</tr>';
-  }).join('');
+  var perPage=parseInt(document.getElementById('gift-per-page')?.value||'20');
+  var total=DB.gifts.length,pages=Math.max(1,Math.ceil(total/perPage));
+  if(giftPage>pages)giftPage=1;
+  buildPager('gift-pagination-top',total,giftPage,perPage,'goGiftPage');
+  buildPager('gift-pagination-bot',total,giftPage,perPage,'goGiftPage');
+  var paged=DB.gifts.slice((giftPage-1)*perPage,giftPage*perPage);
+  var isMob=!!(window.matchMedia&&window.matchMedia('(max-width:1024px)').matches);
+  if(isMob){
+    content.innerHTML=paged.map(function(g){
+      var editBtn='<button class="btn btn-outline btn-xs" data-gift-edit="'+g.id+'">수정</button>';
+      return'<div style="padding:11px 4px;border-bottom:1px solid var(--border)">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
+        +'<div style="font-size:14px;font-weight:700;flex:1;min-width:0">'+esc(g.name)+'</div>'
+        +'<div class="td-mono" style="font-size:12px;color:var(--accent-dark);flex-shrink:0">'+fMoney(g.cost_per_unit||0)+'</div>'
+        +'</div>'
+        +(g.description?'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+esc(g.description)+'</div>':'')
+        +'<div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap">'
+        +'<span style="font-size:12px;color:var(--text2)">재고 <span class="td-mono">'+(g.stock||0)+'개</span></span>'
+        +(g.is_active?'<span class="badge badge-green">활성</span>':'<span class="badge badge-muted">비활성</span>')
+        +editBtn+'</div>'
+        +'</div>';
+    }).join('');
+  } else {
+    content.innerHTML='<div class="tbl-wrap"><table>'
+      +'<thead><tr><th>증정품명</th><th>설명</th><th>단위 원가</th><th>재고</th><th>상태</th><th></th></tr></thead>'
+      +'<tbody>'+paged.map(function(g){
+        var editBtn='<button class="btn btn-outline btn-xs" data-gift-edit="'+g.id+'">수정</button>';
+        return'<tr>'
+          +'<td><strong>'+esc(g.name)+'</strong></td>'
+          +'<td style="color:var(--text2);font-size:12px">'+esc(g.description||'')+'</td>'
+          +'<td class="td-mono">'+fMoney(g.cost_per_unit||0)+'</td>'
+          +'<td class="td-mono">'+(g.stock||0)+'개</td>'
+          +'<td>'+(g.is_active?'<span class="badge badge-green">활성</span>':'<span class="badge badge-muted">비활성</span>')+'</td>'
+          +'<td>'+editBtn+'</td>'
+          +'</tr>';
+      }).join('')+'</tbody></table></div>';
+  }
+  content.querySelectorAll('[data-gift-edit]').forEach(function(btn){
+    btn.onclick=function(){openGiftModal(this.dataset.giftEdit);};
+  });
 }
 function openGiftModal(id){
   var g=id?DB.gifts.find(function(x){return x.id===id;}):null;
@@ -4610,7 +4713,7 @@ function init(){
           },
           error_callback:(err)=>reject(new Error(err?.type||'token_error'))
         });
-        client.requestAccessToken({hint:AUTH.userEmail||''});
+        client.requestAccessToken({hint:AUTH.userEmail||'',prompt:''});
       });
     }).then(token=>{
       GS.clientId=cid;GS.sheetId=sid;
