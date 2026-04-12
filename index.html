@@ -1936,14 +1936,10 @@ function afterLoad(){
   const done=DB.sessions.filter(s=>s.usage_recorded).sort((a,b)=>a.session_date.localeCompare(b.session_date));
   document.getElementById('rep-from').value=done[0]?.session_date||today();
   document.getElementById('rep-to').value=today();
-  renderDashboard();
-  renderPrograms();
-  renderIngredients();
-  renderSessions();
-  renderStock();
-  renderOptions();
-  renderBenefits();
-  syncBenefitSelect();
+  var _sp='';try{_sp=localStorage.getItem('mkng_page')||'';}catch(e){}
+  var _navTarget=(_sp&&document.getElementById('page-'+_sp))?_sp:'dashboard';
+  navigate(_navTarget);
+  renderPrograms();renderIngredients();renderSessions();renderStock();renderOptions();renderBenefits();syncBenefitSelect();
 }
 
 // 변경 이력 모달
@@ -2016,6 +2012,7 @@ function navigate(id){
   document.getElementById('page-'+id).classList.add('active');
   document.querySelector('[data-page="'+id+'"]')?.classList.add('active');
   document.getElementById('mobile-title').textContent=PAGE_TITLES[id]||'';
+  try{localStorage.setItem('mkng_page',id);}catch(e){}
   closeSidebar();
   ({dashboard:renderDashboard,sessions:renderSessions,programs:renderPrograms,members:renderMembers,options:renderOptions,benefits:renderBenefits,stock:renderStock,history:renderHistory,ingredients:renderIngredients,report:renderReport})[id]?.();
 }
@@ -2072,9 +2069,15 @@ function calcSesCost(ses){
     return s+qty*ses.participants*(ing.price_per_unit/ing.purchase_unit_qty);
   },0);
   var confLogs=DB.participationLogs.filter(function(l){return l.session_id===ses.id&&l.status==='참여확정';});
-  var oCost=confLogs.reduce(function(s,l){
-    return s+DB.logOptions.filter(function(lo){return lo.log_id===l.id;}).reduce(function(ss,lo){return ss+calcOptionCost(lo.option_id);},0);
-  },0);
+  var oCost=0;
+  if(confLogs.length>0){
+    oCost=confLogs.reduce(function(s,l){
+      return s+DB.logOptions.filter(function(lo){return lo.log_id===l.id;}).reduce(function(ss,lo){return ss+calcOptionCost(lo.option_id);},0);
+    },0);
+  } else {
+    var defIds2=_getSesDefaultOptIds(ses);
+    oCost=defIds2.reduce(function(s,oid){return s+calcOptionCost(oid);},0)*ses.participants;
+  }
   return rCost+oCost;
 }
 function calcOrderAlerts(){
@@ -2398,9 +2401,9 @@ function renderSessions(){
   const theadRow=document.getElementById('ses-thead-row');
   if(theadRow){
     theadRow.innerHTML=isMob?'<th>일정</th>'
-      :'<th>날짜</th><th>프로그램</th><th>인원</th><th>원가</th><th>예상수익</th><th>메모</th><th>참가자</th><th>기록</th><th>관리</th>';
+      :'<th>날짜</th><th>프로그램</th><th>인원</th><th>매출</th><th>원가</th><th>수익</th><th class="desk-only">메모</th><th>참가자</th><th>기록</th><th>관리</th>';
   }
-  if(!sessions.length){tbody.innerHTML=`<tr><td colspan="${isMob?1:9}" class="nl"><div class="empty"><div class="empty-icon">📅</div><div style="font-size:13px">등록된 일정 없음</div></div></td></tr>`;return;}
+  if(!sessions.length){tbody.innerHTML=`<tr><td colspan="${isMob?1:10}" class="nl"><div class="empty"><div class="empty-icon">📅</div><div style="font-size:13px">등록된 일정 없음</div></div></td></tr>`;return;}
   tbody.innerHTML=sessions.map(s=>{
     const prog=DB.programs.find(p=>p.id===s.program_id);
     const cost=calcSesCost(s),rev=calcSesRevenue(s),benefitCost=calcSesBenefitCost(s),profit=rev-cost-benefitCost;
@@ -2413,7 +2416,8 @@ function renderSessions(){
           <span class="td-mono">${fDate(s.session_date)}${s.session_time?' '+s.session_time:''}</span>
           <span class="td-mono">${s.participants}명</span>
         </div>
-        <div style="display:flex;gap:14px;margin-bottom:7px;font-size:12px">
+        <div style="display:flex;gap:10px;margin-bottom:7px;font-size:12px;flex-wrap:wrap">
+          <span class="td-mono n-g">매출 ${fMoney(rev)}</span>
           <span class="td-mono n-p">원가 ${fMoney(cost)}</span>
           <span class="td-mono ${profit>=0?'n-g':'n-r'}">수익 ${fMoney(profit)}</span>
         </div>
@@ -2430,9 +2434,10 @@ function renderSessions(){
       <td data-label="날짜" class="td-mono">${fDate(s.session_date)}${s.session_time?'<br><span style="font-size:11px;color:var(--text3)">'+s.session_time+'</span>':''}</td>
       <td data-label="프로그램">${prog?`${prog.emoji||''} ${esc(prog.name)}`:'—'}${_sesOptLinesHtml(s.id)}</td>
       <td data-label="인원" class="td-mono">${s.participants}명</td>
+      <td data-label="매출" class="td-mono n-g">${fMoney(rev)}</td>
       <td data-label="원가" class="td-mono n-p">${fMoney(cost)}</td>
-      <td data-label="예상수익" class="td-mono ${profit>=0?'n-g':'n-r'}">${fMoney(profit)}</td>
-      <td data-label="메모" style="font-size:12px;color:var(--text2)">${esc(s.memo||'')}</td>
+      <td data-label="수익" class="td-mono ${profit>=0?'n-g':'n-r'}">${fMoney(profit)}</td>
+      <td data-label="메모" class="desk-only" style="font-size:12px;color:var(--text2)">${esc(s.memo||'')}</td>
       <td class="nl">${sesPlogBadge(s.id,s.participants)}</td>
       <td class="nl">${locked?`<div style="display:flex;gap:4px;align-items:center"><span class="badge badge-green">기록됨</span><button class="btn btn-danger btn-xs" onclick="cancelUsage('${s.id}')">취소</button></div>`:`<button class="btn btn-green btn-sm" onclick="recordUsage('${s.id}')">기록하기</button>`}</td>
       <td class="nl" style="display:flex;gap:4px">
@@ -4576,7 +4581,7 @@ function resetNavLabel(key){
 function renderSettingsInfo(){
   var el=document.getElementById('settings-info-body');if(!el)return;
   var rows=[
-    ['앱 버전','v4.1 (11단계)'],
+    ['앱 버전','v4.13 (13단계)'],
     ['참가자',DB.members.length+'명'],
     ['참여 로그',DB.participationLogs.length+'건'],
     ['모임 세션',DB.sessions.length+'개'],
@@ -4591,7 +4596,11 @@ function renderSettingsInfo(){
   el.innerHTML='<table style="width:100%;font-size:13px;border-collapse:collapse">'
     +rows.map(function(r){return'<tr style="border-bottom:1px solid var(--border)"><td style="padding:9px 8px;color:var(--text2);font-weight:600;font-size:11px;font-family:var(--mono);text-transform:uppercase;width:110px">'+r[0]+'</td><td style="padding:9px 8px">'+r[1]+'</td></tr>';}).join('')
     +'</table>'
-    +'<div style="margin-top:16px;padding:12px;background:#fafafa;border-radius:8px;font-size:11px;color:var(--text3)">데이터는 현재 브라우저 메모리에만 저장됩니다. Google Sheets 연결 시 영구 저장됩니다.</div>';
+    +'<div style="margin-top:16px;padding:12px;background:#fafafa;border-radius:8px;font-size:11px;color:var(--text3)">데이터는 현재 브라우저 메모리에만 저장됩니다. Google Sheets 연결 시 영구 저장됩니다.</div>'
+    +'<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">'
+    +'<button class="btn btn-outline btn-sm" onclick="syncDummyDataToSheets()">&#128190; 더미 데이터 Sheets에 저장</button>'
+    +'<button class="btn btn-danger btn-sm" onclick="clearDummyData()">&#128465; 더미 데이터 삭제</button>'
+    +'</div>';
 }
 
 function renderSettingsSheets(){
@@ -4616,7 +4625,16 @@ function renderReportProfit(){
   const ss=DB.sessions.filter(s=>s.usage_recorded&&(!from||s.session_date>=from)&&(!to||s.session_date<=to));
   const totalRev=ss.reduce((a,x)=>a+calcSesRevenue(x),0);
   const totalCost=ss.reduce((a,x)=>a+calcSesCost(x)+calcSesBenefitCost(x),0);const totalProfit=totalRev-totalCost;
-  document.getElementById('rep-summary').innerHTML=`<div class="g2" style="gap:10px">${[['총 모임',ss.length+'회','n-y'],['총 참여자',ss.reduce((a,x)=>a+x.participants,0)+'명','n-y'],['총 매출',fMoney(totalRev),'n-g'],['총 수익',fMoney(totalProfit),totalProfit>=0?'n-g':'n-r'],['총 원가',fMoney(totalCost),'n-p'],['수익률',totalRev?Math.round(totalProfit/totalRev*100)+'%':'—','n-y']].map(([l,v,c])=>`<div><div class="card-label">${l}</div><div class="${c}" style="font-size:20px;font-weight:800">${v}</div></div>`).join('')}</div>`;
+  var _pax=ss.reduce(function(a,x){return a+x.participants;},0);
+  var _mrg=totalRev?Math.round(totalProfit/totalRev*100)+'%':'—';
+  document.getElementById('rep-summary').innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+    +'<div><div class="card-label">총 모임</div><div class="n-y" style="font-size:20px;font-weight:800">'+ss.length+'회</div></div>'
+    +'<div><div class="card-label">총 참여자</div><div class="n-y" style="font-size:20px;font-weight:800">'+_pax+'명</div></div>'
+    +'<div><div class="card-label">총 매출</div><div class="n-g" style="font-size:20px;font-weight:800">'+fMoney(totalRev)+'</div></div>'
+    +'<div><div class="card-label">총 수익</div><div class="'+(totalProfit>=0?'n-g':'n-r')+'" style="font-size:20px;font-weight:800">'+fMoney(totalProfit)+'</div></div>'
+    +'<div><div class="card-label">총 원가</div><div class="n-p" style="font-size:20px;font-weight:800">'+fMoney(totalCost)+'</div></div>'
+    +'<div><div class="card-label">평균 수익률</div><div class="n-y" style="font-size:20px;font-weight:800">'+_mrg+'</div></div>'
+    +'</div>';
   const mMap={};ss.forEach(s=>{const ym=s.session_date.slice(0,7);if(!mMap[ym]){mMap[ym]={rev:0,cost:0};}mMap[ym].rev+=calcSesRevenue(s);mMap[ym].cost+=calcSesCost(s)+calcSesBenefitCost(s);});
   const mons=Object.keys(mMap).sort(),mx=Math.max(...mons.map(m=>mMap[m].rev),1);
   if(mons.length){
@@ -4767,9 +4785,9 @@ function seedData(){
     // SES013 (1명)
     {id:'PLOG001',member_id:'MBR001',session_id:'SES013',applied_at:'2026-04-01T10:00:00Z',status:'참여확정',channel:'인스타그램',payment_status:'확인',payment_amount:39000,payment_confirmed_at:'2026-04-02T00:00:00Z',benefit_id:null,benefit_cost:0,benefit_cost_type:'auto',benefit_memo:'',memo:''},
     // SES014 (3명) — 김민지: 기본 포장 업그레이드 포함(44000), 이서연: 기본가, 박지수: 5회 할인(할인 후 35100) + 사진촬영
-    {id:'PLOG002',member_id:'MBR001',session_id:'SES014',applied_at:'2026-04-01T10:30:00Z',status:'참여확정',channel:'인스타그램',payment_status:'확인',payment_amount:44000,payment_confirmed_at:'2026-04-02T00:00:00Z',benefit_id:null,benefit_cost:0,benefit_cost_type:'auto',benefit_memo:'',memo:''},
+    {id:'PLOG002',member_id:'MBR001',session_id:'SES014',applied_at:'2026-04-01T10:30:00Z',status:'참여확정',channel:'인스타그램',payment_status:'확인',payment_amount:39000,payment_confirmed_at:'2026-04-02T00:00:00Z',benefit_id:null,benefit_cost:0,benefit_cost_type:'auto',benefit_memo:'',memo:''},
     {id:'PLOG003',member_id:'MBR002',session_id:'SES014',applied_at:'2026-04-01T11:00:00Z',status:'참여확정',channel:'당근모임',payment_status:'확인',payment_amount:39000,payment_confirmed_at:'2026-04-02T00:00:00Z',benefit_id:null,benefit_cost:0,benefit_cost_type:'auto',benefit_memo:'',memo:''},
-    {id:'PLOG004',member_id:'MBR003',session_id:'SES014',applied_at:'2026-04-01T11:30:00Z',status:'참여확정',channel:'당근모임',payment_status:'확인',payment_amount:44100,payment_confirmed_at:'2026-04-02T00:00:00Z',benefit_id:'BEN001',benefit_cost:3900,benefit_cost_type:'auto',benefit_memo:'5회 달성 10% 할인 적용',memo:''},
+    {id:'PLOG004',member_id:'MBR003',session_id:'SES014',applied_at:'2026-04-01T11:30:00Z',status:'참여확정',channel:'당근모임',payment_status:'확인',payment_amount:39000,payment_confirmed_at:'2026-04-02T00:00:00Z',benefit_id:'BEN001',benefit_cost:3900,benefit_cost_type:'auto',benefit_memo:'5회 달성 10% 할인 적용',memo:''},
   ];
   // 옵션 로그: PLOG002에 포장 업그레이드, PLOG004에 사진 촬영 서비스 추가
   DB.logOptions=[
@@ -4784,9 +4802,19 @@ function seedData(){
 // ══════════════════════════════════════════════════════════
 // 수익 계산 확장
 // ══════════════════════════════════════════════════════════
+function _getSesDefaultOptIds(ses){
+  var ovr=DB.sessionOptions.filter(function(x){return x.session_id===ses.id;});
+  if(ovr.length)return ovr.map(function(x){return x.option_id;});
+  var prog=DB.programs.find(function(p){return p.id===ses.program_id;});
+  return(prog&&prog.default_option_ids)||[];
+}
 function calcSesRevenue(ses){
   var conf=DB.participationLogs.filter(function(l){return l.session_id===ses.id&&l.status==='참여확정';});
-  if(!conf.length){return(ses.selling_price_snapshot||0)*ses.participants;}
+  if(!conf.length){
+    var defIds=_getSesDefaultOptIds(ses);
+    var optP=defIds.reduce(function(s,oid){var o=DB.addOptions.find(function(x){return x.id===oid;});return s+(o?o.price||0:0);},0);
+    return((ses.selling_price_snapshot||0)+optP)*ses.participants;
+  }
   return conf.reduce(function(s,l){
     var optAmt=DB.logOptions.filter(function(o){return o.log_id===l.id;}).reduce(function(ss,o){return ss+(o.price_snapshot||0);},0);
     return s+(l.payment_amount||0)+optAmt;
@@ -5258,6 +5286,41 @@ function updatePlogOptTotal(){
 // ══════════════════════════════════════════════════════════
 // 초기화
 // ══════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════
+// 더미 데이터 관리
+// ══════════════════════════════════════════════════════════
+var DUMMY_IDS={
+  addOptions:['OPT001','OPT002'],
+  optionRecipes:['ORC001'],
+  gifts:['GFT001','GFT002'],
+  benefits:['BEN001','BEN002'],
+  members:['MBR001','MBR002','MBR003'],
+  participationLogs:['PLOG001','PLOG002','PLOG003','PLOG004'],
+  logOptions:['LOPT001','LOPT002'],
+};
+function syncDummyDataToSheets(){
+  if(!requireSheets())return;
+  if(!confirm('현재 더미 데이터를 Sheets에 저장할까요?\n기존 Sheets 데이터와 합쳐집니다.'))return;
+  gsAfter('addOptions','optionRecipes','gifts','benefits','members','participationLogs','logOptions');
+  toast('더미 데이터를 Sheets에 저장했습니다 ✓');
+  renderSettingsInfo();
+}
+function clearDummyData(){
+  if(!requireSheets())return;
+  if(!confirm('더미 데이터를 모두 삭제할까요?\n삭제 후 Sheets에도 즉시 반영됩니다.'))return;
+  Object.entries(DUMMY_IDS).forEach(function(e){
+    var key=e[0],ids=e[1];
+    DB[key]=DB[key].filter(function(x){return!ids.includes(x.id);});
+  });
+  // PRG001 default_option_ids 초기화
+  var prg=DB.programs.find(function(p){return p.id==='PRG001';});
+  if(prg)prg.default_option_ids=[];
+  gsAfter('addOptions','optionRecipes','gifts','benefits','members','participationLogs','logOptions','programs');
+  renderOptions();renderBenefits();renderMembers&&renderMembers();renderPrograms();
+  toast('더미 데이터 삭제 완료','warning');
+  renderSettingsInfo();
+}
 function init(){
   loadAppSettings();
   seedData();
@@ -5278,7 +5341,8 @@ function init(){
   if(AUTH.loadSession()){
     document.getElementById('auth-screen').style.display='none';
     updateUserInfo();
-    renderDashboard();
+    var _spInit='';try{_spInit=localStorage.getItem('mkng_page')||'';}catch(e){}
+    navigate((_spInit&&document.getElementById('page-'+_spInit))?_spInit:'dashboard');
     // silent 토큰 재발급 시도 — 실패해도 배너로 안내
     GS.updateUI('sync','Sheets 연결 중...');
     waitForGIS().then(()=>{
