@@ -1473,7 +1473,7 @@ const GS={
         },
         error_callback:(err)=>reject(new Error(err?.type||'token_error'))
       });
-      client.requestAccessToken({prompt:'none'});
+      client.requestAccessToken({hint:AUTH.userEmail||''});
     });
   },
 
@@ -4023,8 +4023,7 @@ function init(){
           },
           error_callback:(err)=>reject(new Error(err?.type||'token_error'))
         });
-        // prompt:'none' — 브라우저에 기존 세션이 있으면 자동, 없으면 에러로 빠짐(팝업 X)
-        client.requestAccessToken({prompt:'none'});
+        client.requestAccessToken({hint:AUTH.userEmail||''});
       });
     }).then(token=>{
       GS.clientId=cid;GS.sheetId=sid;
