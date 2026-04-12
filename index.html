@@ -825,9 +825,9 @@ const AUTH={
     // 'partner@gmail.com',        // 동료 이메일 추가 예시
   ],
   // ★ Google OAuth Client ID — 연결 후 여기 붙여넣어 두면 자동 로그인 가능
-  CLIENT_ID:'27055656717-pgddfisd182i8jqlg574v7vrbkff2b2b.apps.googleusercontent.com',   // 예: '123456789-abc.apps.googleusercontent.com'
+  CLIENT_ID:'',   // 예: '123456789-abc.apps.googleusercontent.com'
   // ★ Google Spreadsheet ID
-  SHEET_ID:'1QHzz73LzPSGWCwl6SN7TPaxxdyqnkIxzlq9TQpGopag',    // 예: '1abc2def3ghi...'
+  SHEET_ID:'',    // 예: '1abc2def3ghi...'
 
   userEmail:null,
   userName:null,
@@ -875,81 +875,89 @@ async function authLogin(){
   const btn=document.getElementById('auth-btn');
   errEl.style.display='none';
   spinEl.style.display='block';
+  spinEl.textContent='로그인 중...';
   btn.disabled=true;
 
-  // CLIENT_ID가 코드에 없으면 입력 받기
-  let cid=AUTH.CLIENT_ID.trim();
+  // 코드에 하드코딩된 값 우선, 없으면 localStorage 복원값, 없으면 prompt
+  const savedCfg=(()=>{try{return JSON.parse(localStorage.getItem(GS.LS_KEY)||'{}');}catch(e){return{};}})();
+  let cid=(AUTH.CLIENT_ID||'').trim()||savedCfg.clientId||'';
+  let sid=(AUTH.SHEET_ID||'').trim()||savedCfg.sheetId||'';
+
   if(!cid){
-    cid=prompt('Google OAuth Client ID를 입력해주세요:\n(설정 후 코드에 저장하면 다음엔 자동 입력됩니다)');
+    cid=(prompt('Google OAuth Client ID를 입력해주세요:')||'').trim();
     if(!cid){spinEl.style.display='none';btn.disabled=false;return;}
-    cid=cid.trim();
   }
-  let sid=AUTH.SHEET_ID.trim();
   if(!sid){
-    sid=prompt('Google Spreadsheet ID를 입력해주세요:');
+    sid=(prompt('Google Spreadsheet ID를 입력해주세요:')||'').trim();
     if(!sid){spinEl.style.display='none';btn.disabled=false;return;}
-    sid=sid.trim();
   }
 
   try{
     // GIS 로드 대기
+    spinEl.textContent='Google 라이브러리 로드 중...';
     await waitForGIS();
 
-    // 토큰 요청 (Sheets 스코프 + email 확인용 openid)
-    const token = await new Promise((resolve,reject)=>{
+    // 토큰 요청
+    spinEl.textContent='Google 계정 인증 중...';
+    const token=await new Promise((resolve,reject)=>{
       const client=google.accounts.oauth2.initTokenClient({
         client_id:cid,
         scope:'https://www.googleapis.com/auth/spreadsheets openid email profile',
         callback:(resp)=>{
           if(resp.error){reject(new Error(resp.error_description||resp.error));return;}
           resolve(resp.access_token);
+        },
+        error_callback:(err)=>{
+          reject(new Error(err?.message||'OAuth 오류'));
         }
       });
-      client.requestAccessToken();
+      client.requestAccessToken({prompt:'select_account'});
     });
 
     // 이메일 확인
+    spinEl.textContent='계정 확인 중...';
     const info=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{
       headers:{Authorization:'Bearer '+token}
     }).then(r=>r.json());
 
+    if(!info.email){throw new Error('이메일 정보를 가져올 수 없습니다.');}
     if(!AUTH.ALLOWED_EMAILS.includes(info.email)){
       throw new Error('접근 권한이 없는 계정입니다.\n('+info.email+')\n관리자에게 문의하세요.');
     }
 
-    // 인증 성공
+    // 인증 성공 — GS 모듈에 토큰/설정 전달
     AUTH.userEmail=info.email;
     AUTH.userName=info.name;
     AUTH.userPicture=info.picture;
     AUTH.saveSession();
 
-    // GS 모듈에 토큰/설정 전달
     GS.clientId=cid;
     GS.sheetId=sid;
     GS.accessToken=token;
     GS.tokenExpiry=Date.now()+3500000;
     GS.saveConfig();
 
-    // 앱 초기화 & Sheets 연동
+    // 로그인 화면 숨기기
     document.getElementById('auth-screen').style.display='none';
     document.getElementById('gs-client-id').value=cid;
     document.getElementById('gs-sheet-id').value=sid;
 
+    // Sheets 연동
+    spinEl.textContent='Sheets 연결 중...';
     await GS.initSheets();
     await GS.loadAll();
+
     syncIngSelects();syncProgSelects();syncCatSelect();
     const allDone=DB.sessions.filter(s=>s.usage_recorded).sort((a,b)=>a.session_date.localeCompare(b.session_date));
     document.getElementById('rep-from').value=allDone[0]?.session_date||today();
     document.getElementById('rep-to').value=today();
     renderDashboard();
-
-    // 사이드바 유저 정보 표시
     updateUserInfo();
-    GS.updateUI('ok','연결됨 · '+cid.slice(0,14)+'...');
+    GS.updateUI('ok','연결됨 · '+sid.slice(0,14)+'...');
     toast('환영합니다, '+(AUTH.userName||AUTH.userEmail)+' ✓');
 
   }catch(e){
-    console.error(e);
+    console.error('authLogin error:',e);
     spinEl.style.display='none';
     btn.disabled=false;
     errEl.textContent=e.message||'로그인 실패';
@@ -2329,29 +2337,49 @@ function init(){
   document.getElementById('rep-from').value=allDone[0]?.session_date||today();
   document.getElementById('rep-to').value=today();
 
-  // GS 저장 설정 복원
+  // GS 저장 설정 복원 (코드에 하드코딩된 값 우선)
   GS.loadConfig();
-  if(GS.clientId){document.getElementById('gs-client-id').value=GS.clientId;}
-  if(GS.sheetId){document.getElementById('gs-sheet-id').value=GS.sheetId;}
+  const cid=(AUTH.CLIENT_ID||'').trim()||GS.clientId||'';
+  const sid=(AUTH.SHEET_ID||'').trim()||GS.sheetId||'';
+  if(cid)document.getElementById('gs-client-id').value=cid;
+  if(sid)document.getElementById('gs-sheet-id').value=sid;
 
-  // 세션 복원 시도 (같은 브라우저 탭/세션이면 재로그인 불필요)
+  // 세션 복원: localStorage에 30일 이내 로그인 이력 있으면 로그인 화면 건너뜀
   if(AUTH.loadSession()){
     document.getElementById('auth-screen').style.display='none';
     updateUserInfo();
     renderDashboard();
-    document.getElementById('footer-status').textContent='데이터 로드 완료 ✓';
-    GS.updateUI('','Sheets 미연결 (연결 버튼 클릭)');
-    // Client ID 있으면 자동 재연결 시도
-    if(GS.clientId&&GS.sheetId){
-      GS.updateUI('sync','자동 연결 중...');
-      gsConnect().catch(()=>{GS.updateUI('err','자동 연결 실패 — 수동 연결하세요');});
-    }
+    GS.updateUI('sync','Sheets 자동 연결 중...');
+    // 토큰 재발급 + Sheets 재연결 (백그라운드)
+    waitForGIS().then(()=>{
+      return new Promise((resolve,reject)=>{
+        const client=google.accounts.oauth2.initTokenClient({
+          client_id:cid,
+          scope:'https://www.googleapis.com/auth/spreadsheets openid email profile',
+          callback:(resp)=>{resp.error?reject(new Error(resp.error)):resolve(resp.access_token);},
+          error_callback:(err)=>reject(new Error(err?.message||'token error'))
+        });
+        client.requestAccessToken({prompt:''});  // prompt:'' → 팝업 없이 자동 시도
+      });
+    }).then(token=>{
+      GS.clientId=cid;GS.sheetId=sid;
+      GS.accessToken=token;GS.tokenExpiry=Date.now()+3500000;
+      return GS.initSheets().then(()=>GS.loadAll());
+    }).then(()=>{
+      syncIngSelects();syncProgSelects();syncCatSelect();
+      const done=DB.sessions.filter(s=>s.usage_recorded).sort((a,b)=>a.session_date.localeCompare(b.session_date));
+      document.getElementById('rep-from').value=done[0]?.session_date||today();
+      document.getElementById('rep-to').value=today();
+      renderDashboard();
+      GS.updateUI('ok','연결됨 · '+sid.slice(0,14)+'...');
+      toast('Sheets 자동 연결 완료 ✓');
+    }).catch(e=>{
+      console.warn('자동 재연결 실패(수동 로그인 필요):',e);
+      GS.updateUI('','Sheets 미연결');
+      // 자동 재연결 실패해도 앱은 정상 사용 가능, 사이드바 연결 버튼으로 재시도
+    });
   } else {
-    // 로그인 화면 표시 (이미 HTML에서 보임)
     document.getElementById('auth-screen').style.display='flex';
-    // CLIENT_ID/SHEET_ID 코드에 하드코딩된 경우 입력창에 미리 채우기
-    if(AUTH.CLIENT_ID)document.getElementById('gs-client-id').value=AUTH.CLIENT_ID;
-    if(AUTH.SHEET_ID)document.getElementById('gs-sheet-id').value=AUTH.SHEET_ID;
   }
 }
 init();
