@@ -368,6 +368,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
         <button class="gs-btn" onclick="gsSyncAll()" style="flex:1">↻ 전체 동기화</button>
         <button class="gs-btn" onclick="gsDisconnect()">연결 해제</button>
       </div>
+      <button class="gs-btn" style="width:100%;margin-top:4px;background:#fffcf0;border-color:#ffe066" onclick="gsSeedToSheets()">📦 샘플 데이터 → Sheets 저장</button>
       <div id="gs-last-sync" style="font-size:9px;color:var(--text3);margin-top:4px"></div>
     </div>
   </div>
@@ -834,11 +835,12 @@ const AUTH={
 
   LS_AUTH:'mkng_auth',
 
-  // 저장된 인증 세션 복원 시도
+  // 저장된 인증 세션 복원 시도 (localStorage → 브라우저/기기에 영구 유지)
   loadSession(){
     try{
-      const d=JSON.parse(sessionStorage.getItem(this.LS_AUTH)||'{}');
-      if(d.email&&this.ALLOWED_EMAILS.includes(d.email)){
+      const d=JSON.parse(localStorage.getItem(this.LS_AUTH)||'{}');
+      // 만료 시간 체크 (30일)
+      if(d.email&&this.ALLOWED_EMAILS.includes(d.email)&&d.savedAt&&(Date.now()-d.savedAt)<30*24*3600*1000){
         this.userEmail=d.email;this.userName=d.name;this.userPicture=d.picture;
         return true;
       }
@@ -846,10 +848,10 @@ const AUTH={
     return false;
   },
   saveSession(){
-    try{sessionStorage.setItem(this.LS_AUTH,JSON.stringify({email:this.userEmail,name:this.userName,picture:this.userPicture}));}catch(e){}
+    try{localStorage.setItem(this.LS_AUTH,JSON.stringify({email:this.userEmail,name:this.userName,picture:this.userPicture,savedAt:Date.now()}));}catch(e){}
   },
   clearSession(){
-    try{sessionStorage.removeItem(this.LS_AUTH);}catch(e){}
+    try{localStorage.removeItem(this.LS_AUTH);}catch(e){}
     this.userEmail=null;this.userName=null;this.userPicture=null;
   }
 };
@@ -1184,6 +1186,25 @@ async function gsSyncAll(){
     renderDashboard();
     toast('전체 동기화 완료 ✓');
   }catch(e){toast('동기화 실패: '+e.message,'error');}
+}
+
+// 샘플 데이터(현재 메모리 DB)를 Sheets에 통째로 저장
+async function gsSeedToSheets(){
+  if(!GS.isConnected()){toast('먼저 Sheets에 연결해주세요','error');return;}
+  if(!confirm('현재 앱의 샘플 데이터를 Google Sheets에 저장합니다.\n기존 Sheets 데이터가 덮어써집니다. 계속할까요?'))return;
+  GS.updateUI('sync','샘플 데이터 저장 중...');
+  try{
+    await GS.initSheets();
+    const keys=Object.keys(GS.SHEETS);
+    for(const k of keys){await GS.writeSheet(k);}
+    GS.lastSync=new Date().toISOString();
+    GS.updateUI('ok','연결됨 · '+GS.sheetId.slice(0,12)+'...');
+    toast('샘플 데이터 저장 완료 ✓ ('+keys.length+'개 시트)');
+  }catch(e){
+    console.error(e);
+    GS.updateUI('err','저장 실패: '+e.message);
+    toast('저장 실패: '+e.message,'error');
+  }
 }
 
 function gsShowHelp(){openModal('m-gs-help');}
@@ -1613,6 +1634,36 @@ function openMultiLogModal(){
   addLogRow();openModal('m-log');
 }
 function onLogTypeChange(){}  // 공통 구분 없어짐 - 호환성 유지용 빈 함수
+
+// 개별 행 구분 변경 시 조정 안내 표시
+function onLogRowTypeChange(sel){
+  const row=sel.closest('.log-row-item');
+  if(!row)return;
+  const hint=row.querySelector('.log-row-adj-hint');
+  const ingSel=row.querySelector('.log-row-ing');
+  const qtyInput=row.querySelector('.log-row-qty');
+  if(sel.value==='조정'){
+    hint.style.display='block';
+    // 현재 재고 표시 및 수량 input placeholder 변경
+    qtyInput.placeholder='조정 후 재고량';
+    updateAdjHint(row);
+    // 재료가 바뀔 때도 현재 재고 갱신
+    ingSel.onchange=()=>updateAdjHint(row);
+  } else {
+    hint.style.display='none';
+    qtyInput.placeholder='수량';
+    ingSel.onchange=null;
+  }
+}
+function updateAdjHint(row){
+  const ingSel=row.querySelector('.log-row-ing');
+  const curEl=row.querySelector('.log-row-adj-cur');
+  const logDate=document.getElementById('log-date').value||today();
+  if(!ingSel?.value){curEl.textContent='';return;}
+  const ing=DB.ingredients.find(i=>i.id===ingSel.value);
+  const cur=calcStock(ingSel.value,logDate);
+  curEl.textContent='현재 재고: '+fNum(cur)+' '+(ing?.unit||'');
+}
 function addLogRow(){
   const rid=genId('LR');
   const opts=DB.ingredients.filter(i=>i.is_active).map(i=>'<option value="'+i.id+'">'+esc(i.name)+' ('+i.unit+')</option>').join('');
@@ -1624,7 +1675,9 @@ function addLogRow(){
   div.innerHTML=
     '<div class="log-row-inner">'
     +'<select class="form-select log-row-ing" style="flex:2;min-width:110px"><option value="">재료 선택</option>'+opts+'</select>'
-    +'<select class="form-select log-row-type" style="flex:1;min-width:72px"><option value="입고">입고</option><option value="사용">사용</option><option value="조정">조정</option></select>'
+    +'<select class="form-select log-row-type" style="flex:1;min-width:72px" onchange="onLogRowTypeChange(this)">'
+    +'<option value="입고">입고</option><option value="사용">사용</option><option value="조정">조정</option>'
+    +'</select>'
     +'<input type="number" class="form-input log-row-qty" style="flex:1;min-width:70px" placeholder="수량" min="0">'
     // 주문일: 커스텀 버튼 + 숨긴 date input
     +'<div class="log-row-od-wrap">'
@@ -1635,6 +1688,11 @@ function addLogRow(){
     +'</div>'
     +'<input type="text" class="form-input log-row-memo" style="flex:2;min-width:80px" placeholder="메모(선택)">'
     +'<button class="btn btn-outline btn-xs" type="button" style="flex-shrink:0" onclick="document.getElementById(\''+rid+'\').remove()">−</button>'
+    +'</div>'
+    +'<div class="log-row-adj-hint" style="display:none;margin-top:5px;padding:7px 10px;background:#fffcf0;border:1px solid #ffe066;border-radius:6px;font-size:12px;color:#7a6000;line-height:1.5">'
+    +'⚠️ <b>조정</b>은 현재 재고를 원하는 값으로 <b>맞추는</b> 기능입니다.<br>'
+    +'수량란에 <b>조정 후 최종 재고량</b>을 입력하세요.<br>'
+    +'<span class="log-row-adj-cur" style="font-family:var(--mono);color:#555"></span>'
     +'</div>';
   document.getElementById('log-rows').appendChild(div);
 }
