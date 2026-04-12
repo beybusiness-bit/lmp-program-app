@@ -532,9 +532,9 @@ tbody td{padding:11px 11px;vertical-align:middle}
 <div class="page" id="page-programs">
   <div class="page-header"><div><div class="page-title">프로그램</div></div><button class="btn btn-primary" onclick="openProgModal()">+ 프로그램 추가</button></div>
   <div class="page-body">
-    <!-- 타입 필터 + 페이저 -->
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-      <div id="prog-type-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
+    <div id="prog-type-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+      <div class="pagination" id="prog-pagination-top" style="flex:1;min-width:0"></div>
       <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
         <span style="font-size:12px;color:var(--text3)">페이지당</span>
         <select class="form-select" style="width:75px" id="prog-per-page" onchange="progPage=1;renderPrograms()">
@@ -542,7 +542,6 @@ tbody td{padding:11px 11px;vertical-align:middle}
         </select>
       </div>
     </div>
-    <div class="pagination" id="prog-pagination-top" style="margin-bottom:8px"></div>
     <div id="prog-list"></div>
     <div class="pagination" id="prog-pagination-bot" style="margin-top:10px"></div>
   </div>
@@ -566,10 +565,20 @@ tbody td{padding:11px 11px;vertical-align:middle}
       </div>
     </div>
     <div class="card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+        <div class="pagination" id="member-pagination-top" style="flex:1;min-width:0"></div>
+        <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+          <span style="font-size:12px;color:var(--text3)">페이지당</span>
+          <select class="form-select" style="width:75px" id="member-per-page" onchange="memberPage=1;renderMembers()">
+            <option value="20">20개</option><option value="50">50개</option><option value="100">100개</option>
+          </select>
+        </div>
+      </div>
       <div class="tbl-wrap"><table>
         <thead><tr><th>참가자</th><th>참여</th><th>가입·상태</th><th></th></tr></thead>
         <tbody id="member-tbody"></tbody>
       </table></div>
+      <div class="pagination" id="member-pagination-bot" style="margin-top:8px"></div>
       <div id="member-empty" class="empty" style="display:none">
         <div class="empty-icon">👥</div><div style="font-size:13px">등록된 참가자 없음</div>
         <button class="btn btn-primary" style="margin-top:12px" onclick="openMemberModal()">첫 참가자 추가</button>
@@ -657,14 +666,17 @@ tbody td{padding:11px 11px;vertical-align:middle}
 <!-- ════ 입출고 이력 ════ -->
 <div class="page" id="page-history">
   <div class="page-header" style="flex-wrap:nowrap;align-items:center"><div style="min-width:0"><div class="page-title" style="white-space:nowrap">입출고 이력</div></div>
-    <div style="display:flex;gap:5px;flex-shrink:0">
+    <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:nowrap">
       <button class="btn btn-outline btn-sm" onclick="openMultiLogModal()">+ 기록 추가</button>
-      <button class="btn btn-outline btn-xs" onclick="downloadCsvTemplate()" title="템플릿">📥</button>
-      <label class="btn btn-outline btn-xs" style="cursor:pointer" title="CSV 업로드">📤<input type="file" accept=".csv" style="display:none" onchange="importCsv(event)"></label>
+      <label class="btn btn-outline btn-sm" style="cursor:pointer">csv 업로드<input type="file" accept=".csv" style="display:none" onchange="importCsv(event)"></label>
+      <button class="btn btn-outline btn-sm" onclick="downloadCsvTemplate()">csv 템플릿</button>
     </div>
   </div>
   <div class="page-body">
     <div class="card">
+      <div class="mob-only" style="display:flex;align-items:center;gap:8px;padding:6px 0 2px;font-size:12px;color:var(--text2)">
+        <input type="checkbox" id="hist-check-all-mob" onchange="document.getElementById('hist-check-all').checked=this.checked;toggleAllHistChecks(this)"> 전체 선택
+      </div>
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
         <select class="form-select" style="width:150px" id="hist-fi" onchange="histPage=1;renderHistory()"><option value="">전체 재료</option></select>
         <select class="form-select" style="width:120px" id="hist-ft" onchange="histPage=1;renderHistory()"><option value="">전체 구분</option><option value="입고">입고</option><option value="사용">사용</option><option value="조정">조정</option></select>
@@ -720,7 +732,17 @@ tbody td{padding:11px 11px;vertical-align:middle}
       <!-- 프로그램별 뷰에서 선택 -->
       <div id="ing-prog-selector" style="display:none"></div>
     </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+      <div class="pagination" id="ing-pagination-top" style="flex:1;min-width:0"></div>
+      <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+        <span style="font-size:12px;color:var(--text3)">페이지당</span>
+        <select class="form-select" style="width:75px" id="ing-per-page" onchange="ingPage=1;renderIngredients()">
+          <option value="20">20개</option><option value="50">50개</option><option value="100">100개</option>
+        </select>
+      </div>
+    </div>
     <div id="ing-content"></div>
+    <div class="pagination" id="ing-pagination-bot" style="margin-top:10px"></div>
   </div>
 </div>
 
@@ -2352,21 +2374,23 @@ function renderHistory(){
   const pageLogs=logs.slice((histPage-1)*perPage,histPage*perPage);
   document.getElementById('hist-check-all').checked=false;
   document.getElementById('hist-del-btn').style.display='none';
-  const histMob=!!(window.matchMedia&&window.matchMedia('(max-width:1024px)').matches);
+  const histMob=!!(window.matchMedia&&window.matchMedia('(max-width:640px)').matches);
   document.getElementById('hist-tbody').innerHTML=pageLogs.length?pageLogs.map(log=>{
     const ing=DB.ingredients.find(i=>i.id===log.ingredient_id);
     if(histMob){return'<tr><td class="nl" style="padding:8px 10px;display:block">'
+      +'<div style="display:flex;align-items:center;gap:8px;justify-content:space-between">'
       +'<div style="display:flex;align-items:center;gap:8px">'
-      +'<input type="checkbox" class="hist-check" data-id="'+log.id+'" onchange="onHistCheckChange()">'
+      +'<input type="checkbox" class="hist-check" data-id="'+log.id+'" onchange="onHistCheckChange()" style="flex-shrink:0">'
       +'<span class="td-mono" style="font-size:12px;font-weight:600">'+fDate(log.log_date)+'</span>'
       +'</div>'
-      +'<div style="display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap">'
-      +'<span style="font-weight:600">'+esc(ing?ing.name:'—')+'</span>'
       +'<span class="badge '+(log.type==='입고'?'badge-green':log.type==='조정'?'badge-yellow':'badge-muted')+'">'+log.type+'</span>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap;padding-left:24px">'
+      +'<span style="font-weight:600">'+esc(ing?ing.name:'—')+'</span>'
       +'<span class="td-mono '+(log.quantity>0?'n-g':'n-r')+'">'+(log.quantity>0?'+':'')+fNum(log.quantity)+' '+(ing?ing.unit:'')+'</span>'
       +'</div>'
-      +(log.order_date?'<div style="font-size:11px;color:var(--text3);margin-top:3px">주문일 · '+fDate(log.order_date)+'</div>':'')
-      +(log.memo?'<div style="font-size:11px;color:var(--text3);margin-top:1px">'+esc(log.memo)+'</div>':'')
+      +(log.order_date?'<div style="font-size:11px;color:var(--text3);margin-top:3px;padding-left:24px">주문일 · '+fDate(log.order_date)+'</div>':'')
+      +(log.memo?'<div style="font-size:11px;color:var(--text3);margin-top:1px;padding-left:24px">'+esc(log.memo)+'</div>':'')
       +'</td></tr>';}
     return '<tr>'
       +'<td class="nl" style="width:36px"><input type="checkbox" class="hist-check" data-id="'+log.id+'" onchange="onHistCheckChange()"></td>'
@@ -2389,6 +2413,7 @@ function onHistCheckChange(){
   const delBtn=document.getElementById('hist-del-btn');
   delBtn.style.display=checked>0?'':'none';
   if(checked>0)delBtn.textContent='선택 삭제 ('+checked+')';
+  const _mobCb=document.getElementById('hist-check-all-mob');if(_mobCb){const _all=document.querySelectorAll('.hist-check').length;_mobCb.checked=checked===_all&&_all>0;}
   const all=document.querySelectorAll('.hist-check').length;
   document.getElementById('hist-check-all').checked=checked===all&&all>0;
 }
@@ -2448,6 +2473,8 @@ function renderProgSelector(){
     +DB.programs.filter(p=>p.is_active).map(p=>'<button class="tab-btn'+(p.id===selProgId?' active':'')+'" onclick="selProgId=\''+p.id+'\';renderProgSelector();renderIngredients()">'+(p.emoji||'')+' '+esc(p.name)+'</button>').join('')
     +'</div>';
 }
+let ingPage=1;
+function goIngPage(p){ingPage=p;renderIngredients();}
 function renderIngredients(){
   const sort=document.getElementById('ing-sort').value;
   let ings=[...DB.ingredients.filter(i=>i.is_active)];
@@ -2463,8 +2490,14 @@ function renderIngredients(){
   } else if(ingViewMode==='program'){
     if(selProgId){const recipe=DB.programRecipes.filter(r=>r.program_id===selProgId&&!r.valid_until);filtered=recipe.map(r=>ings.find(i=>i.id===r.ingredient_id)).filter(Boolean);}
   }
-  cont.innerHTML=filtered.length
-    ?'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">'+filtered.map(ing=>ingCard(ing,ingViewMode)).join('')+'</div>'
+  const ingPerPage=parseInt(document.getElementById('ing-per-page')?.value||'20');
+  const ingTotal=filtered.length,ingPages=Math.max(1,Math.ceil(ingTotal/ingPerPage));
+  if(ingPage>ingPages)ingPage=1;
+  buildPager('ing-pagination-top',ingTotal,ingPage,ingPerPage,'goIngPage');
+  buildPager('ing-pagination-bot',ingTotal,ingPage,ingPerPage,'goIngPage');
+  const filtered2=filtered.slice((ingPage-1)*ingPerPage,ingPage*ingPerPage);
+  cont.innerHTML=filtered2.length
+    ?'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">'+filtered2.map(ing=>ingCard(ing,ingViewMode)).join('')+'</div>'
     :'<div class="empty"><div style="font-size:13px">등록된 재료 없음</div></div>';
   renderCatList();
 }
@@ -3036,6 +3069,8 @@ function openModalOnTop(id){
 // ══════════════════════════════════════════════════════════
 // 참가자 목록
 // ══════════════════════════════════════════════════════════
+let memberPage=1;
+function goMemberPage(p){memberPage=p;renderMembers();}
 function renderMembers(){
   syncRoleSelects();
   var q=(document.getElementById('member-search')?.value||'').trim().toLowerCase();
@@ -3056,11 +3091,17 @@ function renderMembers(){
     '<div class="card" style="text-align:center"><div style="font-size:22px;font-weight:900">'+total+'</div><div style="font-size:11px;color:var(--text3);margin-top:2px">전체</div></div>'
     +'<div class="card" style="text-align:center"><div style="font-size:22px;font-weight:900;color:#2a7a00">'+active+'</div><div style="font-size:11px;color:var(--text3);margin-top:2px">활성</div></div>'
     +'<div class="card" style="text-align:center"><div style="font-size:22px;font-weight:900;color:var(--accent-dark)">'+newThisMonth+'</div><div style="font-size:11px;color:var(--text3);margin-top:2px">이번 달 신규</div></div>';
+  var memberPerPage=parseInt(document.getElementById('member-per-page')?.value||'20');
+  var memberTotal=list.length,memberPages=Math.max(1,Math.ceil(memberTotal/memberPerPage));
+  if(memberPage>memberPages)memberPage=1;
+  buildPager('member-pagination-top',memberTotal,memberPage,memberPerPage,'goMemberPage');
+  buildPager('member-pagination-bot',memberTotal,memberPage,memberPerPage,'goMemberPage');
+  var listP=list.slice((memberPage-1)*memberPerPage,memberPage*memberPerPage);
   var tbody=document.getElementById('member-tbody');
   var empty=document.getElementById('member-empty');
-  if(!list.length){if(tbody)tbody.innerHTML='';if(empty)empty.style.display='';return;}
+  if(!listP.length){if(tbody)tbody.innerHTML='';if(empty)empty.style.display='';return;}
   if(empty)empty.style.display='none';
-  tbody.innerHTML=list.map(function(m){
+  tbody.innerHTML=listP.map(function(m){
     var plogs=DB.participationLogs.filter(function(l){return l.member_id===m.id&&l.status==='참여확정';});
     var lastDate=plogs.reduce(function(b,l){var s=DB.sessions.find(function(x){return x.id===l.session_id;});if(!s)return b;return(!b||s.session_date>b)?s.session_date:b;},null);
     var insta=m.instagram_id?('<a href="https://instagram.com/'+esc(m.instagram_id.replace(/^@/,''))+'" target="_blank" style="color:var(--accent-dark);text-decoration:none">'+esc(m.instagram_id)+'</a>'):'<span style="color:var(--text3)">—</span>';
@@ -3494,11 +3535,13 @@ function openSettingsTab(tab){
 
 // 설정 항목 수정/삭제 전역 액션 핸들러
 function settingsItemMove(key,i,dir){
-  var arr=key==='ch'?DB.memberChannels:key==='role'?DB.memberRoles:key==='pstat'?DB.plogStatuses:DB.payStatuses;
+  var arr=key==='ch'?DB.memberChannels:key==='role'?DB.memberRoles:key==='pstat'?DB.plogStatuses:key==='paystat'?DB.payStatuses:key==='type'?DB.programTypes:DB.categories;
   var j=i+dir;if(j<0||j>=arr.length)return;
   var tmp=arr[i];arr[i]=arr[j];arr[j]=tmp;
-  saveAppSettings();
-  openSettingsTab(key==='role'?'role':key==='pstat'?'pstat':key==='paystat'?'paystat':'ch');
+  if(key==='type'){gsAfter('programTypes');syncProgTypeSelect();renderPrograms();}
+  else if(key==='cat'){gsAfter('categories');syncCatSelect();}
+  else saveAppSettings();
+  openSettingsTab(key==='role'?'role':key==='pstat'?'pstat':key==='paystat'?'paystat':key==='type'?'type':key==='cat'?'cat':'ch');
 }
 function settingsItemRename(key,i){
   var arr=key==='ch'?DB.memberChannels:key==='role'?DB.memberRoles:key==='pstat'?DB.plogStatuses:DB.payStatuses;
@@ -3577,8 +3620,13 @@ function settingsAddRole(){
 function renderSettingsType(){
   var el=document.getElementById('settings-type-list');if(!el)return;
   if(!DB.programTypes.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">등록된 타입 없음</div>';return;}
-  el.innerHTML=DB.programTypes.map(function(t){
-    return'<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">'
+  el.innerHTML=DB.programTypes.map(function(t,i){
+    var isFirst=i===0,isLast=i===DB.programTypes.length-1;
+    return'<div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--border)">'
+      +'<div style="display:flex;flex-direction:column;gap:1px">'
+      +'<button class="btn btn-outline btn-xs" style="padding:1px 5px;font-size:10px" '+(isFirst?'disabled':'')+' onclick="settingsItemMove(\'type\','+i+',-1)">▲</button>'
+      +'<button class="btn btn-outline btn-xs" style="padding:1px 5px;font-size:10px" '+(isLast?'disabled':'')+' onclick="settingsItemMove(\'type\','+i+',1)">▼</button>'
+      +'</div>'
       +'<span style="width:14px;height:14px;border-radius:4px;background:'+(t.color||'#eee')+';display:inline-block;flex-shrink:0"></span>'
       +'<span style="flex:1;font-size:13px">'+esc(t.name)+'</span>'
       +'<button class="btn btn-outline btn-xs" onclick="closeModal(\'m-settings\');openProgTypeModal(\''+t.id+'\')">수정</button>'
@@ -3589,8 +3637,13 @@ function renderSettingsType(){
 function renderSettingsCat(){
   var el=document.getElementById('settings-cat-list');if(!el)return;
   if(!DB.categories.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">등록된 카테고리 없음</div>';return;}
-  el.innerHTML=DB.categories.map(function(c){
-    return'<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">'
+  el.innerHTML=DB.categories.map(function(c,i){
+    var isFirst=i===0,isLast=i===DB.categories.length-1;
+    return'<div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--border)">'
+      +'<div style="display:flex;flex-direction:column;gap:1px">'
+      +'<button class="btn btn-outline btn-xs" style="padding:1px 5px;font-size:10px" '+(isFirst?'disabled':'')+' onclick="settingsItemMove(\'cat\','+i+',-1)">▲</button>'
+      +'<button class="btn btn-outline btn-xs" style="padding:1px 5px;font-size:10px" '+(isLast?'disabled':'')+' onclick="settingsItemMove(\'cat\','+i+',1)">▼</button>'
+      +'</div>'
       +'<span style="width:14px;height:14px;border-radius:4px;background:'+(c.color||'#eee')+';display:inline-block;flex-shrink:0"></span>'
       +'<span style="flex:1;font-size:13px">'+esc(c.name)+'</span>'
       +'<button class="btn btn-outline btn-xs" onclick="closeModal(\'m-settings\');openCatModal(\''+c.id+'\')">수정</button>'
