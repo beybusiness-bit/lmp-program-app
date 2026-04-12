@@ -284,8 +284,8 @@ tbody td{padding:11px 11px;vertical-align:middle}
   .stat-label{font-size:10px}
   /* 대시보드 g2: 모바일 1열 */
   #page-dashboard .g2{grid-template-columns:1fr}
-  /* 리포트 상위 g2 섹션: 모바일 1열 */
-  #page-report>.page-body>.g2{grid-template-columns:1fr}
+  /* 리포트 모바일: 모든 섹션 1열 */
+  #page-report .g2,#page-report .g3{grid-template-columns:1fr}
   /* 대시보드 차트 높이 축소 */
   .chart-wrap{height:80px}
   .chart-lbl{font-size:9px}
@@ -722,7 +722,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
     <div id="stock-panel-order">
       <div class="card">
         <div class="sec-title">발주 관리</div>
-        <div style="font-size:12px;color:var(--text3);margin-bottom:12px">미래 모임의 재료 수요를 기반으로 발주가 필요한 항목을 자동 계산합니다.</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:12px">미래 모임의 원가 항목 수요를 기반으로 발주가 필요한 항목을 자동 계산합니다.</div>
         <div class="tbl-wrap">
           <table><thead><tr><th>원가 항목</th><th>부족 발생 모임</th><th>부족량</th><th>발주 마감</th><th>배송 소요</th><th>상태</th></tr></thead>
           <tbody id="order-tbody"></tbody></table>
@@ -744,7 +744,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
   <div class="page-body">
     <div class="card">
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-        <select class="form-select" style="width:150px" id="hist-fi" onchange="histPage=1;renderHistory()"><option value="">전체 재료</option></select>
+        <select class="form-select" style="width:150px" id="hist-fi" onchange="histPage=1;renderHistory()"><option value="">전체 원가 항목</option></select>
         <select class="form-select" style="width:120px" id="hist-ft" onchange="histPage=1;renderHistory()"><option value="">전체 구분</option><option value="입고">입고</option><option value="사용">사용</option><option value="조정">조정</option></select>
         <button class="btn btn-danger btn-sm" id="hist-del-btn" onclick="deleteCheckedLogs()" style="display:none">선택 삭제</button>
       </div>
@@ -763,7 +763,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
       </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th style="width:36px"><input type="checkbox" id="hist-check-all" onchange="toggleAllHistChecks(this)"></th><th>날짜</th><th>재료</th><th>구분</th><th>수량</th><th>주문일</th><th>메모</th></tr></thead>
+          <thead><tr><th style="width:36px"><input type="checkbox" id="hist-check-all" onchange="toggleAllHistChecks(this)"></th><th>날짜</th><th>원가 항목</th><th>구분</th><th>수량</th><th>주문일</th><th>메모</th></tr></thead>
           <tbody id="hist-tbody"></tbody>
         </table>
       </div>
@@ -953,10 +953,10 @@ tbody td{padding:11px 11px;vertical-align:middle}
       <!-- 카테고리에 속한 재료 관리 -->
       <div id="cat-ing-section" style="display:none">
         <div class="hr"></div>
-        <div class="card-label">이 카테고리의 재료</div>
+        <div class="card-label">이 카테고리의 원가 항목</div>
         <div id="cat-ing-tags" style="margin-top:6px;min-height:32px;padding:6px;background:var(--bg-input);border-radius:var(--radius-sm);border:1.5px solid var(--border)"></div>
         <div style="margin-top:8px">
-          <div class="card-label">재료 추가/제거</div>
+          <div class="card-label">원가 항목 추가/제거</div>
           <div id="cat-ing-all-tags" style="margin-top:6px"></div>
         </div>
       </div>
@@ -976,10 +976,10 @@ tbody td{padding:11px 11px;vertical-align:middle}
       </div>
       <div class="hr"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div class="card-label" style="margin:0">재료별 기록</div>
-        <button class="btn btn-outline btn-sm" type="button" onclick="addLogRow()">+ 재료 추가</button>
+        <div class="card-label" style="margin:0">원가 항목별 기록</div>
+        <button class="btn btn-outline btn-sm" type="button" onclick="addLogRow()">+ 원가 항목 추가</button>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">구분(입고/사용/조정), 수량, 주문일, 메모를 재료별로 각각 입력하세요</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">구분(입고/사용/조정), 수량, 주문일, 메모를 원가 항목별로 각각 입력하세요</div>
       <div id="log-rows"></div>
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('m-log')">취소</button><button class="btn btn-primary" onclick="saveMultiLog()">저장</button></div>
@@ -1018,15 +1018,15 @@ tbody td{padding:11px 11px;vertical-align:middle}
       <div class="profit-box">
         <div class="card-label" style="margin-bottom:10px">수익 계산기</div>
         <div class="g3" style="gap:10px">
-          <div><div style="font-size:10px;color:var(--text3);font-family:var(--mono)">1인 재료비</div><div class="n-p" style="font-size:18px" id="pv-cost">—</div></div>
+          <div><div style="font-size:10px;color:var(--text3);font-family:var(--mono)">1인 원가</div><div class="n-p" style="font-size:18px" id="pv-cost">—</div></div>
           <div><div style="font-size:10px;color:var(--text3);font-family:var(--mono)">1인 수익</div><div class="n-g" style="font-size:18px" id="pv-profit">—</div></div>
           <div><div style="font-size:10px;color:var(--text3);font-family:var(--mono)">만석 수익</div><div class="n-y" style="font-size:18px" id="pv-full">—</div></div>
         </div>
       </div>
       <div class="hr"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div class="card-label" style="margin:0">재료 기준량 (1인당)</div>
-        <button class="btn btn-outline btn-sm" type="button" onclick="addRecipeRow()">+ 재료 추가</button>
+        <div class="card-label" style="margin:0">원가 항목 기준량 (1인당)</div>
+        <button class="btn btn-outline btn-sm" type="button" onclick="addRecipeRow()">+ 원가 항목 추가</button>
       </div>
       <div id="recipe-rows"></div>
       <div class="hr"></div>
@@ -1073,7 +1073,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
       <div class="form-group"><label class="form-label">메모</label><input type="text" class="form-input" id="ses-memo" placeholder="참고 사항"></div>
       <div id="ses-preview" style="display:none">
         <div class="hr"></div>
-        <div class="card-label">소요 재료 예상량</div>
+        <div class="card-label">소요 원가 항목 예상량</div>
         <div id="ses-preview-body" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
       </div>
       <div id="ses-opts-section" style="display:none">
@@ -1093,7 +1093,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
 
 <!-- ════ 모달: 추가 옵션 추가/수정 ════ -->
 <div class="overlay" id="m-option">
-  <div class="modal">
+  <div class="modal modal-lg">
     <div class="modal-head"><div class="modal-title" id="m-option-title">추가 옵션 추가</div><button class="modal-x" onclick="closeModal('m-option')">×</button></div>
     <div class="modal-body">
       <input type="hidden" id="option-id">
@@ -1103,6 +1103,12 @@ tbody td{padding:11px 11px;vertical-align:middle}
       <div class="form-group"><label class="form-label">상태</label>
         <select class="form-select" id="option-active"><option value="1">활성</option><option value="0">비활성</option></select>
       </div>
+      <div class="hr"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="card-label" style="margin:0">원가 항목 기준량 (1개당)</div>
+        <button class="btn btn-outline btn-sm" type="button" onclick="addOptRecipeRow()">+ 원가 항목 추가</button>
+      </div>
+      <div id="opt-recipe-rows"></div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-danger btn-sm" id="option-del-btn" style="display:none" onclick="deleteOption()">삭제</button>
@@ -1691,6 +1697,7 @@ const GS={
     gifts:{name:'gifts',cols:['id','name','description','cost_per_unit','stock','is_active','created_at']},
     addOptions:{name:'add_options',cols:['id','name','description','price','is_active','created_at']},
     sessionOptions:{name:'session_options',cols:['session_id','option_id','is_inherited']},
+    optionRecipes:{name:'option_recipes',cols:['id','option_id','ingredient_id','qty_per_unit','created_at']},
     logOptions:{name:'log_options',cols:['id','log_id','option_id','price_snapshot','source']}
   },
 
@@ -1800,7 +1807,7 @@ const GS={
           headers.forEach((h,j)=>{
             let v=r[j]??'';
             if(h==='is_active'||h==='usage_recorded'||h==='is_inherited')v=v===true||v===1||String(v).toLowerCase()==='true'||v==='1';
-            else if(['purchase_unit_qty','price_per_unit','lead_time_days','selling_price','max_participants','participants','qty_per_person','quantity','selling_price_snapshot','cost_per_unit','stock','price','condition_value','reward_value','benefit_cost','payment_amount','price_snapshot'].includes(h))v=v===''||v===null?null:Number(v);
+            else if(['purchase_unit_qty','price_per_unit','lead_time_days','selling_price','max_participants','participants','qty_per_person','quantity','selling_price_snapshot','cost_per_unit','stock','price','condition_value','reward_value','benefit_cost','payment_amount','price_snapshot','qty_per_unit'].includes(h))v=v===''||v===null?null:Number(v);
             else if(h==='recipe_snapshot'){try{v=v?JSON.parse(v):{};}catch(e){v={}}}
             else if(h==='default_option_ids'){try{v=v?JSON.parse(v):[];}catch(e){v=[];}}
             else if(h==='valid_until'||h==='order_date'||h==='session_id'||h==='usage_recorded_at'||h==='type_id'||h==='category_id'||h==='benefit_id'||h==='reward_gift_id'||h==='log_id'||h==='option_id'||h==='benefit_cost_type'||h==='benefit_memo'||h==='source')v=v||null;
@@ -1984,7 +1991,7 @@ function requireSheets(){
 }
 
 
-const DB={ingredients:[],ingredientsHistory:[],programs:[],programsHistory:[],programRecipes:[],sessions:[],inventoryLog:[],categories:[],programTypes:[],members:[],participationLogs:[],benefits:[],gifts:[],addOptions:[],sessionOptions:[],logOptions:[],memberChannels:['당근모임','인스타그램','네이버 예약','Tally form'],memberRoles:['손님','포크','운영'],navOrder:[],plogStatuses:['대기','참여확정','취소','불참'],payStatuses:['미납','확인','환불'],navLabels:{}};
+const DB={ingredients:[],ingredientsHistory:[],programs:[],programsHistory:[],programRecipes:[],sessions:[],inventoryLog:[],categories:[],programTypes:[],members:[],participationLogs:[],benefits:[],gifts:[],addOptions:[],optionRecipes:[],sessionOptions:[],logOptions:[],memberChannels:['당근모임','인스타그램','네이버 예약','Tally form'],memberRoles:['손님','포크','운영'],navOrder:[],plogStatuses:['대기','참여확정','취소','불참'],payStatuses:['미납','확인','환불'],navLabels:{}};
 
 // ══════════════════════════════════════════════════════════
 // 유틸
@@ -2051,7 +2058,25 @@ document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{
 function calcStock(ingId,upTo=today()){return DB.inventoryLog.filter(l=>l.ingredient_id===ingId&&l.log_date<=upTo).reduce((s,l)=>s+l.quantity,0);}
 function calcPending(ingId){return DB.inventoryLog.filter(l=>l.ingredient_id===ingId&&l.type==='입고'&&l.log_date>today()).reduce((s,l)=>s+l.quantity,0);}
 function calcCostPer(recipe){return recipe.reduce((s,r)=>{const ing=DB.ingredients.find(i=>i.id===r.ingredient_id);if(!ing||!ing.purchase_unit_qty||!ing.price_per_unit)return s;return s+r.qty_per_person*(ing.price_per_unit/ing.purchase_unit_qty);},0);}
-function calcSesCost(ses){return Object.entries(ses.recipe_snapshot||{}).reduce((s,[id,qty])=>{const ing=DB.ingredients.find(i=>i.id===id);if(!ing||!ing.purchase_unit_qty||!ing.price_per_unit)return s;return s+qty*ses.participants*(ing.price_per_unit/ing.purchase_unit_qty);},0);}
+function calcOptionCost(optId){
+  return DB.optionRecipes.filter(function(r){return r.option_id===optId;}).reduce(function(s,r){
+    var ing=DB.ingredients.find(function(i){return i.id===r.ingredient_id;});
+    if(!ing||!ing.purchase_unit_qty||!ing.price_per_unit)return s;
+    return s+r.qty_per_unit*(ing.price_per_unit/ing.purchase_unit_qty);
+  },0);
+}
+function calcSesCost(ses){
+  var rCost=Object.entries(ses.recipe_snapshot||{}).reduce(function(s,e){
+    var id=e[0],qty=e[1];var ing=DB.ingredients.find(function(i){return i.id===id;});
+    if(!ing||!ing.purchase_unit_qty||!ing.price_per_unit)return s;
+    return s+qty*ses.participants*(ing.price_per_unit/ing.purchase_unit_qty);
+  },0);
+  var confLogs=DB.participationLogs.filter(function(l){return l.session_id===ses.id&&l.status==='참여확정';});
+  var oCost=confLogs.reduce(function(s,l){
+    return s+DB.logOptions.filter(function(lo){return lo.log_id===l.id;}).reduce(function(ss,lo){return ss+calcOptionCost(lo.option_id);},0);
+  },0);
+  return rCost+oCost;
+}
 function calcOrderAlerts(){
   const alerts=[],t=today();
   const future=DB.sessions.filter(s=>s.session_date>=t&&!s.usage_recorded).sort((a,b)=>a.session_date.localeCompare(b.session_date));
@@ -2318,6 +2343,41 @@ function deleteSession(sesId){
   gsAfter('sessions','inventoryLog');
 }
 function goSesPage(p){sesPage=p;renderSessions();}
+function _sesOptLinesHtml(sesId){
+  var ses=DB.sessions.find(function(s){return s.id===sesId;});
+  if(!ses)return'';
+  var prog=DB.programs.find(function(p){return p.id===ses.program_id;});
+  var progDefaults=(prog&&prog.default_option_ids)||[];
+  var sesOverrides=DB.sessionOptions.filter(function(x){return x.session_id===sesId;});
+  var sesLevelOpts=sesOverrides.length>0?sesOverrides.map(function(x){return x.option_id;}):progDefaults;
+  var confLogs=DB.participationLogs.filter(function(l){return l.session_id===sesId&&l.status==='참여확정';});
+  var optMemberMap={};
+  confLogs.forEach(function(l){
+    DB.logOptions.filter(function(lo){return lo.log_id===l.id;}).forEach(function(lo){
+      if(!optMemberMap[lo.option_id])optMemberMap[lo.option_id]=[];
+      if(!optMemberMap[lo.option_id].includes(l.member_id))optMemberMap[lo.option_id].push(l.member_id);
+    });
+  });
+  var lines=[];
+  var shownOpts=new Set();
+  // 세션/프로그램 기본 옵션 먼저
+  sesLevelOpts.forEach(function(optId){
+    var opt=DB.addOptions.find(function(o){return o.id===optId;});
+    if(!opt)return;
+    shownOpts.add(optId);
+    lines.push(esc(opt.name)+'(+'+fMoney(opt.price||0)+')');
+  });
+  // 참가자 개별 옵션
+  Object.keys(optMemberMap).forEach(function(optId){
+    if(shownOpts.has(optId))return;
+    var opt=DB.addOptions.find(function(o){return o.id===optId;});
+    if(!opt)return;
+    var memNames=optMemberMap[optId].map(function(mid){var m=DB.members.find(function(x){return x.id===mid;});return m?esc(m.name):mid;}).join(',');
+    lines.push(esc(opt.name)+'(+'+fMoney(opt.price||0)+')-'+memNames);
+  });
+  if(!lines.length)return'';
+  return'<div style="margin-top:3px;line-height:1.4">'+lines.map(function(l){return'<div style="font-size:10px;color:var(--text3)">'+l+'</div>';}).join('')+'</div>';
+}
 function renderSessions(){
   if(sesViewMode==='calendar'){renderCalendar();return;}
   const sort=document.getElementById('ses-sort').value;
@@ -2347,8 +2407,9 @@ function renderSessions(){
     const locked=s.usage_recorded;
     if(isMob){
       return`<tr><td class="nl" style="padding:10px 12px;display:block">
-        <div style="font-size:14px;font-weight:700;margin-bottom:5px">${prog?(prog.emoji?prog.emoji+' ':'')+esc(prog.name):'—'}</div>
-        <div style="display:flex;gap:14px;margin-bottom:4px;font-size:12px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:2px">${prog?(prog.emoji?prog.emoji+' ':'')+esc(prog.name):'—'}</div>
+        ${_sesOptLinesHtml(s.id)}
+        <div style="display:flex;gap:14px;margin-bottom:4px;font-size:12px;margin-top:4px">
           <span class="td-mono">${fDate(s.session_date)}${s.session_time?' '+s.session_time:''}</span>
           <span class="td-mono">${s.participants}명</span>
         </div>
@@ -2367,7 +2428,7 @@ function renderSessions(){
     }
     return`<tr>
       <td data-label="날짜" class="td-mono">${fDate(s.session_date)}${s.session_time?'<br><span style="font-size:11px;color:var(--text3)">'+s.session_time+'</span>':''}</td>
-      <td data-label="프로그램">${prog?`${prog.emoji||''} ${esc(prog.name)}`:'—'}</td>
+      <td data-label="프로그램">${prog?`${prog.emoji||''} ${esc(prog.name)}`:'—'}${_sesOptLinesHtml(s.id)}</td>
       <td data-label="인원" class="td-mono">${s.participants}명</td>
       <td data-label="원가" class="td-mono n-p">${fMoney(cost)}</td>
       <td data-label="예상수익" class="td-mono ${profit>=0?'n-g':'n-r'}">${fMoney(profit)}</td>
@@ -2516,7 +2577,7 @@ function addLogRow(){
   const calIcon='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
   div.innerHTML=
     '<div class="log-row-inner">'
-    +'<select class="form-select log-row-ing" style="flex:2;min-width:110px"><option value="">재료 선택</option>'+opts+'</select>'
+    +'<select class="form-select log-row-ing" style="flex:2;min-width:110px"><option value="">원가 항목 선택</option>'+opts+'</select>'
     +'<select class="form-select log-row-type" style="flex:1;min-width:72px" onchange="onLogRowTypeChange(this)">'
     +'<option value="입고">입고</option><option value="사용">사용</option><option value="조정">조정</option>'
     +'</select>'
@@ -2586,7 +2647,7 @@ function importCsv(event){
       const qIdx=headers.findIndex(h=>h.includes('수량'));
       const oIdx=headers.findIndex(h=>h.includes('주문'));
       const mIdx=headers.findIndex(h=>h.includes('메모'));
-      if(dIdx<0||nIdx<0||qIdx<0){showCsvError('헤더 오류: 입출고일, 재료명, 수량 컬럼이 필요합니다.<br>템플릿을 다운받아 형식을 확인해주세요.');event.target.value='';return;}
+      if(dIdx<0||nIdx<0||qIdx<0){showCsvError('헤더 오류: 입출고일, 원가항목명, 수량 컬럼이 필요합니다.<br>템플릿을 다운받아 형식을 확인해주세요.');event.target.value='';return;}
       const valid=[],errors=[];
       raw.slice(1).forEach((line,idx)=>{
         const cols=line.split(',');
@@ -2598,10 +2659,10 @@ function importCsv(event){
         const memo=(cols[mIdx]||'').trim();
         const lineNum=idx+2;
         if(!date){errors.push(lineNum+'행: 날짜가 비어있습니다');return;}
-        if(!name){errors.push(lineNum+'행: 재료명이 비어있습니다');return;}
+        if(!name){errors.push(lineNum+'행: 원가항목명이 비어있습니다');return;}
         if(isNaN(qty)||qty<0){errors.push(lineNum+'행 ('+name+'): 수량이 유효하지 않습니다 ('+cols[qIdx]+')');return;}
         const ing=DB.ingredients.find(i=>i.name===name);
-        if(!ing){errors.push(lineNum+'행: 재료 "'+name+'"이 재료DB에 없습니다');return;}
+        if(!ing){errors.push(lineNum+'행: 재료 "'+name+'"이(가) 원가 항목 DB에 없습니다');return;}
         const type=rawType.includes('조정')?'조정':rawType.includes('사용')?'사용':'입고';
         valid.push({date,ingId:ing.id,ingName:name,type,qty,od,memo});
       });
@@ -2609,7 +2670,7 @@ function importCsv(event){
       let html='';
       if(valid.length){
         html+='<div style="margin-bottom:12px"><span class="badge badge-green" style="font-size:12px">✓ 기록 가능: '+valid.length+'개</span></div>';
-        html+='<div class="tbl-wrap"><table><thead><tr><th>날짜</th><th>재료</th><th>구분</th><th>수량</th><th>메모</th></tr></thead><tbody>';
+        html+='<div class="tbl-wrap"><table><thead><tr><th>날짜</th><th>원가 항목</th><th>구분</th><th>수량</th><th>메모</th></tr></thead><tbody>';
         html+=valid.slice(0,20).map(v=>'<tr><td class="td-mono">'+v.date+'</td><td>'+esc(v.ingName)+'</td><td><span class="badge '+(v.type==='입고'?'badge-green':v.type==='조정'?'badge-yellow':'badge-muted')+'">'+v.type+'</span></td><td class="td-mono">'+v.qty+'</td><td style="font-size:12px;color:var(--text2)">'+esc(v.memo)+'</td></tr>').join('');
         if(valid.length>20)html+='<tr><td colspan="5" style="text-align:center;color:var(--text3);font-size:12px">...외 '+(valid.length-20)+'개</td></tr>';
         html+='</tbody></table></div>';
@@ -2676,7 +2737,7 @@ function renderHistory(){
     return '<tr>'
       +'<td class="nl" style="width:36px"><input type="checkbox" class="hist-check" data-id="'+log.id+'" onchange="onHistCheckChange()"></td>'
       +'<td data-label="날짜" class="td-mono">'+fDate(log.log_date)+'</td>'
-      +'<td data-label="재료">'+esc(ing?ing.name:'—')+'</td>'
+      +'<td data-label="원가 항목">'+esc(ing?ing.name:'—')+'</td>'
       +'<td data-label="구분"><span class="badge '+(log.type==='입고'?'badge-green':log.type==='조정'?'badge-yellow':'badge-muted')+'">'+log.type+'</span></td>'
       +'<td data-label="수량" class="td-mono '+(log.quantity>0?'n-g':'n-r')+'">'+(log.quantity>0?'+':'')+fNum(log.quantity)+' '+(ing?ing.unit:'')+'</td>'
       +'<td data-label="주문일" class="td-mono">'+(log.order_date?fDate(log.order_date):'—')+'</td>'
@@ -2779,7 +2840,7 @@ function renderIngredients(){
   const filtered2=filtered.slice((ingPage-1)*ingPerPage,ingPage*ingPerPage);
   cont.innerHTML=filtered2.length
     ?'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">'+filtered2.map(ing=>ingCard(ing,ingViewMode)).join('')+'</div>'
-    :'<div class="empty"><div style="font-size:13px">등록된 재료 없음</div></div>';
+    :'<div class="empty"><div style="font-size:13px">등록된 원가 항목 없음</div></div>';
   renderCatList();
 }
 function ingCard(ing, viewMode){
@@ -3025,6 +3086,36 @@ document.addEventListener('click',e=>{const w=document.getElementById('emoji-pic
 // ══════════════════════════════════════════════════════════
 // 레시피 드래그 (모바일 터치 포함)
 // ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// 추가 옵션 원가 항목 관리
+// ══════════════════════════════════════════════════════════
+function renderOptRecipeRows(optId){
+  var el=document.getElementById('opt-recipe-rows');if(!el)return;
+  el.innerHTML='';
+  if(optId){
+    DB.optionRecipes.filter(function(r){return r.option_id===optId;}).forEach(function(r){addOptRecipeRow(r.ingredient_id,r.qty_per_unit);});
+  }
+}
+function addOptRecipeRow(ingId,qty){
+  ingId=ingId||'';qty=qty||'';
+  var rid=genId('ORW');
+  var opts='<option value="">원가 항목 선택</option>'+DB.ingredients.filter(function(i){return i.is_active;}).map(function(i){return'<option value="'+i.id+'"'+(i.id===ingId?' selected':'')+'>'+esc(i.name)+' ('+i.unit+')</option>';}).join('');
+  var row=document.createElement('div');
+  row.className='recipe-row';row.id='orw-'+rid;
+  row.innerHTML='<select class="form-select" style="flex:2;min-width:110px">'+opts+'</select>'
+    +'<input type="number" class="form-input" style="flex:1;min-width:70px" placeholder="수량" value="'+qty+'" min="0.001" step="any">'
+    +'<button class="btn btn-danger btn-xs" data-remrow="1">×</button>';
+  document.getElementById('opt-recipe-rows').appendChild(row);
+}
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.dataset&&e.target.dataset.remrow){var row=e.target.closest('.recipe-row');if(row)row.remove();}
+});
+function getOptRecipe(){
+  return Array.from(document.querySelectorAll('#opt-recipe-rows .recipe-row')).map(function(row){
+    var sel=row.querySelector('select'),inp=row.querySelector('input[type="number"]');
+    return sel&&sel.value&&inp&&inp.value?{ingredient_id:sel.value,qty_per_unit:parseFloat(inp.value)}:null;
+  }).filter(Boolean);
+}
 let dragSrc=null,touchSrc=null,touchClone=null;
 function addRecipeRow(ingId='',qty=''){
   const rid=genId('ROW');
@@ -3045,11 +3136,23 @@ function addRecipeRow(ingId='',qty=''){
 }
 function getRecipe(){return[...document.querySelectorAll('#recipe-rows .recipe-row')].map(row=>{const sel=row.querySelector('select'),inp=row.querySelector('input[type="number"]');return sel?.value&&inp?.value?{ingredient_id:sel.value,qty_per_person:parseFloat(inp.value)}:null;}).filter(Boolean);}
 function calcProfitPreview(){
-  const recipe=getRecipe(),costPer=calcCostPer(recipe),price=parseFloat(document.getElementById('prog-price').value)||0,maxP=parseInt(document.getElementById('prog-max').value)||0;
-  document.getElementById('pv-cost').textContent=costPer?fMoney(costPer):'—';
-  document.getElementById('pv-profit').textContent=price?fMoney(price-costPer):'—';
-  document.getElementById('pv-full').textContent=(price&&maxP)?fMoney((price-costPer)*maxP):'—';
-  document.querySelectorAll('#recipe-rows .recipe-row').forEach(row=>{const sel=row.querySelector('select'),inp=row.querySelector('input[type="number"]'),cEl=row.querySelector('[id^="rc-"]');if(sel?.value&&inp?.value&&cEl){const ing=DB.ingredients.find(i=>i.id===sel.value);if(ing&&ing.purchase_unit_qty&&ing.price_per_unit)cEl.textContent=fMoney(parseFloat(inp.value)*(ing.price_per_unit/ing.purchase_unit_qty));}});
+  var recipe=getRecipe(),costPer=calcCostPer(recipe),price=parseFloat(document.getElementById('prog-price').value)||0,maxP=parseInt(document.getElementById('prog-max').value)||0;
+  // 선택된 기본 옵션 가격·원가 합산
+  var checkedDefOpts=Array.from(document.querySelectorAll('#prog-default-opts input[type=checkbox]:checked')).map(function(cb){return cb.dataset.defOpt;});
+  var optPrice=checkedDefOpts.reduce(function(s,id){var o=DB.addOptions.find(function(x){return x.id===id;});return s+(o?o.price||0:0);},0);
+  var optCost=checkedDefOpts.reduce(function(s,id){return s+calcOptionCost(id);},0);
+  var totalPrice=price+optPrice;
+  var totalCost=costPer+optCost;
+  var pvCostEl=document.getElementById('pv-cost');
+  var pvProfEl=document.getElementById('pv-profit');
+  var pvFullEl=document.getElementById('pv-full');
+  if(pvCostEl)pvCostEl.textContent=totalCost?fMoney(totalCost):'—';
+  if(pvProfEl)pvProfEl.textContent=totalPrice?fMoney(totalPrice-totalCost):'—';
+  if(pvFullEl)pvFullEl.textContent=(totalPrice&&maxP)?fMoney((totalPrice-totalCost)*maxP):'—';
+  document.querySelectorAll('#recipe-rows .recipe-row').forEach(function(row){
+    var sel=row.querySelector('select'),inp=row.querySelector('input[type="number"]'),cEl=row.querySelector('[id^="rc-"]');
+    if(sel&&sel.value&&inp&&inp.value&&cEl){var ing=DB.ingredients.find(function(i){return i.id===sel.value;});if(ing&&ing.purchase_unit_qty&&ing.price_per_unit)cEl.textContent=fMoney(parseFloat(inp.value)*(ing.price_per_unit/ing.purchase_unit_qty));}
+  });
 }
 
 // ══════════════════════════════════════════════════════════
@@ -3204,7 +3307,13 @@ function renderPrograms(){
   if(!progs.length){el.innerHTML='<div class="empty card"><div class="empty-icon">📋</div><div style="font-size:13px">'+(progTypeFilter?'해당 타입의 프로그램 없음':'등록된 프로그램 없음')+'</div></div>';return;}
   el.innerHTML=progs.map(prog=>{
     const recipe=DB.programRecipes.filter(r=>r.program_id===prog.id&&!r.valid_until);
-    const costPer=calcCostPer(recipe);const profitPer=prog.selling_price-costPer;
+    var costPer=calcCostPer(recipe);
+    var progDefOpts=(prog.default_option_ids||[]).map(function(id){return DB.addOptions.find(function(o){return o.id===id;});}).filter(Boolean);
+    var optPriceSum=progDefOpts.reduce(function(s,o){return s+(o.price||0);},0);
+    var optCostSum=(prog.default_option_ids||[]).reduce(function(s,id){return s+calcOptionCost(id);},0);
+    var totalSellPrice=prog.selling_price+optPriceSum;
+    var totalCostPer=costPer+optCostSum;
+    var profitPer=totalSellPrice-totalCostPer;
     const typeInfo=DB.programTypes.find(t=>t.id===prog.type_id);
     const typeBadge=typeInfo?'<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:'+typeInfo.color+';color:#333;margin-left:6px">'+esc(typeInfo.name)+'</span>':'';
     return '<div class="card" style="margin-bottom:14px">'
@@ -3216,10 +3325,17 @@ function renderPrograms(){
       +'</div><button class="btn btn-outline btn-sm" onclick="openProgModal(\''+prog.id+'\')">수정</button></div>'
       +'<div class="hr"></div>'
       +'<div class="g3" style="gap:10px;margin-bottom:14px">'
-      +'<div><div class="card-label">판매가 (1인)</div><div class="n-y" style="font-size:17px;font-weight:800">'+fMoney(prog.selling_price)+'</div></div>'
-      +'<div><div class="card-label">원가 (1인)</div><div class="n-p" style="font-size:17px;font-weight:700">'+fMoney(costPer)+'</div></div>'
+      +'<div><div class="card-label">판매가 (1인)</div><div class="n-y" style="font-size:17px;font-weight:800">'+fMoney(totalSellPrice)+'</div>'+(optPriceSum?'<div style="font-size:10px;color:var(--text3);margin-top:1px">기본가 '+fMoney(prog.selling_price)+'</div>':'')+'</div>'
+      +'<div><div class="card-label">원가 (1인)</div><div class="n-p" style="font-size:17px;font-weight:700">'+fMoney(totalCostPer)+'</div></div>'
       +'<div><div class="card-label">수익 (1인)</div><div class="'+(profitPer>=0?'n-g':'n-r')+'" style="font-size:17px;font-weight:700">'+fMoney(profitPer)+'</div></div>'
       +'</div>'
+      +(progDefOpts.length?
+        '<div style="margin-bottom:10px;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm)">'
+        +'<div class="card-label" style="margin-bottom:5px">기본 옵션 ('+progDefOpts.length+'개)</div>'
+        +'<div style="display:flex;flex-wrap:wrap;gap:5px">'
+        +progDefOpts.map(function(o){return'<span class="badge badge-yellow" style="font-size:11px">'+esc(o.name)+' +'+fMoney(o.price||0)+'</span>';}).join('')
+        +'</div></div>'
+      :'')
       +(recipe.length?(
         '<div style="margin-top:8px">'
         +'<button class="btn btn-outline btn-xs" style="margin-bottom:6px" onclick="event.stopPropagation();var nx=this.nextElementSibling;nx.style.display=nx.style.display===\'none\'?\'flex\':\'none\';this.textContent=nx.style.display===\'none\'?\'▼ 1인 기준량\':\'▲ 1인 기준량\';">▼ 1인 기준량</button>'
@@ -4514,7 +4630,7 @@ function renderReportProfit(){
     document.getElementById('rep-chart').innerHTML='<div class="empty"><div style="font-size:13px">데이터 없음</div></div>';
   }
   const pMap={};ss.forEach(s=>{const pid=s.program_id;if(!pMap[pid]){pMap[pid]={rev:0,cost:0,cnt:0,prog:DB.programs.find(p=>p.id===pid)};}pMap[pid].rev+=calcSesRevenue(s);pMap[pid].cost+=calcSesCost(s)+calcSesBenefitCost(s);pMap[pid].cnt++;});
-  document.getElementById('rep-by-prog').innerHTML=Object.values(pMap).length?Object.values(pMap).map(d=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="font-size:14px;font-weight:700">${d.prog?.emoji||''} ${esc(d.prog?.name||'—')} <span style="font-size:11px;color:var(--text3)">${d.cnt}회</span></div><div style="display:flex;gap:12px;margin-top:5px;flex-wrap:wrap"><span style="font-size:12px">매출 <span class="n-g">${fMoney(d.rev)}</span></span><span style="font-size:12px">재료비 <span class="n-p">${fMoney(d.cost)}</span></span><span style="font-size:12px">수익 <span class="${d.rev-d.cost>=0?'n-g':'n-r'}">${fMoney(d.rev-d.cost)}</span></span></div></div>`).join(''):`<div class="empty"><div style="font-size:13px">데이터 없음</div></div>`;
+  document.getElementById('rep-by-prog').innerHTML=Object.values(pMap).length?Object.values(pMap).map(d=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="font-size:14px;font-weight:700">${d.prog?.emoji||''} ${esc(d.prog?.name||'—')} <span style="font-size:11px;color:var(--text3)">${d.cnt}회</span></div><div style="display:flex;gap:12px;margin-top:5px;flex-wrap:wrap"><span style="font-size:12px">매출 <span class="n-g">${fMoney(d.rev)}</span></span><span style="font-size:12px">원가 <span class="n-p">${fMoney(d.cost)}</span></span><span style="font-size:12px">수익 <span class="${d.rev-d.cost>=0?'n-g':'n-r'}">${fMoney(d.rev-d.cost)}</span></span></div></div>`).join(''):`<div class="empty"><div style="font-size:13px">데이터 없음</div></div>`;
   const repPerPage=parseInt(document.getElementById('rep-per-page')?.value||'20');
   const repSorted=[...ss].sort((a,b)=>b.session_date.localeCompare(a.session_date));
   const repTotal=repSorted.length,repPages=Math.max(1,Math.ceil(repTotal/repPerPage));
@@ -4619,6 +4735,47 @@ function seedData(){
     ['2026-04-03','카다이프면','사용',136,null],['2026-04-03','화이트초콜렛','사용',35,null],['2026-04-03','피스타치오스프레드','사용',125,null],['2026-04-03','마시멜로우','사용',75,null],['2026-04-03','버터','사용',30,null],['2026-04-03','코코아 가루','사용',16,null],['2026-04-03','탈지분유','사용',10,null],['2026-04-03','opp봉투','사용',10,null],['2026-04-03','유산지컵','사용',10,null],['2026-04-03','종이 박스','사용',1,null],
     ['2026-04-04','카다이프면','사용',408,null],['2026-04-04','화이트초콜렛','사용',105,null],['2026-04-04','피스타치오스프레드','사용',375,null],['2026-04-04','마시멜로우','사용',225,null],['2026-04-04','버터','사용',90,null],['2026-04-04','코코아 가루','사용',48,null],['2026-04-04','탈지분유','사용',30,null],['2026-04-04','opp봉투','사용',30,null],['2026-04-04','유산지컵','사용',30,null],['2026-04-04','종이 박스','사용',3,null],
   ];
+  // ── 추가 옵션 더미 데이터
+  DB.addOptions=[
+    {id:'OPT001',name:'포장 업그레이드',description:'고급 선물 포장으로 업그레이드',price:5000,is_active:true,created_at:now},
+    {id:'OPT002',name:'사진 촬영 서비스',description:'전문가 촬영 및 보정 3장 제공',price:10000,is_active:true,created_at:now},
+  ];
+  // 포장 업그레이드 원가: 종이 박스(ING010) 1개
+  DB.optionRecipes=[
+    {id:'ORC001',option_id:'OPT001',ingredient_id:'ING010',qty_per_unit:1,created_at:now},
+  ];
+  // PRG001 기본 옵션: 포장 업그레이드
+  DB.programs[0].default_option_ids=['OPT001'];
+  // ── 증정품 더미 데이터
+  DB.gifts=[
+    {id:'GFT001',name:'특별 포장 박스',description:'고급 선물 포장 박스',cost_per_unit:2000,stock:15,is_active:true,created_at:now},
+    {id:'GFT002',name:'리필 쿠폰',description:'다음 모임 1만원 할인 쿠폰',cost_per_unit:10000,stock:10,is_active:true,created_at:now},
+  ];
+  // ── 혜택 더미 데이터
+  DB.benefits=[
+    {id:'BEN001',name:'5회 감사 할인',description:'누적 5회 참여 시 10% 할인',condition_type:'count',condition_value:5,reward_type:'discount_percent',reward_value:10,reward_gift_id:null,cost_calc_type:'auto',is_active:true,created_at:now},
+    {id:'BEN002',name:'3회 증정 이벤트',description:'누적 3회 참여 시 특별 포장 박스 증정',condition_type:'count',condition_value:3,reward_type:'gift',reward_value:0,reward_gift_id:'GFT001',cost_calc_type:'auto',is_active:true,created_at:now},
+  ];
+  // ── 참가자 더미 데이터
+  DB.members=[
+    {id:'MBR001',name:'김민지',phone:'010-1234-5678',instagram_id:'minji_k',role:'손님',memo:'',joined_at:'2026-01-08T00:00:00Z',is_active:true},
+    {id:'MBR002',name:'이서연',phone:'010-2345-6789',instagram_id:'seoyeon.lee',role:'손님',memo:'견과류 알레르기',joined_at:'2026-01-15T00:00:00Z',is_active:true},
+    {id:'MBR003',name:'박지수',phone:'010-3456-7890',instagram_id:'',role:'포크',memo:'단골 손님',joined_at:'2026-01-22T00:00:00Z',is_active:true},
+  ];
+  // ── 참여 로그 더미 데이터 (SES013=2026-04-03 1명, SES014=2026-04-04 3명)
+  DB.participationLogs=[
+    // SES013 (1명)
+    {id:'PLOG001',member_id:'MBR001',session_id:'SES013',applied_at:'2026-04-01T10:00:00Z',status:'참여확정',channel:'인스타그램',payment_status:'확인',payment_amount:39000,payment_confirmed_at:'2026-04-02T00:00:00Z',benefit_id:null,benefit_cost:0,benefit_cost_type:'auto',benefit_memo:'',memo:''},
+    // SES014 (3명) — 김민지: 기본 포장 업그레이드 포함(44000), 이서연: 기본가, 박지수: 5회 할인(할인 후 35100) + 사진촬영
+    {id:'PLOG002',member_id:'MBR001',session_id:'SES014',applied_at:'2026-04-01T10:30:00Z',status:'참여확정',channel:'인스타그램',payment_status:'확인',payment_amount:44000,payment_confirmed_at:'2026-04-02T00:00:00Z',benefit_id:null,benefit_cost:0,benefit_cost_type:'auto',benefit_memo:'',memo:''},
+    {id:'PLOG003',member_id:'MBR002',session_id:'SES014',applied_at:'2026-04-01T11:00:00Z',status:'참여확정',channel:'당근모임',payment_status:'확인',payment_amount:39000,payment_confirmed_at:'2026-04-02T00:00:00Z',benefit_id:null,benefit_cost:0,benefit_cost_type:'auto',benefit_memo:'',memo:''},
+    {id:'PLOG004',member_id:'MBR003',session_id:'SES014',applied_at:'2026-04-01T11:30:00Z',status:'참여확정',channel:'당근모임',payment_status:'확인',payment_amount:44100,payment_confirmed_at:'2026-04-02T00:00:00Z',benefit_id:'BEN001',benefit_cost:3900,benefit_cost_type:'auto',benefit_memo:'5회 달성 10% 할인 적용',memo:''},
+  ];
+  // 옵션 로그: PLOG002에 포장 업그레이드, PLOG004에 사진 촬영 서비스 추가
+  DB.logOptions=[
+    {id:'LOPT001',log_id:'PLOG002',option_id:'OPT001',price_snapshot:5000,source:'manual'},
+    {id:'LOPT002',log_id:'PLOG004',option_id:'OPT002',price_snapshot:10000,source:'manual'},
+  ];
   let idx=1;
   DB.inventoryLog=raw.map(([date,name,type,qty,od])=>({id:'LOG'+String(idx++).padStart(3,'0'),log_date:date,ingredient_id:ingMap[name],type,quantity:type==='사용'?-qty:qty,order_date:od||null,session_id:null,created_at:date+'T00:00:00Z',memo:''}));
 }
@@ -4706,6 +4863,7 @@ function openOptionModal(id){
   document.getElementById('option-price').value=o?o.price||0:'';
   document.getElementById('option-active').value=o&&!o.is_active?'0':'1';
   var delBtn=document.getElementById('option-del-btn');if(delBtn)delBtn.style.display=o?'':'none';
+  renderOptRecipeRows(id||'');
   openModal('m-option');
   setTimeout(function(){document.getElementById('option-name').focus();},100);
 }
@@ -4727,20 +4885,27 @@ function saveOption(){
     DB.addOptions.push({id:genId('OPT'),name,description:desc,price,is_active:true,created_at:now});
     toast('옵션 추가 완료');
   }
+  var optId2=id||DB.addOptions[DB.addOptions.length-1]?.id;
+  if(optId2){
+    DB.optionRecipes=DB.optionRecipes.filter(function(r){return r.option_id!==optId2;});
+    var optRecRows=getOptRecipe();
+    optRecRows.forEach(function(r){DB.optionRecipes.push({id:genId('ORC'),option_id:optId2,ingredient_id:r.ingredient_id,qty_per_unit:r.qty_per_unit,created_at:now});});
+  }
   closeModal('m-option');
   renderOptions();
-  gsAfter('addOptions');
+  gsAfter('addOptions','optionRecipes');
 }
 function deleteOption(){
   var id=document.getElementById('option-id').value;if(!id)return;
   if(!confirm('이 옵션을 삭제할까요?'))return;
   if(!requireSheets())return;
   DB.addOptions=DB.addOptions.filter(function(x){return x.id!==id;});
+  DB.optionRecipes=DB.optionRecipes.filter(function(x){return x.option_id!==id;});
   DB.logOptions=DB.logOptions.filter(function(x){return x.option_id!==id;});
   DB.sessionOptions=DB.sessionOptions.filter(function(x){return x.option_id!==id;});
   closeModal('m-option');
   renderOptions();
-  gsAfter('addOptions','logOptions','sessionOptions');
+  gsAfter('addOptions','optionRecipes','logOptions','sessionOptions');
   toast('삭제 완료','warning');
 }
 
