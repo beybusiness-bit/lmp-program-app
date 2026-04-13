@@ -863,7 +863,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
     </div>
     <!-- ── 참가자 분석 패널 ── -->
     <div id="rep-panel-members" style="display:none">
-      <div class="g3" style="margin-bottom:14px" id="rep-mem-stats"></div>
+      <div style="margin-bottom:14px" id="rep-mem-stats"></div>
       <div class="g2" style="gap:14px;margin-bottom:14px">
         <div class="card"><div class="sec-title">신청 채널별 유입</div><div id="rep-mem-channel"></div></div>
         <div class="card"><div class="sec-title">월별 재방문율 추이</div><div id="rep-mem-return"></div></div>
@@ -3561,24 +3561,26 @@ function renderReportMembers(){
   Object.values(memCountMap).forEach(function(c){if(c===1)newCount++;else retCount++;});
   var retRate=totalMembers?Math.round(retCount/Object.keys(memCountMap).length*100):0;
 
-  // stat cards — 3개로 합산
+  // stat cards — 6개 항목을 한 카드 내 가로 배치
   var totalAmt=confLogs.reduce(function(s,l){return s+(l.payment_amount||0);},0);
   var retRateStr=Object.keys(memCountMap).length?retRate+'%':'—';
-  memStEl.innerHTML=''
-    +'<div class="card" style="padding:11px 14px">'
-    +'<div class="card-label">참가자</div>'
-    +'<div class="n-y" style="font-size:22px;font-weight:900;margin-top:2px">'+totalMembers+'명</div>'
-    +'<div style="font-size:11px;color:var(--text3);margin-top:3px;font-family:var(--mono)">신규 '+newCount+'명 · 재방문 '+retCount+'명</div>'
+  var items=[
+    ['전체 참가자', totalMembers+'명'],
+    ['신규 (1회)', newCount+'명'],
+    ['재방문 (2회+)', retCount+'명'],
+    ['재방문율', retRateStr],
+    ['총 참여 건', confLogs.length+'건'],
+    ['총 결제액', fMoney(totalAmt)]
+  ];
+  memStEl.innerHTML='<div class="card" style="padding:12px 16px">'
+    +'<div style="display:flex;flex-wrap:wrap;gap:0">'
+    +items.map(function(d,i){
+      return'<div style="flex:1 1 120px;min-width:100px;padding:8px 14px;'+(i>0?'border-left:1px solid var(--border)':'')+'">'
+        +'<div class="card-label" style="margin-bottom:4px">'+d[0]+'</div>'
+        +'<div class="n-y" style="font-size:18px;font-weight:800;line-height:1">'+d[1]+'</div>'
+        +'</div>';
+    }).join('')
     +'</div>'
-    +'<div class="card" style="padding:11px 14px">'
-    +'<div class="card-label">재방문율 / 참여</div>'
-    +'<div class="n-g" style="font-size:22px;font-weight:900;margin-top:2px">'+retRateStr+'</div>'
-    +'<div style="font-size:11px;color:var(--text3);margin-top:3px;font-family:var(--mono)">총 '+confLogs.length+'건 참여 확정</div>'
-    +'</div>'
-    +'<div class="card" style="padding:11px 14px">'
-    +'<div class="card-label">총 결제액</div>'
-    +'<div class="n-y" style="font-size:22px;font-weight:900;margin-top:2px">'+fMoney(totalAmt)+'</div>'
-    +'<div style="font-size:11px;color:var(--text3);margin-top:3px;font-family:var(--mono)">참여확정 기준</div>'
     +'</div>';
 
   // 채널별 유입
