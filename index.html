@@ -3572,15 +3572,22 @@ function renderReportMembers(){
     ['총 참여 건', confLogs.length+'건'],
     ['총 결제액', fMoney(totalAmt)]
   ];
-  memStEl.innerHTML='<div class="card" style="padding:12px 16px">'
-    +'<div style="display:flex;flex-wrap:wrap;gap:0">'
-    +items.map(function(d,i){
-      return'<div style="flex:1 1 120px;min-width:100px;padding:8px 14px;'+(i>0?'border-left:1px solid var(--border)':'')+'">'
-        +'<div class="card-label" style="margin-bottom:4px">'+d[0]+'</div>'
-        +'<div class="n-y" style="font-size:18px;font-weight:800;line-height:1">'+d[1]+'</div>'
-        +'</div>';
-    }).join('')
-    +'</div>'
+  function renderStatCard(label, group){
+    return '<div class="card" style="padding:10px 14px">'
+      +'<div class="card-label" style="font-size:10px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">'+label+'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0">'
+      +group.map(function(d,i){
+        return '<div style="padding:6px 10px;'+(i>0?'border-left:1px solid var(--border)':'')+'">'
+          +'<div class="card-label" style="margin-bottom:3px">'+d[0]+'</div>'
+          +'<div class="n-y" style="font-size:20px;font-weight:800;line-height:1.1">'+d[1]+'</div>'
+          +'</div>';
+      }).join('')
+      +'</div>'
+      +'</div>';
+  }
+  memStEl.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0">'
+    +renderStatCard('&#128100; 참가자 수', items.slice(0,3))
+    +renderStatCard('&#128200; 활동 지표', items.slice(3,6))
     +'</div>';
 
   // 채널별 유입
