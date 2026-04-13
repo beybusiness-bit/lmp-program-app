@@ -1706,7 +1706,7 @@ const GS={
   tokenExpiry:0,
   syncing:false,
   lastSync:null,
-  SCOPES:'https://www.googleapis.com/auth/spreadsheets',
+  SCOPES:'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/calendar.events',
   DISCOVERY:'https://sheets.googleapis.com/$discovery/rest?version=v4',
   LS_KEY:'mkng_gs_cfg',
   SHEETS:{
@@ -1733,10 +1733,12 @@ const GS={
   isConnected(){return !!this.accessToken && Date.now()<this.tokenExpiry;},
 
   saveConfig(){
-    try{localStorage.setItem(this.LS_KEY,JSON.stringify({clientId:this.clientId,sheetId:this.sheetId}));}catch(e){}
+    try{localStorage.setItem(this.LS_KEY,JSON.stringify({clientId:this.clientId,sheetId:this.sheetId,accessToken:this.accessToken,tokenExpiry:this.tokenExpiry}));}catch(e){}
   },
   loadConfig(){
-    try{const d=JSON.parse(localStorage.getItem(this.LS_KEY)||'{}');this.clientId=d.clientId||'';this.sheetId=d.sheetId||'';}catch(e){}
+    try{const d=JSON.parse(localStorage.getItem(this.LS_KEY)||'{}');this.clientId=d.clientId||'';this.sheetId=d.sheetId||'';
+    if(d.accessToken&&d.tokenExpiry&&Date.now()<Number(d.tokenExpiry)){this.accessToken=d.accessToken;this.tokenExpiry=Number(d.tokenExpiry);}
+    }catch(e){}
   },
 
   // UI 상태 업데이트
@@ -1771,6 +1773,7 @@ const GS={
           if(resp.error){reject(new Error(resp.error));return;}
           this.accessToken=resp.access_token;
           this.tokenExpiry=Date.now()+(resp.expires_in-60)*1000;
+          this.saveConfig();
           resolve(resp.access_token);
         },
         error_callback:(err)=>reject(new Error(err?.type||'token_error'))
@@ -3585,7 +3588,7 @@ function renderReportMembers(){
       +'</div>'
       +'</div>';
   }
-  memStEl.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0">'
+  memStEl.innerHTML='<div class="g2" style="margin-bottom:0">'
     +renderStatCard('&#128100; 참가자 수', items.slice(0,3))
     +renderStatCard('&#128200; 활동 지표', items.slice(3,6))
     +'</div>';
@@ -5638,23 +5641,26 @@ var GCAL={
   saveConfig:function(){
     try{localStorage.setItem(this.LS_KEY,JSON.stringify({calId:this.calId,enabled:this.enabled}));}catch(e){}
   },
-  isReady:function(){return this.enabled&&!!GS.accessToken;},
+  isReady:function(){return this.enabled&&GS.isConnected();},
   _getToken:async function(){
-    // GS.accessToken이 calendar.events 스코프를 포함하지 않을 수 있으므로
-    // 별도 토큰 클라이언트로 요청
+    // 초기 로그인 시 calendar.events 스코프가 GS.accessToken에 포함되므로 공유 사용
+    if(GS.isConnected())return GS.accessToken;
+    // GS 토큰 없으면 캐시된 별도 토큰 확인
     if(this._token&&Date.now()<this._tokenExpiry)return this._token;
+    // 별도 토큰 요청 (fallback)
     var self=this;
     return new Promise(function(resolve,reject){
       if(!window.google?.accounts?.oauth2){reject(new Error('GIS 미로드'));return;}
       var client=google.accounts.oauth2.initTokenClient({
         client_id:GS.clientId||AUTH.CLIENT_ID,
-        scope:'https://www.googleapis.com/auth/calendar.events',
+        scope:'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/calendar.events',
         hint:AUTH.userEmail||'',
         prompt:'',
         callback:function(resp){
           if(resp.error){reject(new Error(resp.error_description||resp.error));return;}
           self._token=resp.access_token;
           self._tokenExpiry=Date.now()+(resp.expires_in?resp.expires_in*1000-60000:3500000);
+          GS.accessToken=resp.access_token;GS.tokenExpiry=self._tokenExpiry;GS.saveConfig();
           resolve(resp.access_token);
         },
         error_callback:function(err){reject(new Error(err?.message||'token_error'));}
@@ -5927,39 +5933,49 @@ function init(){
   if(cid)document.getElementById('gs-client-id').value=cid;
   if(sid)document.getElementById('gs-sheet-id').value=sid;
 
-  // 세션 복원: localStorage에 30일 이내 로그인 이력 있으면 로그인 화면 건너뜀
+    // 세션 복원: localStorage에 30일 이내 로그인 이력 있으면 로그인 화면 건너뜀
   if(AUTH.loadSession()){
     document.getElementById('auth-screen').style.display='none';
     updateUserInfo();
     var _spInit='';try{_spInit=localStorage.getItem('mkng_page')||'';}catch(e){}
     navigate((_spInit&&document.getElementById('page-'+_spInit))?_spInit:'dashboard');
-    // silent 토큰 재발급 시도 — 실패해도 배너로 안내
+    GS.clientId=cid;GS.sheetId=sid;
     GS.updateUI('sync','Sheets 연결 중...');
-    waitForGIS().then(()=>{
-      return new Promise((resolve,reject)=>{
-        const client=google.accounts.oauth2.initTokenClient({
-          client_id:cid,
-          scope:'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
-          hint:AUTH.userEmail||'',
-          callback:(resp)=>{
-            if(resp.error){reject(new Error(resp.error));}
-            else{resolve(resp.access_token);}
-          },
-          error_callback:(err)=>reject(new Error(err?.type||'token_error'))
+
+    // 캐시된 토큰이 유효하면 팝업 없이 바로 연결
+    if(GS.isConnected()){
+      Promise.resolve()
+        .then(()=>GS.initSheets().then(()=>GS.loadAll()))
+        .then(()=>{afterLoad();GS.updateUI('ok','연결됨 · '+sid.slice(0,14)+'...');})
+        .catch(e=>{console.warn('자동 재연결 실패:',e.message);GS.updateUI('err','Sheets 미연결 — 사이드바 연결 버튼 클릭');});
+    } else {
+      // 토큰 만료: GIS로 silent 재발급 시도
+      waitForGIS().then(()=>{
+        return new Promise((resolve,reject)=>{
+          const client=google.accounts.oauth2.initTokenClient({
+            client_id:cid,
+            scope:'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+            hint:AUTH.userEmail||'',
+            callback:(resp)=>{
+              if(resp.error){reject(new Error(resp.error));}
+              else{resolve(resp.access_token);}
+            },
+            error_callback:(err)=>reject(new Error(err?.type||'token_error'))
+          });
+          client.requestAccessToken({hint:AUTH.userEmail||'',prompt:''});
         });
-        client.requestAccessToken({hint:AUTH.userEmail||'',prompt:''});
+      }).then(token=>{
+        GS.accessToken=token;GS.tokenExpiry=Date.now()+3500000;
+        GS.saveConfig();
+        return GS.initSheets().then(()=>GS.loadAll());
+      }).then(()=>{
+        afterLoad();
+        GS.updateUI('ok','연결됨 · '+sid.slice(0,14)+'...');
+      }).catch(e=>{
+        console.warn('자동 재연결 실패:', e.message);
+        GS.updateUI('err','Sheets 미연결 — 사이드바 연결 버튼 클릭');
       });
-    }).then(token=>{
-      GS.clientId=cid;GS.sheetId=sid;
-      GS.accessToken=token;GS.tokenExpiry=Date.now()+3500000;
-      return GS.initSheets().then(()=>GS.loadAll());
-    }).then(()=>{
-      afterLoad();
-      GS.updateUI('ok','연결됨 · '+sid.slice(0,14)+'...');
-    }).catch(e=>{
-      console.warn('자동 재연결 실패:', e.message);
-      GS.updateUI('err','Sheets 미연결 — 사이드바 연결 버튼 클릭');
-    });
+    }
   } else {
     document.getElementById('auth-screen').style.display='flex';
   }
