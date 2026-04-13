@@ -3182,6 +3182,120 @@ document.addEventListener('click',e=>{const w=document.getElementById('emoji-pic
 // 레시피 드래그 (모바일 터치 포함)
 // ══════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════
+// 증정품 CRUD
+// ══════════════════════════════════════════════════════════
+var giftPage=1;
+function goGiftPage(p){giftPage=p;renderGiftList();}
+function renderGiftList(){
+  var content=document.getElementById('gift-content');
+  var empty=document.getElementById('gift-empty');
+  if(!content)return;
+  if(!DB.gifts.length){content.innerHTML='';if(empty)empty.style.display='';return;}
+  if(empty)empty.style.display='none';
+  var perPage=parseInt(document.getElementById('gift-per-page')?.value||'20');
+  var total=DB.gifts.length,pages=Math.max(1,Math.ceil(total/perPage));
+  if(giftPage>pages)giftPage=1;
+  buildPager('gift-pagination-top',total,giftPage,perPage,'goGiftPage');
+  buildPager('gift-pagination-bot',total,giftPage,perPage,'goGiftPage');
+  var paged=DB.gifts.slice((giftPage-1)*perPage,giftPage*perPage);
+  var isMob=!!(window.matchMedia&&window.matchMedia('(max-width:1024px)').matches);
+  if(isMob){
+    content.innerHTML=paged.map(function(g){
+      var editBtn='<button class="btn btn-outline btn-xs" data-gift-edit="'+g.id+'">수정</button>';
+      return'<div style="padding:11px 4px;border-bottom:1px solid var(--border)">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
+        +'<div style="font-size:14px;font-weight:700;flex:1;min-width:0">'+esc(g.name)+'</div>'
+        +'<div class="td-mono" style="font-size:12px;color:var(--accent-dark);flex-shrink:0">'+fMoney(g.cost_per_unit||0)+'</div>'
+        +'</div>'
+        +(g.description?'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+esc(g.description)+'</div>':'')
+        +'<div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap">'
+        +'<span style="font-size:12px;color:var(--text2)">재고 <span class="td-mono">'+(g.stock||0)+'개</span></span>'
+        +(g.is_active?'<span class="badge badge-green">활성</span>':'<span class="badge badge-muted">비활성</span>')
+        +editBtn+'</div>'
+        +'</div>';
+    }).join('');
+  } else {
+    content.innerHTML='<div class="tbl-wrap"><table>'
+      +'<thead><tr><th>증정품명</th><th>설명</th><th>단위 원가</th><th>재고</th><th>상태</th><th></th></tr></thead>'
+      +'<tbody>'+paged.map(function(g){
+        var editBtn='<button class="btn btn-outline btn-xs" data-gift-edit="'+g.id+'">수정</button>';
+        return'<tr>'
+          +'<td><strong>'+esc(g.name)+'</strong></td>'
+          +'<td style="color:var(--text2);font-size:12px">'+esc(g.description||'')+'</td>'
+          +'<td class="td-mono">'+fMoney(g.cost_per_unit||0)+'</td>'
+          +'<td class="td-mono">'+(g.ingredient_id?Math.floor(calcGiftStock(g))+'개 ('+esc((DB.ingredients.find(function(i){return i.id===g.ingredient_id;})||{name:'?'}).name)+' 기반)':(g.stock||0)+'개')+'</td>'
+          +'<td>'+(g.is_active?'<span class="badge badge-green">활성</span>':'<span class="badge badge-muted">비활성</span>')+'</td>'
+          +'<td>'+editBtn+'</td>'
+          +'</tr>';
+      }).join('')+'</tbody></table></div>';
+  }
+  content.querySelectorAll('[data-gift-edit]').forEach(function(btn){
+    btn.onclick=function(){openGiftModal(this.dataset.giftEdit);};
+  });
+}
+function openGiftModal(id){
+  var g=id?DB.gifts.find(function(x){return x.id===id;}):null;
+  document.getElementById('m-gift-title').textContent=g?'증정품 수정':'증정품 추가';
+  document.getElementById('gift-id').value=g?g.id:'';
+  document.getElementById('gift-name').value=g?g.name:'';
+  document.getElementById('gift-desc').value=g?g.description||'':'';
+  document.getElementById('gift-cost').value=g?g.cost_per_unit||0:'';
+  document.getElementById('gift-stock').value=g?g.stock||0:'';
+  document.getElementById('gift-active').value=g&&!g.is_active?'0':'1';
+  // 원가 항목 연결 필드
+  var ingEl=document.getElementById('gift-ingredient');
+  if(ingEl){
+    var ingOpts='<option value="">연결 안 함</option>'+DB.ingredients.filter(function(i){return i.is_active;}).map(function(i){return'<option value="'+i.id+'">'+ esc(i.name)+' ('+i.unit+')</option>';}).join('');
+    ingEl.innerHTML=ingOpts;
+    ingEl.value=g&&g.ingredient_id?g.ingredient_id:'';
+  }
+  var qtyEl=document.getElementById('gift-qty');
+  if(qtyEl)qtyEl.value=g&&g.qty_per_gift?g.qty_per_gift:'';
+  if(typeof onGiftIngredientChange==='function')onGiftIngredientChange();
+  var delBtn=document.getElementById('gift-del-btn');if(delBtn)delBtn.style.display=g?'':'none';
+  openModal('m-gift');
+  setTimeout(function(){document.getElementById('gift-name').focus();},100);
+}
+function saveGift(){
+  var name=(document.getElementById('gift-name').value||'').trim();
+  if(!name){toast('증정품명을 입력해주세요','error');return;}
+  if(!requireSheets())return;
+  var id=document.getElementById('gift-id').value;
+  var desc=(document.getElementById('gift-desc').value||'').trim();
+  var ingId=document.getElementById('gift-ingredient')?document.getElementById('gift-ingredient').value||null:null;
+  var qty=document.getElementById('gift-qty')?parseFloat(document.getElementById('gift-qty').value)||null:null;
+  var cost=parseFloat(document.getElementById('gift-cost').value)||0;
+  var stock=parseInt(document.getElementById('gift-stock').value)||0;
+  var isActive=document.getElementById('gift-active').value==='1';
+  var now=new Date().toISOString();
+  if(id){
+    var g=DB.gifts.find(function(x){return x.id===id;});if(!g)return;
+    Object.assign(g,{name,description:desc,ingredient_id:ingId,qty_per_gift:qty,cost_per_unit:cost,stock,is_active:isActive});
+    toast('증정품 수정 완료');
+  } else {
+    DB.gifts.push({id:genId('GFT'),name,description:desc,ingredient_id:ingId,qty_per_gift:qty,cost_per_unit:cost,stock,is_active:isActive,created_at:now});
+    toast('증정품 추가 완료');
+  }
+  closeModal('m-gift');
+  renderGiftList();
+  syncBenefitSelect();
+  gsAfter('gifts');
+}
+function deleteGift(){
+  var id=document.getElementById('gift-id').value;if(!id)return;
+  if(!confirm('이 증정품을 삭제할까요?'))return;
+  if(!requireSheets())return;
+  DB.gifts=DB.gifts.filter(function(x){return x.id!==id;});
+  DB.benefits.filter(function(b){return b.reward_gift_id===id;}).forEach(function(b){b.reward_gift_id=null;});
+  closeModal('m-gift');
+  renderGiftList();
+  syncBenefitSelect();
+  gsAfter('gifts','benefits');
+  toast('삭제 완료','warning');
+}
+
+
+// ══════════════════════════════════════════════════════════
 // 추가 옵션 원가 항목 관리
 // ══════════════════════════════════════════════════════════
 function renderOptRecipeRows(optId){
@@ -5047,6 +5161,73 @@ function renderBenefitList(){
   content.querySelectorAll('[data-ben-edit]').forEach(function(btn){
     btn.onclick=function(){openBenefitModal(this.dataset.benEdit);};
   });
+}
+
+function onGiftIngredientChange(){
+  var ingEl=document.getElementById('gift-ingredient');
+  var ingId=ingEl?ingEl.value:'';
+  var qtyWrap=document.getElementById('gift-qty-wrap');
+  var derived=document.getElementById('gift-cost-derived');
+  var stockWrap=document.getElementById('gift-stock-wrap');
+  if(!ingId){
+    if(qtyWrap)qtyWrap.style.display='none';
+    if(derived)derived.style.display='none';
+    if(stockWrap)stockWrap.style.display='';
+    return;
+  }
+  if(qtyWrap)qtyWrap.style.display='';
+  if(stockWrap)stockWrap.style.display='none';
+  var qty=parseFloat(document.getElementById('gift-qty').value)||0;
+  var ing=DB.ingredients.find(function(i){return i.id===ingId;});
+  if(ing&&qty&&ing.purchase_unit_qty&&ing.price_per_unit){
+    var unitCost=qty*(ing.price_per_unit/ing.purchase_unit_qty);
+    var stk=Math.floor(calcStock(ing.id)/qty);
+    if(derived){
+      derived.style.display='';
+      derived.innerHTML='단위 원가: <strong class="n-p">'+fMoney(unitCost)+'</strong>&nbsp;|&nbsp;현재 재고: <strong class="n-g">'+stk+'개</strong>';
+    }
+    document.getElementById('gift-cost').value=Math.round(unitCost);
+  } else if(derived){derived.style.display='none';}
+}
+
+
+function renderBenefitProgCheckboxes(selected){
+  var el=document.getElementById('benefit-prog-list');if(!el)return;
+  var progs=DB.programs.filter(function(p){return p.is_active;});
+  if(!progs.length){el.innerHTML='<span style="font-size:12px;color:var(--text3)">등록된 프로그램 없음</span>';return;}
+  el.innerHTML=progs.map(function(p){
+    var chk=selected&&selected.includes(p.id)?'checked':'';
+    return'<label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px">'
+      +'<input type="checkbox" value="'+p.id+'" '+chk+'>'
+      +'<span>'+(p.emoji||'')+' '+esc(p.name)+'</span>'
+      +'</label>';
+  }).join('');
+}
+function openBenefitModal(id){
+  var b=id?DB.benefits.find(function(x){return x.id===id;}):null;
+  document.getElementById('m-benefit-title').textContent=b?'혜택 수정':'혜택 추가';
+  document.getElementById('benefit-id').value=b?b.id:'';
+  document.getElementById('benefit-name').value=b?b.name:'';
+  document.getElementById('benefit-desc').value=b?b.description||'':'';
+  document.getElementById('benefit-max-count').value=b&&b.max_count?b.max_count:'';
+  var repEl=document.getElementById('benefit-repeatable');
+  if(repEl)repEl.checked=b?b.repeatable===true:false;
+  document.getElementById('benefit-active').value=b&&!b.is_active?'0':'1';
+  renderBenefitProgCheckboxes(b?b.applicable_program_ids||[]:[]);
+  var msRows=document.getElementById('milestone-rows');
+  if(msRows)msRows.innerHTML='';
+  if(b){
+    var existing=DB.benefitMilestones
+      .filter(function(m){return m.benefit_id===b.id;})
+      .sort(function(a,bb){return a.count_threshold-bb.count_threshold;});
+    existing.forEach(function(m){
+      addMilestoneRow(m.count_threshold,m.reward_type,m.reward_value,m.reward_gift_id,m.cost_calc_type);
+    });
+  }
+  var delBtn=document.getElementById('benefit-del-btn');
+  if(delBtn)delBtn.style.display=b?'':'none';
+  openModal('m-benefit');
+  setTimeout(function(){document.getElementById('benefit-name').focus();},100);
 }
 function _calcMilestoneCost(m,payAmount){
   if(m.reward_type==='discount_percent')return Math.round(payAmount*(m.reward_value||0)/100);
