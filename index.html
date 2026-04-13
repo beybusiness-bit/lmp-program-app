@@ -967,7 +967,7 @@ tbody td{padding:11px 11px;vertical-align:middle}
           </select>
         </div>
         <div class="tbl-wrap"><table>
-          <thead><tr><th>참가자</th><th>총 참여</th><th>총 결제액</th><th>수혜 혜택</th><th>다음 혜택까지</th></tr></thead>
+          <thead><tr><th>참가자</th><th>총 참여</th><th>프로그램별 참여</th><th>총 결제액</th><th>수혜 혜택</th><th>다음 혜택까지</th></tr></thead>
           <tbody id="rep-mem-tbody"></tbody>
         </table></div>
       </div>
@@ -1485,6 +1485,8 @@ tbody td{padding:11px 11px;vertical-align:middle}
         <button class="tab-btn" id="settings-tab-paystat" onclick="openSettingsTab('paystat')">💳 결제 상태</button>
         <button class="tab-btn" id="settings-tab-cat" onclick="openSettingsTab('cat')">🗂 원가항목 카테고리</button>
         <button class="tab-btn" id="settings-tab-sheets" onclick="openSettingsTab('sheets')">☁ Sheets</button>
+        <button class="tab-btn" id="settings-tab-gcal" onclick="openSettingsTab('gcal')">📅 Google Calendar</button>
+        <button class="tab-btn" id="settings-tab-notion" onclick="openSettingsTab('notion')">📓 Notion</button>
         <button class="tab-btn" id="settings-tab-info" onclick="openSettingsTab('info')">ℹ 앱 정보</button>
       </div>
       <div style="padding:20px">
@@ -1521,6 +1523,14 @@ tbody td{padding:11px 11px;vertical-align:middle}
         <!-- Sheets 연결 정보 -->
         <div id="settings-panel-sheets" style="display:none">
           <div id="settings-sheets-body"></div>
+        </div>
+        <!-- Google Calendar -->
+        <div id="settings-panel-gcal" style="display:none">
+          <div id="settings-gcal-body"></div>
+        </div>
+        <!-- Notion -->
+        <div id="settings-panel-notion" style="display:none">
+          <div id="settings-notion-body"></div>
         </div>
         <!-- 참여 상태 -->
         <div id="settings-panel-pstat" style="display:none">
@@ -1640,7 +1650,7 @@ async function authLogin(){
     const token=await new Promise((resolve,reject)=>{
       const client=google.accounts.oauth2.initTokenClient({
         client_id:cid,
-        scope:'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+        scope:'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
         callback:(resp)=>{
           if(resp.error){reject(new Error(resp.error_description||resp.error));return;}
           resolve(resp.access_token);
@@ -1777,7 +1787,7 @@ const GS={
     programs:{name:'programs',cols:['id','name','emoji','description','type_id','selling_price','max_participants','is_active','created_at','default_option_ids']},
     programsHistory:{name:'programs_history',cols:['id','program_id','changed_field','old_value','new_value','changed_at','changed_by']},
     programRecipes:{name:'program_recipes',cols:['id','program_id','ingredient_id','qty_per_person','valid_from','valid_until','created_at']},
-    sessions:{name:'sessions',cols:['id','program_id','session_date','session_time','participants','selling_price_snapshot','recipe_snapshot','usage_recorded','usage_recorded_at','created_at','memo','created_by']},
+    sessions:{name:'sessions',cols:['id','program_id','session_date','session_time','participants','selling_price_snapshot','recipe_snapshot','usage_recorded','usage_recorded_at','created_at','memo','created_by','google_event_id','notion_page_id']},
     inventoryLog:{name:'inventory_log',cols:['id','log_date','ingredient_id','type','quantity','order_date','session_id','created_at','memo','created_by']},
     categories:{name:'categories',cols:['id','name','color']},
     programTypes:{name:'program_types',cols:['id','name','color']},
@@ -1902,7 +1912,7 @@ const GS={
             else if(h==='recipe_snapshot'){try{v=v?JSON.parse(v):{};}catch(e){v={}}}
             else if(h==='default_option_ids'||h==='applicable_program_ids'){try{v=v?JSON.parse(v):[];}catch(e){v=[];}}
             else if(h==='repeatable')v=v===true||v===1||String(v).toLowerCase()==='true'||v==='1';
-            else if(h==='valid_until'||h==='order_date'||h==='session_id'||h==='usage_recorded_at'||h==='type_id'||h==='category_id'||h==='benefit_id'||h==='reward_gift_id'||h==='log_id'||h==='option_id'||h==='benefit_cost_type'||h==='benefit_memo'||h==='source'||h==='direct_discount_memo')v=v||null;
+            else if(h==='valid_until'||h==='order_date'||h==='session_id'||h==='usage_recorded_at'||h==='type_id'||h==='category_id'||h==='benefit_id'||h==='reward_gift_id'||h==='log_id'||h==='option_id'||h==='benefit_cost_type'||h==='benefit_memo'||h==='source'||h==='direct_discount_memo'||h==='google_event_id'||h==='notion_page_id')v=v||null;
             obj[h]=v;
           });
           return obj;
@@ -2391,7 +2401,8 @@ function saveSes(){
   } else {
     DB.sessions.push({id:genId('SES'),program_id:progId,session_date:date,session_time:time||null,participants:pax,
       selling_price_snapshot:prog.selling_price,recipe_snapshot:snap,
-      usage_recorded:false,usage_recorded_at:null,created_at:new Date().toISOString(),memo,created_by:AUTH.userEmail||''});
+      usage_recorded:false,usage_recorded_at:null,created_at:new Date().toISOString(),memo,created_by:AUTH.userEmail||'',
+      google_event_id:null,notion_page_id:null});
     toast('일정 추가 완료');
   }
   var _newSesId=id||DB.sessions[DB.sessions.length-1]?.id;
@@ -2406,6 +2417,12 @@ function saveSes(){
   }
   closeModal('m-ses');document.getElementById('m-ses').style.zIndex='';renderSessions();if(sesViewMode==='calendar')renderCalendar();
   if(_afterSesSave){const _cb=_afterSesSave;_afterSesSave=null;_cb(_newSesId);}
+  // 외부 동기화 (Google Calendar / Notion)
+  var _syncSes=DB.sessions.find(function(x){return x.id===_newSesId;});
+  if(_syncSes){
+    if(GCAL.isReady())GCAL.upsertEvent(_syncSes).catch(function(e){toast('캘린더 동기화 실패: '+e.message,'error');});
+    if(NOTION.isReady())NOTION.syncSession(_syncSes,'upsert').catch(function(e){toast('Notion 동기화 실패: '+e.message,'error');});
+  }
 }
 function recordUsage(sesId){
   if(!requireSheets())return;
@@ -2433,9 +2450,14 @@ function deleteSession(sesId){
   if(!s)return;
   if(!confirm(s.usage_recorded?'사용 기록된 일정입니다. 재고 기록도 함께 삭제됩니다. 계속할까요?':'이 일정을 삭제할까요?'))return;
   if(s.usage_recorded)DB.inventoryLog=DB.inventoryLog.filter(l=>l.session_id!==sesId);
+  // 외부 동기화 — 삭제 전에 ID 캡처
+  var _delGcalId=s.google_event_id||null;
+  var _delNotionId=s.notion_page_id||null;
   DB.sessions=DB.sessions.filter(x=>x.id!==sesId);
   toast('일정 삭제 완료','warning');renderSessions();
   gsAfter('sessions','inventoryLog');
+  if(_delGcalId&&GCAL.isReady())GCAL.deleteEvent(_delGcalId).catch(function(e){toast('캘린더 이벤트 삭제 실패: '+e.message,'error');});
+  if(_delNotionId&&NOTION.isReady())NOTION.archivePage(_delNotionId).catch(function(e){toast('Notion 페이지 삭제 실패: '+e.message,'error');});
 }
 function goSesPage(p){sesPage=p;renderSessions();}
 function _sesOptLinesHtml(sesId){
@@ -3724,7 +3746,15 @@ function renderReportMembers(){
       if(left>0&&(nextLeft===null||left<nextLeft)){nextLeft=left;nextBen=esc(b.name)+' '+ms[0].count_threshold+'회 — '+_milestoneRewardStr(ms[0]);}
     });
 
-    return{m:m,cnt:logs.length,amt:totalAmt,benNames:benNames,nextBen:nextBen,nextLeft:nextLeft,lastDate:lastDate};
+    // 프로그램별 참여 횟수
+    var progCountMap={};
+    logs.forEach(function(l){
+      var s=DB.sessions.find(function(x){return x.id===l.session_id;});
+      if(!s)return;
+      progCountMap[s.program_id]=(progCountMap[s.program_id]||0)+1;
+    });
+
+    return{m:m,cnt:logs.length,amt:totalAmt,benNames:benNames,nextBen:nextBen,nextLeft:nextLeft,lastDate:lastDate,progCountMap:progCountMap};
   });
 
   // 검색 필터
@@ -3749,6 +3779,15 @@ function renderReportMembers(){
     var nextHtml=r.nextBen
       ?'<span class="badge badge-yellow" style="font-size:10px">'+esc(r.nextBen)+'</span><span style="font-size:11px;color:var(--text3);margin-left:4px">까지 '+r.nextLeft+'회</span>'
       :'<span style="font-size:11px;color:var(--text3)">—</span>';
+    // 프로그램별 횟수
+    var progBreakdown=Object.entries(r.progCountMap).map(function(e){
+      var p=DB.programs.find(function(x){return x.id===e[0];});
+      if(!p)return'';
+      return(p.emoji||'')+' '+esc(p.name)+' '+e[1]+'회';
+    }).filter(Boolean);
+    var progHtml=progBreakdown.length
+      ?'<div style="font-size:11px;color:var(--text2);line-height:1.7">'+progBreakdown.join('<br>')+'</div>'
+      :'<span style="font-size:11px;color:var(--text3)">—</span>';
     if(isMob){
       return'<tr><td class="nl" style="padding:10px 12px;display:block">'
         +'<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+esc(m.name||'—')+'</div>'
@@ -3756,6 +3795,7 @@ function renderReportMembers(){
         +'<span>참여 <span class="n-y td-mono">'+r.cnt+'회</span></span>'
         +'<span>결제 <span class="n-g td-mono">'+fMoney(r.amt)+'</span></span>'
         +'</div>'
+        +(progBreakdown.length?'<div style="font-size:11px;color:var(--text2);margin-bottom:3px">'+progBreakdown.join(' · ')+'</div>':'')
         +'<div style="margin-bottom:3px">'+benHtml+'</div>'
         +'<div>'+nextHtml+'</div>'
         +'</td></tr>';
@@ -3763,6 +3803,7 @@ function renderReportMembers(){
     return'<tr>'
       +'<td><strong>'+esc(m.name||'—')+'</strong>'+(m.instagram_id?'<div style="font-size:11px;color:var(--text3)">@'+esc(m.instagram_id)+'</div>':'')+'</td>'
       +'<td class="td-mono n-y" style="font-weight:700">'+r.cnt+'회</td>'
+      +'<td>'+progHtml+'</td>'
       +'<td class="td-mono n-g">'+fMoney(r.amt)+'</td>'
       +'<td>'+benHtml+'</td>'
       +'<td>'+nextHtml+'</td>'
@@ -4433,7 +4474,7 @@ function openSettings(){
 }
 
 function openSettingsTab(tab){
-  ['ch','role','type','cat','pstat','paystat','sheets','nav','info'].forEach(function(t){
+  ['ch','role','type','cat','pstat','paystat','sheets','gcal','notion','nav','info'].forEach(function(t){
     var btn=document.getElementById('settings-tab-'+t);
     var panel=document.getElementById('settings-panel-'+t);
     if(btn)btn.classList.toggle('active',t===tab);
@@ -4444,6 +4485,8 @@ function openSettingsTab(tab){
   else if(tab==='type')renderSettingsType();
   else if(tab==='cat')renderSettingsCat();
   else if(tab==='sheets')renderSettingsSheets();
+  else if(tab==='gcal')renderSettingsGcal();
+  else if(tab==='notion')renderSettingsNotion();
   else if(tab==='pstat')renderSettingsPstat();
   else if(tab==='paystat')renderSettingsPaystat();
   else if(tab==='nav')renderSettingsNav();
@@ -5416,6 +5459,296 @@ function clearDummyData(){
   toast('더미 데이터 삭제 완료','warning');
   renderSettingsInfo();
 }
+// ══════════════════════════════════════════════════════════
+// Google Calendar 동기화 모듈
+// ══════════════════════════════════════════════════════════
+var GCAL={
+  LS_KEY:'mkng_gcal_cfg',
+  calId:'primary',
+  enabled:false,
+  lastSync:null,
+  _token:null,
+  _tokenExpiry:0,
+  loadConfig:function(){
+    try{var d=JSON.parse(localStorage.getItem(this.LS_KEY)||'{}');
+      this.calId=d.calId||'primary';
+      this.enabled=!!d.enabled;
+    }catch(e){}
+  },
+  saveConfig:function(){
+    try{localStorage.setItem(this.LS_KEY,JSON.stringify({calId:this.calId,enabled:this.enabled}));}catch(e){}
+  },
+  isReady:function(){return this.enabled&&!!GS.accessToken;},
+  _getToken:async function(){
+    // GS.accessToken이 calendar.events 스코프를 포함하지 않을 수 있으므로
+    // 별도 토큰 클라이언트로 요청
+    if(this._token&&Date.now()<this._tokenExpiry)return this._token;
+    var self=this;
+    return new Promise(function(resolve,reject){
+      if(!window.google?.accounts?.oauth2){reject(new Error('GIS 미로드'));return;}
+      var client=google.accounts.oauth2.initTokenClient({
+        client_id:GS.clientId||AUTH.CLIENT_ID,
+        scope:'https://www.googleapis.com/auth/calendar.events',
+        hint:AUTH.userEmail||'',
+        prompt:'',
+        callback:function(resp){
+          if(resp.error){reject(new Error(resp.error_description||resp.error));return;}
+          self._token=resp.access_token;
+          self._tokenExpiry=Date.now()+(resp.expires_in?resp.expires_in*1000-60000:3500000);
+          resolve(resp.access_token);
+        },
+        error_callback:function(err){reject(new Error(err?.message||'token_error'));}
+      });
+      client.requestAccessToken({hint:AUTH.userEmail||'',prompt:''});
+    });
+  },
+  _api:async function(method,path,body){
+    var token=await this._getToken();
+    var url='https://www.googleapis.com/calendar/v3'+path;
+    var opts={method:method,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'}};
+    if(body)opts.body=JSON.stringify(body);
+    var resp=await fetch(url,opts);
+    if(resp.status===204)return null;
+    if(!resp.ok){var e=await resp.json();throw new Error((e.error?.message)||resp.status);}
+    return resp.json();
+  },
+  _buildEventBody:function(ses){
+    var prog=DB.programs.find(function(p){return p.id===ses.program_id;});
+    var title=(prog?(prog.emoji?prog.emoji+' ':'')+prog.name:'일정');
+    var dateStr=ses.session_date;
+    var timeStr=ses.session_time?ses.session_time.slice(0,5):'00:00';
+    // 종료 = 시작 +2시간
+    function addHours(dt,h){var d=new Date(dt);d.setHours(d.getHours()+h);return d.toISOString();}
+    var startDt=dateStr+'T'+timeStr+':00';
+    var startFull=new Date(startDt).toISOString();
+    var endFull=addHours(startFull,2);
+    var confLogs=DB.participationLogs.filter(function(l){return l.session_id===ses.id&&l.status==='참여확정';});
+    var desc='참여 인원: '+confLogs.length+'명 (최대 '+ses.participants+'명)';
+    if(ses.memo)desc+='\n메모: '+ses.memo;
+    return{summary:title,start:{dateTime:startFull,timeZone:'Asia/Seoul'},end:{dateTime:endFull,timeZone:'Asia/Seoul'},description:desc};
+  },
+  upsertEvent:async function(ses){
+    if(!this.isReady())return;
+    var body=this._buildEventBody(ses);
+    var result;
+    if(ses.google_event_id){
+      try{result=await this._api('PATCH','/calendars/'+encodeURIComponent(this.calId)+'/events/'+ses.google_event_id,body);}
+      catch(e){
+        // 404면 새로 생성
+        if(String(e.message).includes('404')||String(e.message).includes('notFound')){
+          result=await this._api('POST','/calendars/'+encodeURIComponent(this.calId)+'/events',body);
+        } else throw e;
+      }
+    } else {
+      result=await this._api('POST','/calendars/'+encodeURIComponent(this.calId)+'/events',body);
+    }
+    if(result&&result.id&&result.id!==ses.google_event_id){
+      ses.google_event_id=result.id;
+      gsAfter('sessions');
+    }
+    this.lastSync=new Date().toISOString();
+  },
+  deleteEvent:async function(eventId){
+    if(!this.isReady())return;
+    try{await this._api('DELETE','/calendars/'+encodeURIComponent(this.calId)+'/events/'+eventId);}
+    catch(e){if(!String(e.message).includes('404')&&!String(e.message).includes('410'))throw e;}
+    this.lastSync=new Date().toISOString();
+  },
+  syncAll:async function(){
+    if(!this.isReady()){toast('캘린더 연동이 꺼져 있거나 로그인이 필요합니다','error');return;}
+    toast('Google Calendar 전체 동기화 시작...');
+    var errors=0;
+    for(var i=0;i<DB.sessions.length;i++){
+      try{await this.upsertEvent(DB.sessions[i]);}
+      catch(e){console.warn('gcal upsert 오류:',DB.sessions[i].id,e.message);errors++;}
+    }
+    this.lastSync=new Date().toISOString();
+    toast(errors?('전체 동기화 완료 ('+errors+'건 오류)'):'Google Calendar 전체 동기화 완료 ✓');
+    renderSettingsGcal();
+  }
+};
+
+// ══════════════════════════════════════════════════════════
+// Notion 동기화 모듈 (Make 웹훅 경유)
+// ══════════════════════════════════════════════════════════
+var NOTION={
+  LS_KEY:'mkng_notion_cfg',
+  webhookUrl:'',
+  enabled:false,
+  lastSync:null,
+  loadConfig:function(){
+    try{var d=JSON.parse(localStorage.getItem(this.LS_KEY)||'{}');
+      this.webhookUrl=d.webhookUrl||'';
+      this.enabled=!!d.enabled;
+    }catch(e){}
+  },
+  saveConfig:function(){
+    try{localStorage.setItem(this.LS_KEY,JSON.stringify({webhookUrl:this.webhookUrl,enabled:this.enabled}));}catch(e){}
+  },
+  isReady:function(){return this.enabled&&!!this.webhookUrl;},
+  _buildPayload:function(ses,action){
+    var prog=DB.programs.find(function(p){return p.id===ses.program_id;});
+    var confLogs=DB.participationLogs.filter(function(l){return l.session_id===ses.id&&l.status==='참여확정';});
+    var revenue=confLogs.reduce(function(s,l){
+      var opts=DB.logOptions.filter(function(o){return o.log_id===l.id;});
+      var optSum=opts.reduce(function(a,o){return a+(o.price_snapshot||0);},0);
+      return s+(l.payment_amount||0)+optSum;
+    },0);
+    var cost=calcSesCost(ses);
+    return{
+      action:action,
+      session_id:ses.id,
+      notion_page_id:ses.notion_page_id||null,
+      date:ses.session_date,
+      time:ses.session_time||'',
+      program_name:(prog?(prog.emoji?prog.emoji+' ':'')+prog.name:''),
+      participants:confLogs.length,
+      max_participants:ses.participants,
+      revenue:revenue,
+      cost:cost,
+      profit:revenue-cost,
+      usage_recorded:ses.usage_recorded,
+      memo:ses.memo||''
+    };
+  },
+  syncSession:async function(ses,action){
+    if(!this.isReady())return;
+    var payload=this._buildPayload(ses,action);
+    var resp=await fetch(this.webhookUrl,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    if(!resp.ok)throw new Error('Make 웹훅 오류 '+resp.status);
+    // Make가 notion_page_id를 응답에 포함시키면 저장
+    try{
+      var text=await resp.text();
+      if(text){var data=JSON.parse(text);if(data.notion_page_id&&data.notion_page_id!==ses.notion_page_id){ses.notion_page_id=data.notion_page_id;gsAfter('sessions');}}
+    }catch(e){}
+    this.lastSync=new Date().toISOString();
+  },
+  archivePage:async function(pageId){
+    if(!this.isReady())return;
+    await fetch(this.webhookUrl,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'archive',notion_page_id:pageId})
+    });
+    this.lastSync=new Date().toISOString();
+  },
+  syncAll:async function(){
+    if(!this.isReady()){toast('Notion 연동이 꺼져 있거나 웹훅 URL이 없습니다','error');return;}
+    toast('Notion 전체 동기화 시작...');
+    var errors=0;
+    for(var i=0;i<DB.sessions.length;i++){
+      try{await this.syncSession(DB.sessions[i],'upsert');}
+      catch(e){console.warn('notion sync 오류:',DB.sessions[i].id,e.message);errors++;}
+    }
+    this.lastSync=new Date().toISOString();
+    toast(errors?('전체 동기화 완료 ('+errors+'건 오류)'):'Notion 전체 동기화 완료 ✓');
+    renderSettingsNotion();
+  }
+};
+
+// ══════════════════════════════════════════════════════════
+// Google Calendar 설정 렌더
+// ══════════════════════════════════════════════════════════
+function renderSettingsGcal(){
+  var el=document.getElementById('settings-gcal-body');if(!el)return;
+  var lastSyncStr=GCAL.lastSync?new Date(GCAL.lastSync).toLocaleString('ko-KR'):'없음';
+  el.innerHTML=''
+    +'<div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.7">'
+    +'Google Calendar에 모임 일정을 단방향으로 내보냅니다.<br>'
+    +'저장/수정/삭제 시 자동으로 캘린더 이벤트가 생성·수정·삭제됩니다.<br>'
+    +'<b>주의:</b> Google Cloud Console에서 <b>Google Calendar API</b>를 활성화해야 합니다.'
+    +'</div>'
+    +'<div class="form-group"><label class="form-label">캘린더 ID</label>'
+    +'<input type="text" class="form-input" id="gcal-cal-id" value="'+esc(GCAL.calId)+'" placeholder="primary (기본 캘린더) 또는 캘린더 이메일">'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:3px">기본 캘린더: <b>primary</b> / 다른 캘린더: Google Calendar 설정에서 ID 복사</div>'
+    +'</div>'
+    +'<div class="form-group">'
+    +'<label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13px">'
+    +'<input type="checkbox" id="gcal-enabled" '+(GCAL.enabled?'checked':'')+'>'
+    +'<span>Google Calendar 동기화 <b>활성화</b></span>'
+    +'</label>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">'
+    +'<button class="btn btn-primary btn-sm" onclick="saveGcalSettings()">저장</button>'
+    +'<button class="btn btn-outline btn-sm" onclick="GCAL.syncAll()">↻ 전체 동기화</button>'
+    +'</div>'
+    +'<div style="margin-top:14px;padding:10px 12px;background:var(--bg-hover);border-radius:var(--radius-sm);font-size:11px;color:var(--text3);font-family:var(--mono)">'
+    +'마지막 동기화: '+lastSyncStr
+    +'</div>'
+    +'<div style="margin-top:14px;padding:12px;background:#fffcf0;border:1px solid #ffe066;border-radius:var(--radius-sm);font-size:12px">'
+    +'<b>Google Calendar API 활성화 방법</b>'
+    +'<ol style="margin:8px 0 0 16px;font-size:11px;color:var(--text2);line-height:1.8">'
+    +'<li><a href="https://console.cloud.google.com/" target="_blank" style="color:#c8a800">Google Cloud Console</a> 접속</li>'
+    +'<li>API 및 서비스 → 라이브러리 → <b>Google Calendar API</b> 검색 후 활성화</li>'
+    +'<li>OAuth 동의 화면에 <b>calendar.events</b> 스코프 추가</li>'
+    +'<li>저장 후 이 앱에서 캘린더 동기화 시 권한 요청 팝업 승인</li>'
+    +'</ol>'
+    +'</div>';
+}
+function saveGcalSettings(){
+  var calId=(document.getElementById('gcal-cal-id')?.value||'').trim()||'primary';
+  var enabled=!!(document.getElementById('gcal-enabled')?.checked);
+  GCAL.calId=calId;GCAL.enabled=enabled;GCAL.saveConfig();
+  toast('Google Calendar 설정 저장 완료');
+  renderSettingsGcal();
+}
+
+// ══════════════════════════════════════════════════════════
+// Notion 설정 렌더
+// ══════════════════════════════════════════════════════════
+function renderSettingsNotion(){
+  var el=document.getElementById('settings-notion-body');if(!el)return;
+  var lastSyncStr=NOTION.lastSync?new Date(NOTION.lastSync).toLocaleString('ko-KR'):'없음';
+  el.innerHTML=''
+    +'<div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.7">'
+    +'Notion 데이터베이스에 모임 일정을 단방향으로 내보냅니다.<br>'
+    +'브라우저에서 Notion API를 직접 호출하면 CORS 제한이 있으므로 <b>Make 웹훅</b>을 경유합니다.<br>'
+    +'Make 시나리오를 만들고 웹훅 URL을 아래에 입력하세요.'
+    +'</div>'
+    +'<div class="form-group"><label class="form-label">Make 웹훅 URL</label>'
+    +'<input type="text" class="form-input" id="notion-webhook" value="'+esc(NOTION.webhookUrl)+'" placeholder="https://hook.eu2.make.com/xxxxxxxx">'
+    +'</div>'
+    +'<div class="form-group">'
+    +'<label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13px">'
+    +'<input type="checkbox" id="notion-enabled" '+(NOTION.enabled?'checked':'')+'>'
+    +'<span>Notion 동기화 <b>활성화</b></span>'
+    +'</label>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">'
+    +'<button class="btn btn-primary btn-sm" onclick="saveNotionSettings()">저장</button>'
+    +'<button class="btn btn-outline btn-sm" onclick="NOTION.syncAll()">↻ 전체 동기화</button>'
+    +'</div>'
+    +'<div style="margin-top:14px;padding:10px 12px;background:var(--bg-hover);border-radius:var(--radius-sm);font-size:11px;color:var(--text3);font-family:var(--mono)">'
+    +'마지막 동기화: '+lastSyncStr
+    +'</div>'
+    +'<div style="margin-top:14px;padding:12px;background:#f0f0ff;border:1px solid #c0c0ff;border-radius:var(--radius-sm);font-size:12px">'
+    +'<b>Make 시나리오 설정 방법</b>'
+    +'<ol style="margin:8px 0 0 16px;font-size:11px;color:var(--text2);line-height:1.8">'
+    +'<li>Make에서 새 시나리오 생성 → <b>Webhooks → Custom webhook</b> 모듈 추가</li>'
+    +'<li>웹훅 URL 복사 → 이 입력창에 붙여넣기 + 저장</li>'
+    +'<li>이어서 <b>Notion → Create/Update a Database Item</b> 모듈 추가</li>'
+    +'<li>Notion Integration 연결 후 DB ID 설정</li>'
+    +'<li>매핑: date=날짜, program_name=제목, participants=인원, revenue=매출, profit=수익, memo=메모, action=상태</li>'
+    +'<li>action이 "archive"일 때 해당 notion_page_id 페이지를 archived=true 처리</li>'
+    +'<li>Make 응답(Response)에 <code>{"notion_page_id":"페이지ID"}</code> 반환 시 앱에 자동 저장</li>'
+    +'</ol>'
+    +'<div style="margin-top:8px;padding:7px 10px;background:#e8e8ff;border-radius:6px;font-size:11px">'
+    +'<b>전송 데이터 구조:</b> action, session_id, notion_page_id, date, time, program_name, participants, max_participants, revenue, cost, profit, usage_recorded, memo'
+    +'</div>'
+    +'</div>';
+}
+function saveNotionSettings(){
+  var url=(document.getElementById('notion-webhook')?.value||'').trim();
+  var enabled=!!(document.getElementById('notion-enabled')?.checked);
+  NOTION.webhookUrl=url;NOTION.enabled=enabled;NOTION.saveConfig();
+  toast('Notion 설정 저장 완료');
+  renderSettingsNotion();
+}
+
 function init(){
   loadAppSettings();
   seedData();
@@ -5427,6 +5760,8 @@ function init(){
 
   // GS 저장 설정 복원 (코드에 하드코딩된 값 우선)
   GS.loadConfig();
+  GCAL.loadConfig();
+  NOTION.loadConfig();
   const cid=(AUTH.CLIENT_ID||'').trim()||GS.clientId||'';
   const sid=(AUTH.SHEET_ID||'').trim()||GS.sheetId||'';
   if(cid)document.getElementById('gs-client-id').value=cid;
@@ -5444,7 +5779,7 @@ function init(){
       return new Promise((resolve,reject)=>{
         const client=google.accounts.oauth2.initTokenClient({
           client_id:cid,
-          scope:'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+          scope:'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
           hint:AUTH.userEmail||'',
           callback:(resp)=>{
             if(resp.error){reject(new Error(resp.error));}
