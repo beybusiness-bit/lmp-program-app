@@ -1,3 +1,91 @@
+  document.getElementById('plog-benefit-id').value=log.benefit_id||'';
+function savePlog(){
+  var id=document.getElementById('plog-id').value;
+  var memberId=document.getElementById('plog-member-id').value;
+  var sesId=document.getElementById('plog-session-id').value;
+  if(!memberId||!sesId){toast('참가자 또는 모임 정보가 없습니다.','error');return;}
+  if(!id){
+    var _ses=DB.sessions.find(function(x){return x.id===sesId;});
+    if(_ses&&_ses.session_date<today()){toast('지난 일정에는 새 참가자를 추가할 수 없습니다.','error');return;}
+  }
+  var channel=document.getElementById('plog-channel').value;
+  var status=document.getElementById('plog-status').value;
+  var payStatus=document.getElementById('plog-payment-status').value;
+  var amount=parseFloat(document.getElementById('plog-amount').value)||0;
+  var memo=(document.getElementById('plog-memo').value||'').trim();
+  var directDiscount=parseFloat(document.getElementById('plog-direct-discount').value)||0;
+  var directDiscountMemo=(document.getElementById('plog-direct-discount-memo').value||'').trim();
+  var now=new Date().toISOString();
+
+  // 옵션 수집
+  var selOpts=[];
+  document.querySelectorAll('#plog-options-section input[type=checkbox]:checked').forEach(function(cb){
+    selOpts.push({optId:cb.dataset.optId,price:parseFloat(cb.dataset.price)||0});
+  });
+
+  // 마일스톤 자동 계산 (신규 참여 로그 저장 시)
+  var autoMilestone=null;
+  if(status==='참여확정'){
+    var ses=DB.sessions.find(function(x){return x.id===sesId;});
+    autoMilestone=calcAutoMilestone(memberId,sesId,ses?ses.program_id:null,id);
+  }
+  var benefitId=autoMilestone?autoMilestone.benefit_id:null;
+  var benefitCost=autoMilestone?autoMilestone.cost:null;
+  var benefitMemo=autoMilestone?autoMilestone.memo:null;
+
+  var plogId2=id||genId('PLG');
+  if(id){
+    var l=DB.participationLogs.find(function(x){return x.id===id;});if(!l)return;
+    // 수정 시: status가 참여확정으로 바뀌는 경우에만 재계산
+    if(status==='참여확정'&&l.status!=='참여확정'&&!l.benefit_id){
+      var ses2=DB.sessions.find(function(x){return x.id===sesId;});
+      var reCalc=calcAutoMilestone(memberId,sesId,ses2?ses2.program_id:null,id);
+      if(reCalc){benefitId=reCalc.benefit_id;benefitCost=reCalc.cost;benefitMemo=reCalc.memo;}
+    } else {
+      // 기존 혜택 유지
+      benefitId=l.benefit_id;benefitCost=l.benefit_cost;benefitMemo=l.benefit_memo;
+    }
+    Object.assign(l,{channel,status,payment_status:payStatus,payment_amount:amount,benefit_id:benefitId,benefit_cost:benefitCost,benefit_cost_type:'auto',benefit_memo:benefitMemo||null,direct_discount:directDiscount||null,direct_discount_memo:directDiscountMemo||null,memo});
+    if(payStatus==='확인'&&!l.payment_confirmed_at)l.payment_confirmed_at=now;
+    toast('수정 완료');
+  } else {
+    if(DB.participationLogs.some(function(l){return l.member_id===memberId&&l.session_id===sesId;})){toast('이미 이 일정에 등록된 참가자입니다.','error');return;}
+    DB.participationLogs.push({id:plogId2,member_id:memberId,session_id:sesId,applied_at:now,channel,status,payment_status:payStatus,payment_amount:amount,payment_confirmed_at:payStatus==='확인'?now:null,benefit_id:benefitId,benefit_cost:benefitCost,benefit_cost_type:'auto',benefit_memo:benefitMemo||null,direct_discount:directDiscount||null,direct_discount_memo:directDiscountMemo||null,memo,created_by:AUTH.userEmail||''});
+    var msg='참여 추가 완료 ✓';
+    if(autoMilestone){msg+=' — '+autoMilestone.toast_msg;toast(msg,'success');}
+    else{toast(msg);}
+  }
+
+  // 증정품 재고/사용 기록
+  if(benefitId&&(!id)){
+    _applyGiftMilestone(benefitId,sesId,now);
+  }
+
+  // logOptions 저장
+  DB.logOptions=DB.logOptions.filter(function(o){return o.log_id!==plogId2;});
+  selOpts.forEach(function(so){DB.logOptions.push({id:genId('LO'),log_id:plogId2,option_id:so.optId,price_snapshot:so.price,source:'manual'});});
+  gsAfter('participationLogs','logOptions','gifts','inventoryLog');
+  closeModal('m-plog');
+  if(PCTX.sesId)renderParticipants();
+  if(PCTX.memberId)renderMemberPlogs(PCTX.memberId);
+  if(document.getElementById('page-members').classList.contains('active'))renderMembers();
+}
+function _applyGiftMilestone(benId,sesId,now){
+  var _b=DB.benefits.find(function(b){return b.id===benId;});if(!_b)return;
+  // Find milestone for this benefit_id (any milestone could be the one, find by matching stored benefit_id)
+  // We need to find which milestone was applied - check benefit's milestones reward_type=gift
+  var _ms=DB.benefitMilestones.filter(function(m){return m.benefit_id===benId&&m.reward_type==='gift'&&m.reward_gift_id;});
+  _ms.forEach(function(ms){
+    var _g=DB.gifts.find(function(x){return x.id===ms.reward_gift_id;});
+    if(!_g)return;
+    if(_g.ingredient_id&&_g.qty_per_gift){
+      var _ses=DB.sessions.find(function(x){return x.id===sesId;});
+      DB.inventoryLog.push({id:genId('LOG'),log_date:_ses?_ses.session_date:today(),ingredient_id:_g.ingredient_id,type:'사용',quantity:-(_g.qty_per_gift),order_date:null,session_id:sesId,created_at:now,memo:'증정품: '+_g.name});
+    } else {
+      _g.stock=Math.max(0,(_g.stock||0)-1);
+    }
+  });
+}
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -1121,70 +1209,43 @@ tbody td{padding:11px 11px;vertical-align:middle}
 
 <!-- ════ 모달: 혜택 추가/수정 ════ -->
 <div class="overlay" id="m-benefit">
-  <div class="modal modal-lg">
+  <div class="modal modal-xl">
     <div class="modal-head"><div class="modal-title" id="m-benefit-title">혜택 추가</div><button class="modal-x" onclick="closeModal('m-benefit')">×</button></div>
     <div class="modal-body">
       <input type="hidden" id="benefit-id">
-      <div class="form-group"><label class="form-label">혜택명 *</label><input type="text" class="form-input" id="benefit-name" placeholder="예: 5회 감사 할인"></div>
-      <div class="form-group"><label class="form-label">설명</label><input type="text" class="form-input" id="benefit-desc" placeholder="간단한 설명"></div>
+      <input type="hidden" id="benefit-type" value="milestone">
       <div class="g2">
-        <div class="form-group">
-          <label class="form-label">조건 유형</label>
-          <select class="form-select" id="benefit-cond-type" onchange="onBenefitCondChange()">
-            <option value="count">누적 참여 횟수</option>
-            <option value="streak">연속 참여 횟수</option>
-            <option value="amount">누적 결제액</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label" id="benefit-cond-val-label">기준 횟수</label>
-          <input type="number" class="form-input" id="benefit-cond-val" placeholder="예: 5" min="1">
-        </div>
+        <div class="form-group"><label class="form-label">혜택명 *</label><input type="text" class="form-input" id="benefit-name" placeholder="예: 두쫀쿠 단골 혜택"></div>
+        <div class="form-group"><label class="form-label">설명</label><input type="text" class="form-input" id="benefit-desc" placeholder="간단한 설명"></div>
       </div>
       <div class="g2">
         <div class="form-group">
-          <label class="form-label">보상 유형</label>
-          <select class="form-select" id="benefit-reward-type" onchange="onBenefitRewardChange()">
-            <option value="discount_percent">할인율 (%)</option>
-            <option value="discount_amount">할인액 (원)</option>
-            <option value="gift">증정품</option>
-            <option value="free">무료 참여</option>
-          </select>
-        </div>
-        <div class="form-group" id="benefit-reward-val-wrap">
-          <label class="form-label" id="benefit-reward-val-label">할인율 (%)</label>
-          <input type="number" class="form-input" id="benefit-reward-val" placeholder="예: 10" min="0">
-        </div>
-      </div>
-      <div class="form-group" id="benefit-gift-wrap" style="display:none">
-        <label class="form-label">연결 증정품</label>
-        <select class="form-select" id="benefit-gift-id"><option value="">없음</option></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">원가 계산</label>
-        <select class="form-select" id="benefit-cost-calc">
-          <option value="auto">자동 (보상 유형 기반)</option>
-          <option value="manual">수동 입력</option>
-        </select>
-      </div>
-      <div class="form-group"><label class="form-label">상태</label>
-        <select class="form-select" id="benefit-active"><option value="1">활성</option><option value="0">비활성</option></select>
-      </div>
-      <div class="hr"></div>
-      <div class="g2" style="gap:10px;margin-bottom:10px">
-        <div>
-          <div class="card-label" style="margin-bottom:6px">중복 적용</div>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-            <input type="checkbox" id="benefit-stackable" checked>
-            <span>다른 혜택과 동시에 적용 가능</span>
+          <label class="form-label">최대 횟수</label>
+          <input type="number" class="form-input" id="benefit-max-count" placeholder="예: 10" min="1">
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">최대치 도달 후 반복 여부:</div>
+          <label style="display:flex;align-items:center;gap:7px;margin-top:4px;cursor:pointer;font-size:13px">
+            <input type="checkbox" id="benefit-repeatable">
+            <span>반복 가능 (최대치 이후 1회부터 재시작)</span>
           </label>
         </div>
+        <div class="form-group">
+          <label class="form-label">상태</label>
+          <select class="form-select" id="benefit-active"><option value="1">활성</option><option value="0">비활성</option></select>
+        </div>
       </div>
+      <div class="hr"></div>
       <div class="card-label" style="margin-bottom:6px">적용 대상 프로그램</div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">미선택 시 모든 프로그램에 적용. 참여 횟수도 선택된 프로그램만 카운트합니다.</div>
-      <div id="benefit-prog-list" style="padding:8px 10px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:var(--radius-sm);min-height:36px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">미선택 시 모든 프로그램 방문 횟수 카운트</div>
+      <div id="benefit-prog-list" style="padding:8px 10px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:var(--radius-sm);min-height:36px;margin-bottom:14px">
         <span style="font-size:12px;color:var(--text3)">프로그램 없음</span>
       </div>
+      <div class="hr"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="card-label" style="margin:0">마일스톤 설정</div>
+        <button class="btn btn-outline btn-sm" type="button" onclick="addMilestoneRow()">+ 마일스톤 추가</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">방문 횟수에 따라 자동 적용할 혜택을 설정합니다. 달성 즉시 해당 참여 로그에 자동 적용됩니다.</div>
+      <div id="milestone-rows"></div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-danger btn-sm" id="benefit-del-btn" style="display:none" onclick="deleteBenefit()">삭제</button>
@@ -1366,45 +1427,26 @@ tbody td{padding:11px 11px;vertical-align:middle}
       <div id="plog-opt-total" style="font-size:11px;color:var(--accent-dark);margin-top:4px;text-align:right;font-family:var(--mono);font-weight:600"></div>
       <!-- ── 혜택 ── -->
       <div class="hr"></div>
-      <div class="card-label" style="margin-bottom:6px">혜택 적용</div>
-      <div id="plog-benefit-suggest" style="display:none;padding:8px 10px;background:#fffcf0;border:1px solid #ffe066;border-radius:var(--radius-sm);margin-bottom:8px;font-size:12px;color:#7a6000"></div>
+      <div class="card-label" style="margin-bottom:6px">자동 적용 혜택</div>
+      <div id="plog-benefit-auto" style="padding:8px 10px;background:#fffcf0;border:1px solid #ffe066;border-radius:var(--radius-sm);font-size:12px;color:#7a6000;display:none"></div>
+      <div id="plog-benefit-none" style="font-size:12px;color:var(--text3)">해당 없음</div>
+      <input type="hidden" id="plog-benefit-id">
+      <input type="hidden" id="plog-benefit-cost">
+      <input type="hidden" id="plog-benefit-cost-type" value="auto">
+      <input type="hidden" id="plog-benefit-memo">
+      <div class="hr"></div>
+      <div class="card-label" style="margin-bottom:6px">관리자 재량 할인</div>
       <div class="g2">
         <div class="form-group" style="margin-bottom:8px">
-          <label class="form-label">혜택 선택</label>
-          <select class="form-select" id="plog-benefit-id" onchange="onPlogBenefitChange()"><option value="">없음</option></select>
+          <label class="form-label">할인액 (원)</label>
+          <input type="number" class="form-input" id="plog-direct-discount" placeholder="0" min="0">
         </div>
-        <div class="form-group" style="margin-bottom:8px" id="plog-benefit-cost-wrap">
-          <label class="form-label">혜택 비용 (원)</label>
-          <input type="number" class="form-input" id="plog-benefit-cost" placeholder="0" min="0" oninput="document.getElementById('plog-benefit-cost-type').value='manual'">
-          <input type="hidden" id="plog-benefit-cost-type" value="auto">
-        </div>
-      </div>
-      <div class="form-group" style="margin-bottom:0" id="plog-benefit-memo-wrap">
-        <label class="form-label">혜택 메모</label>
-        <input type="text" class="form-input" id="plog-benefit-memo" placeholder="예: 5회 달성 — 할인 적용">
-      </div>
-      <!-- 추가 혜택 (stackable) -->
-      <div id="plog-benefit2-section" style="display:none">
-        <div class="hr"></div>
-        <div class="card-label" style="margin-bottom:6px">추가 혜택 (중복 적용)</div>
-        <div id="plog-benefit2-suggest" style="display:none;padding:7px 10px;background:#f0fff0;border:1px solid #b0f080;border-radius:var(--radius-sm);margin-bottom:8px;font-size:12px;color:#2a7a00"></div>
-        <div class="g2">
-          <div class="form-group" style="margin-bottom:8px">
-            <label class="form-label">혜택 선택</label>
-            <select class="form-select" id="plog-benefit2-id" onchange="onPlogBenefit2Change()"><option value="">없음</option></select>
-          </div>
-          <div class="form-group" style="margin-bottom:8px">
-            <label class="form-label">혜택 비용 (원)</label>
-            <input type="number" class="form-input" id="plog-benefit2-cost" placeholder="0" min="0" oninput="document.getElementById('plog-benefit2-cost-type').value='manual'">
-            <input type="hidden" id="plog-benefit2-cost-type" value="auto">
-          </div>
-        </div>
-        <div class="form-group" style="margin-bottom:0">
-          <label class="form-label">혜택 메모</label>
-          <input type="text" class="form-input" id="plog-benefit2-memo" placeholder="추가 혜택 메모">
+        <div class="form-group" style="margin-bottom:8px">
+          <label class="form-label">사유</label>
+          <input type="text" class="form-input" id="plog-direct-discount-memo" placeholder="체험단, 이벤트 등">
         </div>
       </div>
-    </div>
+        </div>
     <div class="modal-foot">
       <button class="btn btn-danger btn-sm" id="plog-del-btn" style="display:none" onclick="deletePlog()">삭제</button>
       <div style="flex:1"></div>
@@ -1740,8 +1782,9 @@ const GS={
     categories:{name:'categories',cols:['id','name','color']},
     programTypes:{name:'program_types',cols:['id','name','color']},
     members:{name:'members',cols:['id','name','phone','instagram_id','role','memo','joined_at','is_active']},
-    participationLogs:{name:'participation_logs',cols:['id','member_id','session_id','applied_at','status','channel','payment_status','payment_amount','payment_confirmed_at','benefit_id','benefit_cost','benefit_cost_type','benefit_memo','benefit2_id','benefit2_cost','benefit2_cost_type','benefit2_memo','memo','created_by']},
-    benefits:{name:'benefits',cols:['id','name','description','condition_type','condition_value','reward_type','reward_value','reward_gift_id','cost_calc_type','is_active','created_at','stackable','applicable_program_ids']},
+    participationLogs:{name:'participation_logs',cols:['id','member_id','session_id','applied_at','status','channel','payment_status','payment_amount','payment_confirmed_at','benefit_id','benefit_cost','benefit_cost_type','benefit_memo','direct_discount','direct_discount_memo','memo','created_by']},
+    benefits:{name:'benefits',cols:['id','name','description','benefit_type','max_count','repeatable','applicable_program_ids','is_active','created_at']},
+    benefitMilestones:{name:'benefit_milestones',cols:['id','benefit_id','count_threshold','reward_type','reward_value','reward_gift_id','cost_calc_type']},
     gifts:{name:'gifts',cols:['id','name','description','ingredient_id','qty_per_gift','cost_per_unit','stock','is_active','created_at']},
     addOptions:{name:'add_options',cols:['id','name','description','price','is_active','created_at']},
     sessionOptions:{name:'session_options',cols:['session_id','option_id','is_inherited']},
@@ -1855,11 +1898,11 @@ const GS={
           headers.forEach((h,j)=>{
             let v=r[j]??'';
             if(h==='is_active'||h==='usage_recorded'||h==='is_inherited')v=v===true||v===1||String(v).toLowerCase()==='true'||v==='1';
-            else if(['purchase_unit_qty','price_per_unit','lead_time_days','selling_price','max_participants','participants','qty_per_person','quantity','selling_price_snapshot','cost_per_unit','stock','price','condition_value','reward_value','benefit_cost','payment_amount','price_snapshot','qty_per_unit','qty_per_gift'].includes(h))v=v===''||v===null?null:Number(v);
+            else if(['purchase_unit_qty','price_per_unit','lead_time_days','selling_price','max_participants','participants','qty_per_person','quantity','selling_price_snapshot','cost_per_unit','stock','price','condition_value','reward_value','benefit_cost','payment_amount','price_snapshot','qty_per_unit','qty_per_gift','max_count','count_threshold','reward_value','direct_discount'].includes(h))v=v===''||v===null?null:Number(v);
             else if(h==='recipe_snapshot'){try{v=v?JSON.parse(v):{};}catch(e){v={}}}
             else if(h==='default_option_ids'||h==='applicable_program_ids'){try{v=v?JSON.parse(v):[];}catch(e){v=[];}}
-            else if(h==='stackable')v=v===true||v===1||String(v).toLowerCase()==='true'||v==='1';
-            else if(h==='valid_until'||h==='order_date'||h==='session_id'||h==='usage_recorded_at'||h==='type_id'||h==='category_id'||h==='benefit_id'||h==='reward_gift_id'||h==='log_id'||h==='option_id'||h==='benefit_cost_type'||h==='benefit_memo'||h==='source'||h==='benefit2_id'||h==='benefit2_cost_type'||h==='benefit2_memo')v=v||null;
+            else if(h==='repeatable')v=v===true||v===1||String(v).toLowerCase()==='true'||v==='1';
+            else if(h==='valid_until'||h==='order_date'||h==='session_id'||h==='usage_recorded_at'||h==='type_id'||h==='category_id'||h==='benefit_id'||h==='reward_gift_id'||h==='log_id'||h==='option_id'||h==='benefit_cost_type'||h==='benefit_memo'||h==='source'||h==='direct_discount_memo')v=v||null;
             obj[h]=v;
           });
           return obj;
@@ -2036,7 +2079,7 @@ function requireSheets(){
 }
 
 
-const DB={ingredients:[],ingredientsHistory:[],programs:[],programsHistory:[],programRecipes:[],sessions:[],inventoryLog:[],categories:[],programTypes:[],members:[],participationLogs:[],benefits:[],gifts:[],addOptions:[],optionRecipes:[],sessionOptions:[],logOptions:[],memberChannels:['당근모임','인스타그램','네이버 예약','Tally form'],memberRoles:['손님','포크','운영'],navOrder:[],plogStatuses:['대기','참여확정','취소','불참'],payStatuses:['미납','확인','환불'],navLabels:{}};
+const DB={ingredients:[],ingredientsHistory:[],programs:[],programsHistory:[],programRecipes:[],sessions:[],inventoryLog:[],categories:[],programTypes:[],members:[],participationLogs:[],benefits:[],gifts:[],addOptions:[],optionRecipes:[],benefitMilestones:[],sessionOptions:[],logOptions:[],memberChannels:['당근모임','인스타그램','네이버 예약','Tally form'],memberRoles:['손님','포크','운영'],navOrder:[],plogStatuses:['대기','참여확정','취소','불참'],payStatuses:['미납','확인','환불'],navLabels:{}};
 
 // ══════════════════════════════════════════════════════════
 // 유틸
@@ -3555,13 +3598,16 @@ function renderReportMembers(){
       if(nm&&!benNames.includes(nm))benNames.push(nm);
     });
 
-    // 다음 혜택까지 남은 횟수 (count 타입만 계산)
+    // 다음 마일스톤까지 남은 횟수
     var nextBen=null,nextLeft=null;
-    DB.benefits.filter(function(b){return b.is_active&&b.condition_type==='count';}).forEach(function(b){
-      var needed=b.condition_value||1;
-      var cur=logs.length;
-      var left=needed-cur;
-      if(left>0&&(nextLeft===null||left<nextLeft)){nextLeft=left;nextBen=b.name;}
+    DB.benefits.filter(function(b){return b.is_active&&b.benefit_type==='milestone';}).forEach(function(b){
+      var info=getMilestoneCycle(m.id,b,null);
+      if(info.done)return;
+      var pos=info.pos;
+      var ms=DB.benefitMilestones.filter(function(x){return x.benefit_id===b.id&&x.count_threshold>pos;}).sort(function(a,bb){return a.count_threshold-bb.count_threshold;});
+      if(!ms.length)return;
+      var left=ms[0].count_threshold-pos;
+      if(left>0&&(nextLeft===null||left<nextLeft)){nextLeft=left;nextBen=esc(b.name)+' '+ms[0].count_threshold+'회 — '+_milestoneRewardStr(ms[0]);}
     });
 
     return{m:m,cnt:logs.length,amt:totalAmt,benNames:benNames,nextBen:nextBen,nextLeft:nextLeft,lastDate:lastDate};
@@ -3617,65 +3663,54 @@ function renderReportBenefits(){
   var benEl=document.getElementById('rep-ben-list');
   var giftEl=document.getElementById('rep-gift-list');
   if(!benEl&&!giftEl)return;
-
   var confLogs=DB.participationLogs.filter(function(l){return l.status==='참여확정';});
-
-  // 혜택별 집계
   if(benEl){
     if(!DB.benefits.length){benEl.innerHTML='<div class="empty"><div style="font-size:13px">등록된 혜택 없음</div></div>';}
     else{
-      var benRows=DB.benefits.map(function(b){
+      benEl.innerHTML='<div style="display:flex;flex-direction:column;gap:0">'+DB.benefits.map(function(b){
         var used=confLogs.filter(function(l){return l.benefit_id===b.id;});
         var totalCost=used.reduce(function(s,l){return s+(l.benefit_cost||0);},0);
-        return{b:b,cnt:used.length,cost:totalCost};
-      }).sort(function(a,b){return b.cnt-a.cnt;});
-      var maxCnt=Math.max.apply(null,benRows.map(function(r){return r.cnt;}))||1;
-      benEl.innerHTML='<div class="rep-bar-wrap">'
-        +benRows.map(function(r){
-          var pct=Math.round(r.cnt/maxCnt*100);
-          var activeBadge=r.b.is_active
-            ?'<span class="badge badge-green" style="font-size:9px;margin-left:4px">활성</span>'
-            :'<span class="badge badge-muted" style="font-size:9px;margin-left:4px">비활성</span>';
-          return'<div style="padding:8px 0;border-bottom:1px solid var(--border)">'
-            +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">'
-            +'<div style="font-size:13px;font-weight:600">'+esc(r.b.name)+activeBadge+'</div>'
-            +'<div class="td-mono" style="font-size:12px;color:var(--accent-dark)">비용 '+fMoney(r.cost)+'</div>'
-            +'</div>'
-            +'<div class="rep-bar-row">'
-            +'<div class="rep-bar-track"><div class="rep-bar-fill" style="width:'+pct+'%"></div></div>'
-            +'<div class="rep-bar-val">'+r.cnt+'건</div>'
-            +'</div>'
-            +'</div>';
-        }).join('')
-        +'</div>';
+        var ms=DB.benefitMilestones.filter(function(m){return m.benefit_id===b.id;}).sort(function(a,bb){return a.count_threshold-bb.count_threshold;});
+        var maxCnt=Math.max.apply(null,used.length?[used.length]:ms.map(function(m){return m.count_threshold;})||[1]);
+        var pct=maxCnt?Math.round(used.length/Math.max(maxCnt,1)*100):0;
+        return'<div style="padding:10px 0;border-bottom:1px solid var(--border)">'
+          +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">'
+          +'<div style="font-size:13px;font-weight:600">'+esc(b.name)+(b.is_active?'':'<span class="badge badge-muted" style="font-size:9px;margin-left:4px">비활성</span>')+'</div>'
+          +'<div class="td-mono" style="font-size:12px;color:var(--accent-dark)">총 비용 '+fMoney(totalCost)+'</div>'
+          +'</div>'
+          +'<div style="display:flex;gap:8px;align-items:center">'
+          +'<div class="rep-bar-track" style="flex:1"><div class="rep-bar-fill" style="width:'+Math.min(pct,100)+'%"></div></div>'
+          +'<div class="rep-bar-val">'+used.length+'건</div>'
+          +'</div>'
+          +(ms.length?'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px">'+ms.map(function(m){
+            var mUsed=used.filter(function(l){return l.benefit_memo&&l.benefit_memo.includes(m.count_threshold+'회');}).length;
+            return'<span class="badge badge-muted" style="font-size:10px">'+m.count_threshold+'회: '+_milestoneRewardStr(m)+' ('+mUsed+'건)</span>';
+          }).join('')+'</div>':'')
+          +'</div>';
+      }).join('')+'</div>';
     }
   }
-
-  // 증정품 소진 현황
   if(giftEl){
     if(!DB.gifts.length){giftEl.innerHTML='<div class="empty"><div style="font-size:13px">등록된 증정품 없음</div></div>';}
     else{
       giftEl.innerHTML='<div class="tbl-wrap"><table>'
         +'<thead><tr><th>증정품명</th><th>부여 건수</th><th>현재 재고</th><th>총 비용</th></tr></thead>'
-        +'<tbody>'
-        +DB.gifts.map(function(g){
-          // 이 증정품을 reward로 하는 혜택 목록
-          var benIds=DB.benefits.filter(function(b){return b.reward_gift_id===g.id;}).map(function(b){return b.id;});
+        +'<tbody>'+DB.gifts.map(function(g){
+          var benIds=DB.benefitMilestones.filter(function(m){return m.reward_gift_id===g.id;}).map(function(m){return m.benefit_id;});
           var usedLogs=confLogs.filter(function(l){return benIds.includes(l.benefit_id);});
           var totalCost=usedLogs.reduce(function(s,l){return s+(l.benefit_cost||0);},0);
-          var stockCls=g.stock<=0?'n-r':(g.stock<5?'n-y':'n-g');
-          return'<tr>'
-            +'<td><strong>'+esc(g.name)+'</strong>'+(g.is_active?'':' <span class="badge badge-muted" style="font-size:9px">비활성</span>')+'</td>'
+          var stk=calcGiftStock(g);
+          var stkCls=stk<=0?'n-r':(stk<5?'n-y':'n-g');
+          return'<tr><td><strong>'+esc(g.name)+'</strong></td>'
             +'<td class="td-mono">'+usedLogs.length+'건</td>'
-            +'<td class="td-mono '+stockCls+'">'+g.stock+'개</td>'
-            +'<td class="td-mono n-p">'+fMoney(totalCost)+'</td>'
-            +'</tr>';
-        }).join('')
-        +'</tbody></table></div>';
+            +'<td class="td-mono '+stkCls+'">'+stk+'개</td>'
+            +'<td class="td-mono n-p">'+fMoney(totalCost)+'</td></tr>';
+        }).join('')+'</tbody></table></div>';
     }
   }
 }
-
+// ══════════════════════════════════════════════════════════
+// 프로그램 기본 옵션 체크박스 렌더
 // ══════════════════════════════════════════════════════════
 // 프로그램 기본 옵션 체크박스 렌더
 // ══════════════════════════════════════════════════════════
@@ -4062,7 +4097,7 @@ function renderParticipants(){
         +'<td>'+mName+mInfo+(m?' '+memberRoleBadge(m.role):'')+(function(){
         var _ll=[];
         DB.logOptions.filter(function(lo){return lo.log_id===l.id;}).forEach(function(lo){var o=DB.addOptions.find(function(x){return x.id===lo.option_id;});if(o)_ll.push(esc(o.name)+'(+'+fMoney(lo.price_snapshot||0)+')');});
-        [l.benefit_id,l.benefit2_id].forEach(function(bid){if(!bid)return;var be=DB.benefits.find(function(b){return b.id===bid;});if(be)_ll.push('🎁 '+esc(be.name));});
+        if(l.benefit_id){var _be=DB.benefits.find(function(b){return b.id===l.benefit_id;});if(_be)_ll.push('🎁 '+esc(_be.name)+(l.benefit_memo?' — '+esc(l.benefit_memo):''));}
         return _ll.length?'<div style="margin-top:2px">'+_ll.map(function(ln){return'<div style="font-size:10px;color:var(--text3)">'+ln+'</div>';}).join('')+'</div>':'';
       }())+'</td>'        +'<td>'+channelBadge(l.channel)+'</td>'
         +'<td>'+plogStatusBadge(l.status)+'</td>'
@@ -4187,17 +4222,31 @@ function openPlogModal(plogId,memberId,sesId){
   if(!defAmt&&rS){var sSnap=DB.sessions.find(function(x){return x.id===rS;});if(sSnap)defAmt=sSnap.selling_price_snapshot||'';}
   document.getElementById('plog-amount').value=defAmt||'';
   document.getElementById('plog-memo').value=l?l.memo||'':'';
-  // 혜택 필드 초기화
-  syncBenefitSelect();
+  // 혜택 필드 초기화 (자동 적용 미리보기)
   document.getElementById('plog-benefit-id').value=l?l.benefit_id||'':'';
   document.getElementById('plog-benefit-cost').value=l&&l.benefit_cost!=null?l.benefit_cost:'';
-  document.getElementById('plog-benefit-cost-type').value=l?l.benefit_cost_type||'auto':'auto';
-  document.getElementById('plog-benefit-memo').value=l?l.benefit_memo||'':'';
-  onPlogBenefitChange();
+  document.getElementById('plog-direct-discount').value=l&&l.direct_discount?l.direct_discount:'';
+  document.getElementById('plog-direct-discount-memo').value=l?l.direct_discount_memo||'':'';
+  // 마일스톤 자동 적용 미리보기
+  var autoEl=document.getElementById('plog-benefit-auto');
+  var noneEl=document.getElementById('plog-benefit-none');
+  if(l&&l.benefit_id){
+    var _ben=DB.benefits.find(function(b){return b.id===l.benefit_id;});
+    if(autoEl&&_ben){autoEl.style.display='';autoEl.innerHTML='&#127873; <strong>'+esc(_ben.name)+'</strong> 자동 적용됨 — '+esc(l.benefit_memo||'');}
+    if(noneEl)noneEl.style.display='none';
+  } else if(!l&&rM&&rS){
+    // 신규 로그: 마일스톤 미리보기
+    var _ses3=DB.sessions.find(function(x){return x.id===rS;});
+    var _preview=calcAutoMilestone(rM,rS,_ses3?_ses3.program_id:null,null);
+    if(_preview&&autoEl){autoEl.style.display='';autoEl.innerHTML='&#127873; <strong>'+esc(_preview.name)+'</strong> — 저장 시 자동 적용 예정';}
+    if(!_preview&&noneEl)noneEl.style.display='';
+    if(!_preview&&autoEl)autoEl.style.display='none';
+  } else {
+    if(autoEl)autoEl.style.display='none';
+    if(noneEl)noneEl.style.display='';
+  }
   // 추가 옵션 렌더
   renderPlogOptions(rS, l?l.id:null);
-  // 혜택 자동 판별
-  if(rM)suggestBenefit(rM, rS, l);
   var delBtn=document.getElementById('plog-del-btn');if(delBtn)delBtn.style.display=l?'':'none';
   document.getElementById('m-plog-title').textContent=l?'참여 정보 수정':'참여 정보 추가';
   openModal('m-plog');
@@ -4211,84 +4260,6 @@ function openPlogEdit(plogId){
 function closePlogModal(){
   closeModal('m-plog');
   if(PCTX.sesId){document.getElementById('plog-search-panel').style.display='none';document.getElementById('plog-add-toggle-btn').textContent='+ 참가자 추가';}
-}
-
-function savePlog(){
-  var id=document.getElementById('plog-id').value;
-  var memberId=document.getElementById('plog-member-id').value;
-  var sesId=document.getElementById('plog-session-id').value;
-  if(!memberId||!sesId){toast('참가자 또는 모임 정보가 없습니다.','error');return;}
-  // 과거 모임에 신규 추가 차단
-  if(!id){
-    var _ses=DB.sessions.find(function(x){return x.id===sesId;});
-    if(_ses&&_ses.session_date<today()){toast('지난 일정에는 새 참가자를 추가할 수 없습니다.','error');return;}
-  }
-  var channel=document.getElementById('plog-channel').value;
-  var status=document.getElementById('plog-status').value;
-  var payStatus=document.getElementById('plog-payment-status').value;
-  var amount=parseFloat(document.getElementById('plog-amount').value)||0;
-  var memo=(document.getElementById('plog-memo').value||'').trim();
-  var benefitId=document.getElementById('plog-benefit-id').value||null;
-  var benefitCostRaw=document.getElementById('plog-benefit-cost').value;
-  var benefitCost=benefitCostRaw!==''?parseFloat(benefitCostRaw)||0:null;
-  var benefitCostType=document.getElementById('plog-benefit-cost-type').value||'auto';
-  var benefitMemo=(document.getElementById('plog-benefit-memo').value||'').trim();
-  var benefit2Id=document.getElementById('plog-benefit2-id')?document.getElementById('plog-benefit2-id').value||null:null;
-  var benefit2CostRaw=document.getElementById('plog-benefit2-cost')?document.getElementById('plog-benefit2-cost').value:'';
-  var benefit2Cost=benefit2CostRaw!==''?parseFloat(benefit2CostRaw)||0:null;
-  var benefit2CostType=document.getElementById('plog-benefit2-cost-type')?document.getElementById('plog-benefit2-cost-type').value||'auto':'auto';
-  var benefit2Memo=document.getElementById('plog-benefit2-memo')?(document.getElementById('plog-benefit2-memo').value||'').trim():'';
-  if(benefit2Id&&benefit2CostType==='auto'){var ben2=DB.benefits.find(function(b){return b.id===benefit2Id;});if(ben2)benefit2Cost=calcBenefitCostAuto(ben2,amount);}
-  var now=new Date().toISOString();
-  // 선택된 옵션 수집
-  var selOpts=[];
-  document.querySelectorAll('#plog-options-section input[type=checkbox]:checked').forEach(function(cb){
-    var optId=cb.dataset.optId;
-    var price=parseFloat(cb.dataset.price)||0;
-    selOpts.push({optId,price});
-  });
-  // auto 혜택 비용 계산
-  if(benefitId&&benefitCostType==='auto'){
-    var ben=DB.benefits.find(function(b){return b.id===benefitId;});
-    if(ben){benefitCost=calcBenefitCostAuto(ben,amount);}
-  }
-  var plogId2=id||genId('PLG');
-  if(id){
-    var l=DB.participationLogs.find(function(x){return x.id===id;});if(!l)return;
-    Object.assign(l,{channel,status,payment_status:payStatus,payment_amount:amount,benefit_id:benefitId,benefit_cost:benefitCost,benefit_cost_type:benefitCostType,benefit_memo:benefitMemo||null,benefit2_id:benefit2Id,benefit2_cost:benefit2Cost,benefit2_cost_type:benefit2CostType,benefit2_memo:benefit2Memo||null,memo});
-    if(payStatus==='확인'&&!l.payment_confirmed_at)l.payment_confirmed_at=now;
-    toast('수정 완료');
-  } else {
-    if(DB.participationLogs.some(function(l){return l.member_id===memberId&&l.session_id===sesId;})){toast('이미 이 일정에 등록된 참가자입니다.','error');return;}
-    DB.participationLogs.push({id:plogId2,member_id:memberId,session_id:sesId,applied_at:now,channel,status,payment_status:payStatus,payment_amount:amount,payment_confirmed_at:payStatus==='확인'?now:null,benefit_id:benefitId,benefit_cost:benefitCost,benefit_cost_type:benefitCostType,benefit_memo:benefitMemo||null,benefit2_id:benefit2Id,benefit2_cost:benefit2Cost,benefit2_cost_type:benefit2CostType,benefit2_memo:benefit2Memo||null,memo,created_by:AUTH.userEmail||''});
-    toast('참여 추가 완료 ✓');
-  }
-  // 증정품 재고 차감 (새로 혜택 적용된 경우)
-  // 증정품 재고 차감 + 원가항목 연결 시 사용 기록
-  function _applyGiftBenefit(benId,isNew){
-    var _b=DB.benefits.find(function(b){return b.id===benId;});
-    if(!_b||_b.reward_type!=='gift'||!_b.reward_gift_id)return;
-    var _g=DB.gifts.find(function(x){return x.id===_b.reward_gift_id;});
-    if(!_g)return;
-    if(_g.ingredient_id&&_g.qty_per_gift&&isNew){
-      // 원가항목 연결된 증정품: 사용 기록 추가
-      var _ses=DB.sessions.find(function(x){return x.id===sesId;});
-      DB.inventoryLog.push({id:genId('LOG'),log_date:_ses?_ses.session_date:today(),ingredient_id:_g.ingredient_id,type:'사용',quantity:-(_g.qty_per_gift),order_date:null,session_id:sesId,created_at:now,memo:'증정품: '+_g.name});
-    } else if(isNew){
-      _g.stock=Math.max(0,(_g.stock||0)-1);
-    }
-  }
-  if(benefitId)_applyGiftBenefit(benefitId,!id);
-  if(benefit2Id)_applyGiftBenefit(benefit2Id,!id);
-  // logOptions 저장
-  DB.logOptions=DB.logOptions.filter(function(o){return o.log_id!==plogId2;});
-  selOpts.forEach(function(so){DB.logOptions.push({id:genId('LO'),log_id:plogId2,option_id:so.optId,price_snapshot:so.price,source:'manual'});});
-  gsAfter('participationLogs','logOptions','gifts');
-  closeModal('m-plog');
-  if(PCTX.sesId)renderParticipants();
-  if(PCTX.memberId)renderMemberPlogs(PCTX.memberId);
-  if(document.getElementById('page-members').classList.contains('active'))renderMembers();
-  if(document.getElementById('page-sessions').classList.contains('active'))renderSessions();
 }
 
 function deletePlog(){
@@ -4843,8 +4814,11 @@ function seedData(){
   ];
   // ── 혜택 더미 데이터
   DB.benefits=[
-    {id:'BEN001',name:'5회 감사 할인',description:'누적 5회 참여 시 10% 할인',condition_type:'count',condition_value:5,reward_type:'discount_percent',reward_value:10,reward_gift_id:null,cost_calc_type:'auto',is_active:true,created_at:now},
-    {id:'BEN002',name:'3회 증정 이벤트',description:'누적 3회 참여 시 특별 포장 박스 증정',condition_type:'count',condition_value:3,reward_type:'gift',reward_value:0,reward_gift_id:'GFT001',cost_calc_type:'auto',is_active:true,created_at:now},
+    {id:'BEN001',name:'두쫀쿠 단골 혜택',description:'두쫀쿠 모임 방문 횟수에 따른 마일스톤 혜택',benefit_type:'milestone',max_count:5,repeatable:true,applicable_program_ids:['PRG001'],is_active:true,created_at:now},
+  ];
+  DB.benefitMilestones=[
+    {id:'BMS001',benefit_id:'BEN001',count_threshold:3,reward_type:'gift',reward_value:0,reward_gift_id:'GFT001',cost_calc_type:'auto'},
+    {id:'BMS002',benefit_id:'BEN001',count_threshold:5,reward_type:'discount_percent',reward_value:10,reward_gift_id:null,cost_calc_type:'auto'},
   ];
   // ── 참가자 더미 데이터
   DB.members=[
@@ -4893,7 +4867,7 @@ function calcSesRevenue(ses){
   },0);
 }
 function calcSesBenefitCost(ses){
-  return DB.participationLogs.filter(function(l){return l.session_id===ses.id&&l.status==='참여확정';}).reduce(function(s,l){return s+(l.benefit_cost||0)+(l.benefit2_cost||0);},0);
+  return DB.participationLogs.filter(function(l){return l.session_id===ses.id&&l.status==='참여확정';}).reduce(function(s,l){return s+(l.benefit_cost||0)+(l.direct_discount||0);},0);
 }
 function calcGiftCostPerUnit(g){
   if(g&&g.ingredient_id&&g.qty_per_gift){
@@ -5035,7 +5009,6 @@ function renderBenefitList(){
   var content=document.getElementById('ben-content');
   var empty=document.getElementById('ben-empty');
   if(!content)return;
-  var condLbl={'count':'누적 참여','streak':'연속 참여','amount':'누적 결제'};
   if(!DB.benefits.length){content.innerHTML='';if(empty)empty.style.display='';return;}
   if(empty)empty.style.display='none';
   var perPage=parseInt(document.getElementById('ben-per-page')?.value||'20');
@@ -5045,465 +5018,187 @@ function renderBenefitList(){
   buildPager('ben-pagination-bot',total,benPage,perPage,'goBenPage');
   var paged=DB.benefits.slice((benPage-1)*perPage,benPage*perPage);
   var isMob=!!(window.matchMedia&&window.matchMedia('(max-width:1024px)').matches);
-  function benRewStr(b){
-    var g;
-    if(b.reward_type==='discount_percent')return b.reward_value+'% 할인';
-    if(b.reward_type==='discount_amount')return fMoney(b.reward_value)+' 할인';
-    if(b.reward_type==='gift'){g=DB.gifts.find(function(x){return x.id===b.reward_gift_id;});return '증정품 '+(g?esc(g.name):'미지정');}
-    if(b.reward_type==='free')return '무료 참여';
-    return b.reward_type;
-  }
-  function benCondStr(b){return(condLbl[b.condition_type]||b.condition_type)+' '+b.condition_value+(b.condition_type==='amount'?'원':'회');}
-  if(isMob){
-    content.innerHTML=paged.map(function(b){
-      var editBtn='<button class="btn btn-outline btn-xs" data-ben-edit="'+b.id+'">수정</button>';
-      return'<div style="padding:11px 4px;border-bottom:1px solid var(--border)">'
-        +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">'
-        +'<div style="font-size:14px;font-weight:700;flex:1">'+esc(b.name)+'</div>'
-        +(b.is_active?'<span class="badge badge-green" style="flex-shrink:0">활성</span>':'<span class="badge badge-muted" style="flex-shrink:0">비활성</span>')
-        +'</div>'
-        +(b.description?'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+esc(b.description)+'</div>':'')
-        +'<div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">'
-        +'<span style="font-size:12px;color:var(--text2)">&#128203; <span class="td-mono">'+benCondStr(b)+'</span></span>'
-        +'<span style="font-size:12px;color:var(--text2)">&#127873; '+benRewStr(b)+'</span>'
-        +'</div>'
-        +'<div style="display:flex;align-items:center;gap:6px;margin-top:7px">'
-        +'<span class="badge badge-muted" style="font-size:10px">'+(b.cost_calc_type==='auto'?'원가 자동':'원가 수동')+'</span>'
-        +editBtn+'</div>'
+  content.innerHTML=paged.map(function(b){
+    var ms=DB.benefitMilestones.filter(function(m){return m.benefit_id===b.id;}).sort(function(a,bb){return a.count_threshold-bb.count_threshold;});
+    var appNames=(b.applicable_program_ids||[]).map(function(pid){var p=DB.programs.find(function(x){return x.id===pid;});return p?(p.emoji||'')+esc(p.name):'';}).filter(Boolean).join(', ');
+    var msHtml=ms.map(function(m){
+      var rewStr=_milestoneRewardStr(m);
+      return'<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border)">'
+        +'<span class="badge badge-yellow" style="font-size:10px;min-width:28px;text-align:center">'+m.count_threshold+'회</span>'
+        +'<span style="font-size:12px">'+rewStr+'</span>'
         +'</div>';
     }).join('');
-  } else {
-    content.innerHTML='<div class="tbl-wrap"><table>'
-      +'<thead><tr><th>혜택명</th><th>조건</th><th>보상</th><th>원가</th><th>상태</th><th></th></tr></thead>'
-      +'<tbody>'+paged.map(function(b){
-        var editBtn='<button class="btn btn-outline btn-xs" data-ben-edit="'+b.id+'">수정</button>';
-        return'<tr>'
-          +'<td><strong>'+esc(b.name)+'</strong>'+(b.description?'<div style="font-size:11px;color:var(--text3)">'+esc(b.description)+'</div>':'')+'</td>'
-          +'<td class="td-mono" style="font-size:12px">'+benCondStr(b)+'</td>'
-          +'<td style="font-size:12px">'+benRewStr(b)+'</td>'
-          +'<td><span class="badge badge-muted" style="font-size:10px">'+(b.cost_calc_type==='auto'?'자동':'수동')+'</span></td>'
-          +'<td>'+(b.is_active?'<span class="badge badge-green">활성</span>':'<span class="badge badge-muted">비활성</span>')+'</td>'
-          +'<td>'+editBtn+'</td>'
-          +'</tr>';
-      }).join('')+'</tbody></table></div>';
-  }
+    var editBtn='<button class="btn btn-outline btn-xs" data-ben-edit="'+b.id+'">수정</button>';
+    return'<div style="padding:12px 4px;border-bottom:2px solid var(--border)">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">'
+      +'<div>'
+      +'<div style="font-size:14px;font-weight:700">'+esc(b.name)+(b.is_active?'':' <span class="badge badge-muted" style="font-size:9px">비활성</span>')+'</div>'
+      +(b.description?'<div style="font-size:11px;color:var(--text3)">'+esc(b.description)+'</div>':'')
+      +'<div style="margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--text2)">'
+      +'<span>최대 <strong>'+(b.max_count||'무제한')+'회</strong></span>'
+      +(b.repeatable?'<span class="badge badge-green" style="font-size:9px">반복 가능</span>':'<span class="badge badge-muted" style="font-size:9px">1사이클</span>')
+      +(appNames?'<span style="color:var(--text3)">적용: '+appNames+'</span>':'<span style="color:var(--text3)">모든 프로그램</span>')
+      +'</div>'
+      +'</div>'
+      +editBtn+'</div>'
+      +(ms.length?'<div style="padding:4px 6px;background:var(--bg-input);border-radius:var(--radius-sm)">'+msHtml+'</div>':'<div style="font-size:11px;color:var(--text3)">마일스톤 없음</div>')
+      +'</div>';
+  }).join('');
   content.querySelectorAll('[data-ben-edit]').forEach(function(btn){
     btn.onclick=function(){openBenefitModal(this.dataset.benEdit);};
   });
+}
+function _calcMilestoneCost(m,payAmount){
+  if(m.reward_type==='discount_percent')return Math.round(payAmount*(m.reward_value||0)/100);
+  if(m.reward_type==='discount_amount')return m.reward_value||0;
+  if(m.reward_type==='free')return payAmount;
+  if(m.reward_type==='gift'){var g=DB.gifts.find(function(x){return x.id===m.reward_gift_id;});return g?calcGiftCostPerUnit(g):0;}
+  return 0;
+}
+function _milestoneRewardStr(m){
+  if(m.reward_type==='discount_percent')return m.reward_value+'% 할인';
+  if(m.reward_type==='discount_amount')return fMoney(m.reward_value)+' 할인';
+  if(m.reward_type==='free')return '무료 참여';
+  if(m.reward_type==='gift'){var g=DB.gifts.find(function(x){return x.id===m.reward_gift_id;});return'증정품: '+(g?esc(g.name):'미지정');}
+  return m.reward_type||'';
 }
 function syncBenefitSelect(){
   var sel=document.getElementById('plog-benefit-id');if(!sel)return;
   var cv=sel.value;
   sel.innerHTML='<option value="">없음</option>'+DB.benefits.filter(function(b){return b.is_active;}).map(function(b){return'<option value="'+b.id+'">'+esc(b.name)+'</option>';}).join('');
   if(cv)sel.value=cv;
-  // benefit modal gift select
-  var gs=document.getElementById('benefit-gift-id');if(!gs)return;
-  var gv=gs.value;
-  gs.innerHTML='<option value="">없음</option>'+DB.gifts.filter(function(g){return g.is_active;}).map(function(g){return'<option value="'+g.id+'">'+esc(g.name)+'</option>';}).join('');
-  if(gv)gs.value=gv;
-}
-function onPlogBenefitChange(){
-  var id=document.getElementById('plog-benefit-id').value;
-  var costWrap=document.getElementById('plog-benefit-cost-wrap');
-  var memoWrap=document.getElementById('plog-benefit-memo-wrap');
-  if(!id){
-    document.getElementById('plog-benefit-cost').value='';
-    document.getElementById('plog-benefit-cost-type').value='auto';
-    return;
-  }
-  var ben=DB.benefits.find(function(b){return b.id===id;});
-  if(!ben)return;
-  // auto-calc cost
-  var amount=parseFloat(document.getElementById('plog-amount').value)||0;
-  var cost=calcBenefitCostAuto(ben,amount);
-  document.getElementById('plog-benefit-cost').value=cost;
-  document.getElementById('plog-benefit-cost-type').value='auto';
-}
-function suggestBenefit(memberId,sesId,existingLog){
-  var sugEl=document.getElementById('plog-benefit-suggest');if(!sugEl)return;
-  var activeBens=DB.benefits.filter(function(b){return b.is_active;});
-  if(!activeBens.length){sugEl.style.display='none';return;}
-  var existingBenId=existingLog?existingLog.benefit_id:null;
-  var existingBen2Id=existingLog?existingLog.benefit2_id:null;
-  var matched=activeBens.filter(function(b){return isBenefitEligible(memberId,b,sesId)&&b.id!==existingBenId&&b.id!==existingBen2Id;});
-  if(!matched.length){sugEl.style.display='none';return;}
-  sugEl.style.display='';
-  var primaryFilled=!!(existingBenId||document.getElementById('plog-benefit-id')?.value);
-  sugEl.innerHTML=matched.map(function(b){
-    var slot=primaryFilled&&b.id!==existingBenId?2:1;
-    var progHint='';
-    if(b.applicable_program_ids&&b.applicable_program_ids.length>0){
-      var pNames=b.applicable_program_ids.map(function(pid){var p=DB.programs.find(function(x){return x.id===pid;});return p?(p.emoji||'')+esc(p.name):'';}).join(', ');
-      progHint=' <span style="font-size:10px;color:#a06000">('+pNames+')</span>';
-    }
-    var stkBadge=b.stackable===false?'<span class="badge badge-muted" style="font-size:9px;margin-left:4px">단독</span>':'';
-    return'<div style="margin-bottom:3px">&#127873; <strong>'+esc(b.name)+'</strong>'+stkBadge+progHint+' 혜택 대상 '
-      +'<button class="btn btn-primary btn-xs" style="margin-left:6px" data-sug-ben="'+b.id+'" data-sug-slot="'+slot+'">적용</button></div>';
-  }).join('');
-  sugEl.querySelectorAll('[data-sug-ben]').forEach(function(btn){
-    btn.onclick=function(){_applySuggest(this.dataset.sugBen,parseInt(this.dataset.sugSlot)||1);};
-  });
-}
-function _applySuggest(benId,slot){
-  if(slot===2){
-    var b2Sel=document.getElementById('plog-benefit2-id');
-    if(b2Sel)b2Sel.value=benId;
-    onPlogBenefit2Change();
-  } else {
-    document.getElementById('plog-benefit-id').value=benId;
-    onPlogBenefitChange();
-  }
-  document.getElementById('plog-benefit-suggest').style.display='none';
-}
-function onPlogBenefitChange(){
-  var id=document.getElementById('plog-benefit-id').value;
-  var sec=document.getElementById('plog-benefit2-section');
-  if(!id){document.getElementById('plog-benefit-cost').value='';document.getElementById('plog-benefit-cost-type').value='auto';if(sec)sec.style.display='none';return;}
-  var ben=DB.benefits.find(function(b){return b.id===id;});if(!ben)return;
-  var amount=parseFloat(document.getElementById('plog-amount').value)||0;
-  document.getElementById('plog-benefit-cost').value=calcBenefitCostAuto(ben,amount);
-  document.getElementById('plog-benefit-cost-type').value='auto';
-  if(sec)sec.style.display=ben.stackable!==false?'':'none';
-  var b2Sel=document.getElementById('plog-benefit2-id');
-  if(b2Sel){
-    var cv=b2Sel.value;
-    var benAppIds=ben.applicable_program_ids||[];
-    var eligible2=DB.benefits.filter(function(b2){
-      if(!b2.is_active||b2.id===id)return false;
-      // 같은 프로그램 혜택은 동시 적용 불가
-      var b2AppIds=b2.applicable_program_ids||[];
-      if(benAppIds.length===0&&b2AppIds.length===0)return false;
-      if(benAppIds.length===0||b2AppIds.length===0)return false;
-      return!benAppIds.some(function(pid){return b2AppIds.includes(pid);});
-    });
-    b2Sel.innerHTML='<option value="">없음</option>'+eligible2.map(function(b2){return'<option value="'+b2.id+'">'+esc(b2.name)+'</option>';}).join('');
-    if(cv&&cv!==id)b2Sel.value=cv;
-  }
-}
-function applyBenefitSuggest(benId){_applySuggest(benId,1);}
 
-function openBenefitModal(id){
-  syncBenefitSelect();
-  var b=id?DB.benefits.find(function(x){return x.id===id;}):null;
-  document.getElementById('m-benefit-title').textContent=b?'혜택 수정':'혜택 추가';
-  document.getElementById('benefit-id').value=b?b.id:'';
-  document.getElementById('benefit-name').value=b?b.name:'';
-  document.getElementById('benefit-desc').value=b?b.description||'':'';
-  document.getElementById('benefit-cond-type').value=b?b.condition_type||'count':'count';
-  document.getElementById('benefit-cond-val').value=b?b.condition_value||'':'';
-  document.getElementById('benefit-reward-type').value=b?b.reward_type||'discount_percent':'discount_percent';
-  document.getElementById('benefit-reward-val').value=b?b.reward_value||'':'';
-  document.getElementById('benefit-gift-id').value=b?b.reward_gift_id||'':'';
-  document.getElementById('benefit-cost-calc').value=b?b.cost_calc_type||'auto':'auto';
-  document.getElementById('benefit-active').value=b&&!b.is_active?'0':'1';
-  var stEl=document.getElementById('benefit-stackable');if(stEl)stEl.checked=!b||(b.stackable!==false);
-  renderBenefitProgCheckboxes(b?b.applicable_program_ids||[]:[]); 
-  var delBtn=document.getElementById('benefit-del-btn');if(delBtn)delBtn.style.display=b?'':'none';
-  onBenefitCondChange();
-  onBenefitRewardChange();
-  openModal('m-benefit');
-  setTimeout(function(){document.getElementById('benefit-name').focus();},100);
 }
-function onBenefitCondChange(){
-  var t=document.getElementById('benefit-cond-type').value;
-  var lbl=document.getElementById('benefit-cond-val-label');
-  if(lbl){if(t==='amount')lbl.textContent='기준 금액 (원)';else lbl.textContent='기준 횟수';}
+function addMilestoneRow(threshold,rewType,rewVal,giftId,costCalc){
+  threshold=threshold||'';rewType=rewType||'discount_percent';rewVal=rewVal||'';giftId=giftId||'';costCalc=costCalc||'auto';
+  var rid=genId('MR');
+  var giftOpts='<option value="">없음</option>'+DB.gifts.filter(function(g){return g.is_active;}).map(function(g){return'<option value="'+g.id+'"'+(g.id===giftId?' selected':'')+'>'+esc(g.name)+'</option>';}).join('');
+  var row=document.createElement('div');
+  row.className='recipe-row';row.id='msr-'+rid;
+  row.style.cssText='align-items:flex-start;flex-wrap:wrap;gap:6px;margin-bottom:8px';
+  row.innerHTML='<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">'
+    +'<input type="number" class="form-input" style="width:72px" placeholder="횟수" value="'+threshold+'" min="1" title="달성 횟수">'
+    +'<span style="font-size:12px;color:var(--text3)">회</span>'
+    +'</div>'
+    +'<select class="form-select" style="flex:1;min-width:110px" onchange="_onMsRewChange(this)">'
+    +'<option value="discount_percent"'+(rewType==='discount_percent'?' selected':'')+'>할인율 (%)</option>'
+    +'<option value="discount_amount"'+(rewType==='discount_amount'?' selected':'')+'>할인액 (원)</option>'
+    +'<option value="gift"'+(rewType==='gift'?' selected':'')+'>증정품</option>'
+    +'<option value="free"'+(rewType==='free'?' selected':'')+'>무료 참여</option>'
+    +'</select>'
+    +'<div class="ms-val-wrap" style="display:flex;align-items:center;gap:4px;flex:1;min-width:80px">'
+    +('<input type="number" class="form-input" placeholder="값" value="'+rewVal+'" min="0" style="flex:1">')
+    +'</div>'
+    +'<div class="ms-gift-wrap" style="display:'+(rewType==='gift'?'flex':'none')+';align-items:center;gap:4px;flex:1;min-width:120px">'
+    +'<select class="form-select">'+giftOpts+'</select>'
+    +'</div>'
+    +'<button class="btn btn-danger btn-xs" data-remrow="1" style="flex-shrink:0">×</button>';
+  document.getElementById('milestone-rows').appendChild(row);
+  if(rewType==='free'){row.querySelector('.ms-val-wrap').style.display='none';}
 }
-function onBenefitRewardChange(){
-  var t=document.getElementById('benefit-reward-type').value;
-  var vWrap=document.getElementById('benefit-reward-val-wrap');
-  var gWrap=document.getElementById('benefit-gift-wrap');
-  var lbl=document.getElementById('benefit-reward-val-label');
-  if(t==='gift'){if(vWrap)vWrap.style.display='none';if(gWrap)gWrap.style.display='';}
-  else{if(vWrap)vWrap.style.display='';if(gWrap)gWrap.style.display='none';
-    if(lbl){if(t==='discount_percent')lbl.textContent='할인율 (%)';else if(t==='discount_amount')lbl.textContent='할인액 (원)';else lbl.textContent='값';}
-  }
+function _onMsRewChange(sel){
+  var row=sel.closest('.recipe-row');if(!row)return;
+  var vw=row.querySelector('.ms-val-wrap');
+  var gw=row.querySelector('.ms-gift-wrap');
+  if(sel.value==='gift'){if(vw)vw.style.display='none';if(gw)gw.style.display='flex';}
+  else if(sel.value==='free'){if(vw)vw.style.display='none';if(gw)gw.style.display='none';}
+  else{if(vw)vw.style.display='flex';if(gw)gw.style.display='none';}
+}
+function getMilestoneRows(){
+  var rows=[];
+  document.querySelectorAll('#milestone-rows .recipe-row').forEach(function(row){
+    var thInput=row.querySelector('input[type=number]');
+    var rewSel=row.querySelectorAll('select')[0];
+    var valInput=row.querySelector('.ms-val-wrap input');
+    var giftSel=row.querySelector('.ms-gift-wrap select');
+    var th=thInput?parseInt(thInput.value)||0:0;
+    var rewType=rewSel?rewSel.value:'discount_percent';
+    var rewVal=valInput?parseFloat(valInput.value)||0:0;
+    var giftId=giftSel&&rewType==='gift'?giftSel.value||null:null;
+    if(th>0)rows.push({count_threshold:th,reward_type:rewType,reward_value:rewVal,reward_gift_id:giftId,cost_calc_type:'auto'});
+  });
+  return rows;
 }
 function saveBenefit(){
   var name=(document.getElementById('benefit-name').value||'').trim();
   if(!name){toast('혜택명을 입력해주세요','error');return;}
+  var milestoneRows=getMilestoneRows();
+  if(!milestoneRows.length){toast('마일스톤을 1개 이상 추가해주세요','error');return;}
   if(!requireSheets())return;
   var id=document.getElementById('benefit-id').value;
   var desc=(document.getElementById('benefit-desc').value||'').trim();
-  var condType=document.getElementById('benefit-cond-type').value;
-  var condVal=parseFloat(document.getElementById('benefit-cond-val').value)||1;
-  var rewType=document.getElementById('benefit-reward-type').value;
-  var rewVal=parseFloat(document.getElementById('benefit-reward-val').value)||0;
-  var rewGiftId=document.getElementById('benefit-gift-id').value||null;
-  var costCalc=document.getElementById('benefit-cost-calc').value;
+  var maxCount=parseInt(document.getElementById('benefit-max-count').value)||null;
+  var repeatable=document.getElementById('benefit-repeatable').checked;
   var isActive=document.getElementById('benefit-active').value==='1';
-  var stackable=document.getElementById('benefit-stackable')?document.getElementById('benefit-stackable').checked!==false:true;
   var appProgIds=Array.from(document.querySelectorAll('#benefit-prog-list input[type=checkbox]:checked')).map(function(cb){return cb.value;});
   var now=new Date().toISOString();
+  var benId=id||genId('BEN');
   if(id){
     var b=DB.benefits.find(function(x){return x.id===id;});if(!b)return;
-    Object.assign(b,{name,description:desc,condition_type:condType,condition_value:condVal,reward_type:rewType,reward_value:rewVal,reward_gift_id:rewGiftId,cost_calc_type:costCalc,is_active:isActive,stackable:stackable,applicable_program_ids:appProgIds});
+    Object.assign(b,{name,description:desc,benefit_type:'milestone',max_count:maxCount,repeatable,applicable_program_ids:appProgIds,is_active:isActive});
     toast('혜택 수정 완료');
   } else {
-    DB.benefits.push({id:genId('BEN'),name,description:desc,condition_type:condType,condition_value:condVal,reward_type:rewType,reward_value:rewVal,reward_gift_id:rewGiftId,cost_calc_type:costCalc,is_active:isActive,stackable:stackable,applicable_program_ids:appProgIds,created_at:now});
+    DB.benefits.push({id:benId,name,description:desc,benefit_type:'milestone',max_count:maxCount,repeatable,applicable_program_ids:appProgIds,is_active:isActive,created_at:now});
     toast('혜택 추가 완료');
   }
+  // 마일스톤 교체
+  DB.benefitMilestones=DB.benefitMilestones.filter(function(m){return m.benefit_id!==benId;});
+  milestoneRows.forEach(function(r){DB.benefitMilestones.push({id:genId('BMS'),benefit_id:benId,count_threshold:r.count_threshold,reward_type:r.reward_type,reward_value:r.reward_value,reward_gift_id:r.reward_gift_id,cost_calc_type:r.cost_calc_type});});
   closeModal('m-benefit');
   renderBenefitList();
-  syncBenefitSelect();
-  gsAfter('benefits');
+  gsAfter('benefits','benefitMilestones');
 }
 function deleteBenefit(){
   var id=document.getElementById('benefit-id').value;if(!id)return;
   if(!confirm('이 혜택을 삭제할까요?'))return;
   if(!requireSheets())return;
   DB.benefits=DB.benefits.filter(function(x){return x.id!==id;});
+  DB.benefitMilestones=DB.benefitMilestones.filter(function(m){return m.benefit_id!==id;});
   closeModal('m-benefit');
   renderBenefitList();
-  syncBenefitSelect();
-  gsAfter('benefits');
+  gsAfter('benefits','benefitMilestones');
   toast('삭제 완료','warning');
 }
 
 // ══════════════════════════════════════════════════════════
-// 증정품 CRUD
+// 마일스톤 핵심 계산 함수
 // ══════════════════════════════════════════════════════════
-var giftPage=1;
-function goGiftPage(p){giftPage=p;renderGiftList();}
-function renderGiftList(){
-  var content=document.getElementById('gift-content');
-  var empty=document.getElementById('gift-empty');
-  if(!content)return;
-  if(!DB.gifts.length){content.innerHTML='';if(empty)empty.style.display='';return;}
-  if(empty)empty.style.display='none';
-  var perPage=parseInt(document.getElementById('gift-per-page')?.value||'20');
-  var total=DB.gifts.length,pages=Math.max(1,Math.ceil(total/perPage));
-  if(giftPage>pages)giftPage=1;
-  buildPager('gift-pagination-top',total,giftPage,perPage,'goGiftPage');
-  buildPager('gift-pagination-bot',total,giftPage,perPage,'goGiftPage');
-  var paged=DB.gifts.slice((giftPage-1)*perPage,giftPage*perPage);
-  var isMob=!!(window.matchMedia&&window.matchMedia('(max-width:1024px)').matches);
-  if(isMob){
-    content.innerHTML=paged.map(function(g){
-      var editBtn='<button class="btn btn-outline btn-xs" data-gift-edit="'+g.id+'">수정</button>';
-      return'<div style="padding:11px 4px;border-bottom:1px solid var(--border)">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
-        +'<div style="font-size:14px;font-weight:700;flex:1;min-width:0">'+esc(g.name)+'</div>'
-        +'<div class="td-mono" style="font-size:12px;color:var(--accent-dark);flex-shrink:0">'+fMoney(g.cost_per_unit||0)+'</div>'
-        +'</div>'
-        +(g.description?'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+esc(g.description)+'</div>':'')
-        +'<div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap">'
-        +'<span style="font-size:12px;color:var(--text2)">재고 <span class="td-mono">'+(g.stock||0)+'개</span></span>'
-        +(g.is_active?'<span class="badge badge-green">활성</span>':'<span class="badge badge-muted">비활성</span>')
-        +editBtn+'</div>'
-        +'</div>';
-    }).join('');
-  } else {
-    content.innerHTML='<div class="tbl-wrap"><table>'
-      +'<thead><tr><th>증정품명</th><th>설명</th><th>단위 원가</th><th>재고</th><th>상태</th><th></th></tr></thead>'
-      +'<tbody>'+paged.map(function(g){
-        var editBtn='<button class="btn btn-outline btn-xs" data-gift-edit="'+g.id+'">수정</button>';
-        return'<tr>'
-          +'<td><strong>'+esc(g.name)+'</strong></td>'
-          +'<td style="color:var(--text2);font-size:12px">'+esc(g.description||'')+'</td>'
-          +'<td class="td-mono">'+fMoney(g.cost_per_unit||0)+'</td>'
-          +'<td class="td-mono">'+(g.ingredient_id?Math.floor(calcGiftStock(g))+'개 ('+esc(DB.ingredients.find(function(i){return i.id===g.ingredient_id;})||{name:'?'}).name+' 기반)':g.stock||0+'개')+'</td>'
-          +'<td>'+(g.is_active?'<span class="badge badge-green">활성</span>':'<span class="badge badge-muted">비활성</span>')+'</td>'
-          +'<td>'+editBtn+'</td>'
-          +'</tr>';
-      }).join('')+'</tbody></table></div>';
-  }
-  content.querySelectorAll('[data-gift-edit]').forEach(function(btn){
-    btn.onclick=function(){openGiftModal(this.dataset.giftEdit);};
-  });
-}
-function openGiftModal(id){
-  var g=id?DB.gifts.find(function(x){return x.id===id;}):null;
-  document.getElementById('m-gift-title').textContent=g?'증정품 수정':'증정품 추가';
-  document.getElementById('gift-id').value=g?g.id:'';
-  document.getElementById('gift-name').value=g?g.name:'';
-  document.getElementById('gift-desc').value=g?g.description||'':'';
-  document.getElementById('gift-active').value=g&&!g.is_active?'0':'1';
-  // 원가 항목 셀렉트 채우기
-  var ingOpts='<option value="">연결 안 함</option>'+DB.ingredients.filter(function(i){return i.is_active;}).map(function(i){return'<option value="'+i.id+'">'+ esc(i.name)+' ('+i.unit+')</option>';}).join('');
-  document.getElementById('gift-ingredient').innerHTML=ingOpts;
-  document.getElementById('gift-ingredient').value=g&&g.ingredient_id?g.ingredient_id:'';
-  document.getElementById('gift-qty').value=g&&g.qty_per_gift?g.qty_per_gift:'';
-  document.getElementById('gift-cost').value=g?g.cost_per_unit||0:'';
-  document.getElementById('gift-stock').value=g?g.stock||0:'';
-  onGiftIngredientChange();
-  var delBtn=document.getElementById('gift-del-btn');if(delBtn)delBtn.style.display=g?'':'none';
-  openModal('m-gift');
-  setTimeout(function(){document.getElementById('gift-name').focus();},100);
-}
-function saveGift(){
-  var name=(document.getElementById('gift-name').value||'').trim();
-  if(!name){toast('증정품명을 입력해주세요','error');return;}
-  if(!requireSheets())return;
-  var id=document.getElementById('gift-id').value;
-  var desc=(document.getElementById('gift-desc').value||'').trim();
-  var ingId=document.getElementById('gift-ingredient').value||null;
-  var qty=parseFloat(document.getElementById('gift-qty').value)||null;
-  var cost=parseFloat(document.getElementById('gift-cost').value)||0;
-  var stock=parseInt(document.getElementById('gift-stock').value)||0;
-  var isActive=document.getElementById('gift-active').value==='1';
-  var now=new Date().toISOString();
-  if(id){
-    var g=DB.gifts.find(function(x){return x.id===id;});if(!g)return;
-    Object.assign(g,{name,description:desc,ingredient_id:ingId,qty_per_gift:qty,cost_per_unit:cost,stock,is_active:isActive});
-    toast('증정품 수정 완료');
-  } else {
-    DB.gifts.push({id:genId('GFT'),name,description:desc,ingredient_id:ingId,qty_per_gift:qty,cost_per_unit:cost,stock,is_active:isActive,created_at:now});
-    toast('증정품 추가 완료');
-  }
-  closeModal('m-gift');
-  renderGiftList();
-  syncBenefitSelect();
-  gsAfter('gifts');
-}
-function deleteGift(){
-  var id=document.getElementById('gift-id').value;if(!id)return;
-  if(!confirm('이 증정품을 삭제할까요?'))return;
-  if(!requireSheets())return;
-  DB.gifts=DB.gifts.filter(function(x){return x.id!==id;});
-  DB.benefits.filter(function(b){return b.reward_gift_id===id;}).forEach(function(b){b.reward_gift_id=null;});
-  closeModal('m-gift');
-  renderGiftList();
-  syncBenefitSelect();
-  gsAfter('gifts','benefits');
-  toast('삭제 완료','warning');
-}
-
-// ══════════════════════════════════════════════════════════
-// 참여 로그 – 옵션 렌더
-// ══════════════════════════════════════════════════════════
-function renderPlogOptions(sesId, logId){
-  var el=document.getElementById('plog-options-section');
-  var totEl=document.getElementById('plog-opt-total');
-  if(!el)return;
-  var active=DB.addOptions.filter(function(o){return o.is_active;});
-  if(!active.length){el.innerHTML='<span style="font-size:12px;color:var(--text3)">활성 옵션 없음</span>';if(totEl)totEl.textContent='';return;}
-  // 기존 선택 상태 복원
-  var existing=new Set();
-  if(logId){
-    DB.logOptions.filter(function(o){return o.log_id===logId;}).forEach(function(o){existing.add(o.option_id);});
-  } else if(sesId){
-    // 새 로그: 세션 오버라이드 → 프로그램 기본값 순으로 자동 적용
-    var _sesOpts=DB.sessionOptions.filter(function(x){return x.session_id===sesId;});
-    if(_sesOpts.length>0){
-      _sesOpts.forEach(function(x){existing.add(x.option_id);});
-    } else {
-      var _sesTmp=DB.sessions.find(function(s){return s.id===sesId;});
-      var _progTmp=_sesTmp?DB.programs.find(function(p){return p.id===_sesTmp.program_id;}):null;
-      var _defs=(_progTmp&&_progTmp.default_option_ids)||[];
-      _defs.forEach(function(oid){existing.add(oid);});
-    }
-  }
-  el.innerHTML=active.map(function(o){
-    var chk=existing.has(o.id)?'checked':'';
-    return'<label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px">'
-      +'<input type="checkbox" data-opt-id="'+o.id+'" data-price="'+(o.price||0)+'" '+chk+' onchange="updatePlogOptTotal()">'
-      +'<span>'+esc(o.name)+'</span>'
-      +'<span class="td-mono" style="font-size:11px;color:var(--accent-dark)">+'+fMoney(o.price||0)+'</span>'
-      +'</label>';
-  }).join('');
-  updatePlogOptTotal();
-}
-function updatePlogOptTotal(){
-  var totEl=document.getElementById('plog-opt-total');if(!totEl)return;
-  var total=0;
-  document.querySelectorAll('#plog-options-section input[type=checkbox]:checked').forEach(function(cb){
-    total+=parseFloat(cb.dataset.price)||0;
-  });
-  totEl.textContent=total>0?'옵션 합계: +'+fMoney(total):'';
-}
-
-// ══════════════════════════════════════════════════════════
-// 초기화
-// ══════════════════════════════════════════════════════════
-
-
-// ══════════════════════════════════════════════════════════
-// 증정품 모달: 원가 항목 연결 UI
-// ══════════════════════════════════════════════════════════
-function onGiftIngredientChange(){
-  var ingId=document.getElementById('gift-ingredient').value;
-  var qtyWrap=document.getElementById('gift-qty-wrap');
-  var derived=document.getElementById('gift-cost-derived');
-  var stockWrap=document.getElementById('gift-stock-wrap');
-  if(!ingId){if(qtyWrap)qtyWrap.style.display='none';if(derived)derived.style.display='none';if(stockWrap)stockWrap.style.display='';return;}
-  if(qtyWrap)qtyWrap.style.display='';
-  if(stockWrap)stockWrap.style.display='none';
-  var qty=parseFloat(document.getElementById('gift-qty').value)||0;
-  var ing=DB.ingredients.find(function(i){return i.id===ingId;});
-  if(ing&&qty&&ing.purchase_unit_qty&&ing.price_per_unit&&derived){
-    var unitCost=qty*(ing.price_per_unit/ing.purchase_unit_qty);
-    var stk=Math.floor(calcStock(ing.id)/qty);
-    derived.style.display='';
-    derived.innerHTML='단위 원가: <strong class="n-p">'+fMoney(unitCost)+'</strong> &nbsp;|&nbsp; 현재 재고: <strong class="n-g">'+stk+'개</strong>';
-    document.getElementById('gift-cost').value=Math.round(unitCost);
-  } else if(derived){derived.style.display='none';}
-}
-// ══════════════════════════════════════════════════════════
-// 혜택 모달: 프로그램 체크박스
-// ══════════════════════════════════════════════════════════
-function renderBenefitProgCheckboxes(selected){
-  var el=document.getElementById('benefit-prog-list');if(!el)return;
-  var progs=DB.programs.filter(function(p){return p.is_active;});
-  if(!progs.length){el.innerHTML='<span style="font-size:12px;color:var(--text3)">등록된 프로그램 없음</span>';return;}
-  el.innerHTML=progs.map(function(p){
-    var chk=selected&&selected.includes(p.id)?'checked':'';
-    return'<label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px">'
-      +'<input type="checkbox" value="'+p.id+'" '+chk+'>'
-      +'<span>'+(p.emoji||'')+' '+esc(p.name)+'</span>'
-      +'</label>';
-  }).join('');
-}
-// ══════════════════════════════════════════════════════════
-// 혜택 적용 가능 여부 계산 (소진 방식)
-// ══════════════════════════════════════════════════════════
-function countBenefitUsed(memberId,benefitId){
-  return DB.participationLogs.filter(function(l){return l.member_id===memberId&&(l.benefit_id===benefitId||l.benefit2_id===benefitId);}).length;
-}
-function isBenefitEligible(memberId,benefit,excludeSesId){
-  var n=benefit.condition_value||1;
+function getMilestoneCount(memberId,benefit,excludeSesId){
   var appIds=benefit.applicable_program_ids||[];
-  function getConf(ids){
-    var all=DB.participationLogs.filter(function(l){return l.member_id===memberId&&l.status==='참여확정'&&l.session_id!==excludeSesId;});
-    if(ids&&ids.length>0){all=all.filter(function(l){var s=DB.sessions.find(function(x){return x.id===l.session_id;});return s&&ids.includes(s.program_id);});}
-    return all;
-  }
-  var totalConf=getConf(appIds);
-  if(benefit.condition_type==='streak'){
-    var dates=totalConf.map(function(l){var s=DB.sessions.find(function(x){return x.id===l.session_id;});return s?s.session_date:null;}).filter(Boolean).sort();
-    var streak=0;if(dates.length){streak=1;for(var i=dates.length-1;i>0;i--){if((new Date(dates[i]+'T00:00:00')-new Date(dates[i-1]+'T00:00:00'))<32*86400000)streak++;else break;}}
-    return streak>=n;
-  }
-  // 소진 방식: 다른 혜택이 겹치는 프로그램에서 소진한 횟수 차감
-  var consumed=0;
-  DB.participationLogs.filter(function(l){return l.member_id===memberId;}).forEach(function(usedLog){
-    [usedLog.benefit_id,usedLog.benefit2_id].forEach(function(usedBenId){
-      if(!usedBenId||usedBenId===benefit.id)return;
-      var ub=DB.benefits.find(function(b){return b.id===usedBenId;});if(!ub)return;
-      var ubIds=ub.applicable_program_ids||[];
-      var overlaps=(appIds.length===0&&ubIds.length===0)||(appIds.length===0)||(ubIds.length===0)||appIds.some(function(id){return ubIds.includes(id);});
-      if(overlaps)consumed+=(ub.condition_value||1);
-    });
-  });
-  if(benefit.condition_type==='amount'){
-    var totalAmt=totalConf.reduce(function(s,l){return s+(l.payment_amount||0);},0);
-    return Math.floor(totalAmt/n)>countBenefitUsed(memberId,benefit.id);
-  }
-  var netCount=Math.max(0,totalConf.length-consumed);
-  return Math.floor(netCount/n)>countBenefitUsed(memberId,benefit.id);
+  return DB.participationLogs.filter(function(l){
+    if(l.member_id!==memberId||l.status!=='참여확정')return false;
+    if(l.session_id===excludeSesId)return false;
+    if(appIds.length>0){var s=DB.sessions.find(function(x){return x.id===l.session_id;});if(!s||!appIds.includes(s.program_id))return false;}
+    return true;
+  }).length;
 }
-// ══════════════════════════════════════════════════════════
-// benefit2 change handler
-// ══════════════════════════════════════════════════════════
-// benefit2 change handler
-// ══════════════════════════════════════════════════════════
-function onPlogBenefit2Change(){
-  var id=document.getElementById('plog-benefit2-id').value;
-  if(!id){document.getElementById('plog-benefit2-cost').value='';document.getElementById('plog-benefit2-cost-type').value='auto';return;}
-  var ben=DB.benefits.find(function(b){return b.id===id;});if(!ben)return;
-  var amount=parseFloat(document.getElementById('plog-amount').value)||0;
-  document.getElementById('plog-benefit2-cost').value=calcBenefitCostAuto(ben,amount);
-  document.getElementById('plog-benefit2-cost-type').value='auto';
+function getMilestoneCycle(memberId,benefit,excludeSesId){
+  var maxCnt=benefit.max_count||999;
+  var cnt=getMilestoneCount(memberId,benefit,excludeSesId);
+  var repeatable=benefit.repeatable===true;
+  if(!repeatable&&cnt>=maxCnt)return{cycle:1,pos:cnt,done:true};
+  var cycle=repeatable?Math.floor(cnt/maxCnt)+1:1;
+  var pos=repeatable?(cnt%maxCnt):cnt;
+  return{cycle:cycle,pos:pos,done:!repeatable&&cnt>=maxCnt};
+}
+function calcAutoMilestone(memberId,sesId,progId,existingLogId){
+  if(!memberId)return null;
+  var activeBens=DB.benefits.filter(function(b){return b.is_active&&b.benefit_type==='milestone';});
+  for(var i=0;i<activeBens.length;i++){
+    var b=activeBens[i];
+    var appIds=b.applicable_program_ids||[];
+    if(appIds.length>0&&progId&&!appIds.includes(progId))continue;
+    var info=getMilestoneCycle(memberId,b,sesId);
+    if(info.done)continue;
+    var newPos=info.pos+1;
+    var ms=DB.benefitMilestones.filter(function(m){return m.benefit_id===b.id&&m.count_threshold===newPos;});
+    if(!ms.length)continue;
+    var m=ms[0];
+    var rewStr=_milestoneRewardStr(m);
+    var toast_msg=esc(b.name)+' '+newPos+'회 달성 — '+rewStr+' 자동 적용';
+    return{benefit_id:b.id,cost:0,memo:newPos+'회 달성: '+rewStr,toast_msg:toast_msg,name:b.name};
+  }
+  return null;
 }
 // ══════════════════════════════════════════════════════════
 // 더미 데이터 관리
@@ -5512,7 +5207,8 @@ var DUMMY_IDS={
   addOptions:['OPT001','OPT002'],
   optionRecipes:['ORC001'],
   gifts:['GFT001','GFT002'],
-  benefits:['BEN001','BEN002'],
+  benefits:['BEN001'],
+  benefitMilestones:['BMS001','BMS002'],
   members:['MBR001','MBR002','MBR003'],
   participationLogs:['PLOG001','PLOG002','PLOG003','PLOG004'],
   logOptions:['LOPT001','LOPT002'],
@@ -5520,7 +5216,7 @@ var DUMMY_IDS={
 function syncDummyDataToSheets(){
   if(!requireSheets())return;
   if(!confirm('현재 더미 데이터를 Sheets에 저장할까요?\n기존 Sheets 데이터와 합쳐집니다.'))return;
-  gsAfter('addOptions','optionRecipes','gifts','benefits','members','participationLogs','logOptions');
+  gsAfter('addOptions','optionRecipes','gifts','benefits','benefitMilestones','members','participationLogs','logOptions');
   toast('더미 데이터를 Sheets에 저장했습니다 ✓');
   renderSettingsInfo();
 }
@@ -5534,7 +5230,7 @@ function clearDummyData(){
   // PRG001 default_option_ids 초기화
   var prg=DB.programs.find(function(p){return p.id==='PRG001';});
   if(prg)prg.default_option_ids=[];
-  gsAfter('addOptions','optionRecipes','gifts','benefits','members','participationLogs','logOptions','programs');
+  gsAfter('addOptions','optionRecipes','gifts','benefits','benefitMilestones','members','participationLogs','logOptions','programs');
   renderOptions();renderBenefits();renderMembers&&renderMembers();renderPrograms();
   toast('더미 데이터 삭제 완료','warning');
   renderSettingsInfo();
